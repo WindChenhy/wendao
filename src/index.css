@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #1a1a1a;
+  --color-ink-2: #242424;
+  --color-ink-3: #2e2e2e;
+  --color-gold: #c8a45c;
+  --color-gold-dim: #8a7340;
+  --color-vermilion: #c34043;
+  --color-bamboo: #5a9e6f;
+  --color-jade: #6b9e8f;
+  --color-text: #d4cbb8;
+  --color-text-dim: #8a8070;
+  --color-border: #3a3530;
+  --color-panel: #22201c;
+  --color-danger: #a33b3b;
+  --font-display: 'Zpix', 'SimSun', 'Songti SC', serif;
+  --font-body: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pixel-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-ink-3);
+  color: var(--color-text);
+  border-radius: 2px;
+  padding: 6px 12px;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.pixel-btn:hover:not(:disabled) {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.pixel-btn.primary {
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold);
+  background: #2a2618;
+}
+
+.pixel-btn.primary:hover:not(:disabled) {
+  background: #3a3420;
+  border-color: var(--color-gold);
+}
+
+.pixel-btn.danger {
+  border-color: var(--color-danger);
+  color: #e08080;
+}
+
+.panel-box {
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  border-radius: 2px;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.log-line {
+  padding: 2px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.log-line.t-good {
+  color: var(--color-bamboo);
+}
+
+.log-line.t-bad {
+  color: #e08080;
+}
+
+.log-line.t-gold {
+  color: var(--color-gold);
+}
+
+.log-line.t-dim {
+  color: var(--color-text-dim);
+}
