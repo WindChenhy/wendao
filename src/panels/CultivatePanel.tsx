@@ -5,24 +5,32 @@ import { ITEMS, requiredMaterial } from '../data/items'
 import { canBreakthrough, breakthroughRate } from '../game/breakthrough'
 import { seclusionYearOptions } from '../game/day'
 import { formatNum } from '../game/format'
+import { daoBonuses, reincarnateGain } from '../game/reincarnate'
 import { useGameStore } from '../stores/useGameStore'
 
 export function CultivatePanel() {
   const player = useGameStore((s) => s.player)
   const sect = useGameStore((s) => s.sect)
   const inventory = useGameStore((s) => s.inventory)
+  const legacy = useGameStore((s) => s.legacy)
+  const companion = useGameStore((s) => s.companion)
   const meditate = useGameStore((s) => s.meditate)
   const seclude = useGameStore((s) => s.seclude)
   const breakthrough = useGameStore((s) => s.breakthrough)
   const advanceDays = useGameStore((s) => s.advanceDays)
   const recoverFull = useGameStore((s) => s.recoverFull)
+  const reincarnate = useGameStore((s) => s.reincarnate)
+  const startCreate = useGameStore((s) => s.startCreate)
 
   if (!player) return null
   const need = expNeeded(player.realm, player.layer)
   const sdef = sect.sectId ? SECTS.find((x) => x.id === sect.sectId) : null
+  const dao = daoBonuses(legacy.daoMarks)
   const rate = Math.min(
     95,
-    breakthroughRate(player.classId, player.realm) + (sdef?.bonus.breakthroughBonus ?? 0),
+    breakthroughRate(player.classId, player.realm) +
+      (sdef?.bonus.breakthroughBonus ?? 0) +
+      dao.breakthroughBonus,
   )
   const ready = canBreakthrough(player.realm, player.layer, player.exp)
   const c = CLASSES[player.classId]
@@ -34,6 +42,7 @@ export function CultivatePanel() {
   const matCount = matId ? inventory[matId] ?? 0 : 0
   const matOk = !matId || matCount > 0
   const options = seclusionYearOptions(player.realm)
+  const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId)) : null
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
@@ -78,13 +87,19 @@ export function CultivatePanel() {
             {sdef?.bonus.breakthroughBonus}%
           </p>
         )}
+        {legacy.daoMarks > 0 && (
+          <p className="text-xs text-text-dim mt-1">
+            道痕 {legacy.daoMarks}：修炼 ×{dao.cultivateMul.toFixed(2)}，突破 +
+            {dao.breakthroughBonus}% · 已转生 {legacy.reincarnations} 次
+          </p>
+        )}
       </div>
 
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">冲击壁垒</div>
         <p className="text-xs text-text-dim mb-2">
           成功率约 <span className="text-gold">{Math.round(rate)}%</span>
-          （含职业与宗门加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
+          （含职业、宗门与道痕加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
         </p>
         {isMajor && matId && (
           <div className={`text-sm mb-3 ${matOk ? 'text-bamboo' : 'text-vermilion'}`}>
@@ -109,13 +124,57 @@ export function CultivatePanel() {
       {win && (
         <div className="panel-box p-4 border-gold">
           <div className="font-display text-gold text-lg mb-1">霞举飞升</div>
-          <p className="text-sm text-text-dim">你已超脱此界。</p>
+          <p className="text-sm text-text-dim">你已超脱此界。可转世重修，将此生修为化作道痕。</p>
+          {nextGain && (
+            <p className="text-xs text-text-dim mt-2">
+              转生可得道痕 <span className="text-gold">+{nextGain.daoMarks}</span>（{nextGain.desc}）
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              className="pixel-btn primary"
+              onClick={() =>
+                reincarnate({
+                  name: player.name,
+                  gender: player.gender,
+                  classId: player.classId,
+                })
+              }
+            >
+              立即转生（沿用此身名号职业）
+            </button>
+            <button className="pixel-btn" onClick={startCreate}>
+              另择新身转生
+            </button>
+          </div>
         </div>
       )}
       {dead && (
         <div className="panel-box p-4 border-vermilion">
           <div className="font-display text-vermilion text-lg mb-1">道消身陨</div>
-          <p className="text-sm text-text-dim">此世修行已终。可返回主菜单读取其他存档。</p>
+          <p className="text-sm text-text-dim">此世修行已终。可带着道痕转世重修。</p>
+          {nextGain && (
+            <p className="text-xs text-text-dim mt-2">
+              转生可得道痕 <span className="text-gold">+{nextGain.daoMarks}</span>（{nextGain.desc}）
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              className="pixel-btn primary"
+              onClick={() =>
+                reincarnate({
+                  name: player.name,
+                  gender: player.gender,
+                  classId: player.classId,
+                })
+              }
+            >
+              立即转生（沿用此身名号职业）
+            </button>
+            <button className="pixel-btn" onClick={startCreate}>
+              另择新身转生
+            </button>
+          </div>
         </div>
       )}
     </div>

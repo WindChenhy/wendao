@@ -1,10 +1,11 @@
 import { create } from 'zustand'
+import { expandPlotCost, MAX_PLOTS, RECIPES, SEEDS } from '../data/abode'
 import { CLASSES } from '../data/classes'
 import { companionById, giftAffinity, type CompanionDef } from '../data/companions'
 import { ENEMIES, pickEnemy } from '../data/enemies'
 import { pickWorldEvent, type WorldEvent } from '../data/events'
 import { ITEMS, pillExp, requiredMaterial } from '../data/items'
-import { REALMS, expNeeded, realmLabel, realmMaxEnergy, realmMaxHp } from '../data/realms'
+import { REALMS, expNeeded, realmIndex, realmLabel, realmMaxEnergy, realmMaxHp } from '../data/realms'
 import { SECTS, type SectDef } from '../data/sects'
 import {
   SECRET_REALMS,
@@ -12,6 +13,8 @@ import {
   isBossFloor,
   towerEnemy,
 } from '../data/secretRealms'
+import { BUILTIN_DLC } from '../dlc/builtin'
+import { combineRules, loadEnabledDlc, type RuntimeRules } from '../dlc/types'
 import {
   applyLayerDown,
   applyLayerUp,
@@ -25,14 +28,20 @@ import {
   cultivateGain,
   dailyRecover,
   dayKey,
+  dayNumber,
   seclusionGain,
   weatherOf,
 } from '../game/day'
+import { canCraft, craftRate, freshAbode, harvestYield, plotProgress } from '../game/farm'
 import { clamp } from '../game/format'
+import { applyDaoToMaxHp, daoBonuses, reincarnateGain } from '../game/reincarnate'
+import { decryptSave, encryptSave } from '../game/saveCrypto'
 import type {
+  AbodeState,
   CharacterCreateInput,
   EnemyDef,
   GameTime,
+  LegacyState,
   PanelId,
   PlayerState,
   TowerRun,
@@ -40,7 +49,7 @@ import type {
 import { useLogStore } from './useLogStore'
 
 const SAVE_PREFIX = 'wendao-slot-'
-const SAVE_VERSION = 3
+const SAVE_VERSION = 4
 
 export type GamePhase = 'menu' | 'create' | 'play'
 
@@ -73,6 +82,8 @@ export interface SlotSnapshot {
   treasures: string[]
   companion: CompanionState
   towerBest: Record<string, number>
+  abode: AbodeState
+  legacy: LegacyState
   updatedAt: number
 }
 
@@ -89,9 +100,17 @@ function freshCompanion(): CompanionState {
   return { affinity: {}, heartsSeen: {}, spouseId: null, dualDoneOn: '' }
 }
 
-function freshPlayer(input: CharacterCreateInput): PlayerState {
+function freshLegacy(): LegacyState {
+  return { daoMarks: 0, reincarnations: 0, bestRealmIndex: 0 }
+}
+
+function currentRules(): RuntimeRules {
+  return combineRules(BUILTIN_DLC, loadEnabledDlc())
+}
+
+function freshPlayer(input: CharacterCreateInput, legacy: LegacyState): PlayerState {
   const c = CLASSES[input.classId]
-  const maxHp = realmMaxHp('qi', c.hpMul)
+  const maxHp = applyDaoToMaxHp(realmMaxHp('qi', c.hpMul), legacy.daoMarks)
   const maxEnergy = realmMaxEnergy('qi', input.classId === 'demon')
   return {
     name: input.name.trim() || '无名',
@@ -106,7 +125,9 @@ function freshPlayer(input: CharacterCreateInput): PlayerState {
     maxEnergy,
     shaqi: input.classId === 'demon' ? 10 : 0,
     age: 16,
-    lifespanLeft: REALMS.qi.lifespan,
+    lifespanLeft: Math.floor(
+      REALMS.qi.lifespan * (1 + Math.min(0.3, legacy.daoMarks * 0.001)) * currentRules().lifespanMul,
+    ),
     repRight: input.classId === 'demon' ? -20 : 5,
     repDemonic: input.classId === 'demon' ? 40 : 0,
     alive: true,
@@ -120,6 +141,23 @@ function defaultInventory(): Record<string, number> {
 
 function log(text: string, level: 'info' | 'good' | 'bad' | 'gold' | 'dim' = 'info') {
   useLogStore.getState().push(text, level)
+}
+
+function pickEvent(realm: PlayerState['realm']): WorldEvent | null {
+  return pickWorldEvent(realm, currentRules().extraEvents)
+}
+
+function gainCultivate(classId: PlayerState['classId'], realm: PlayerState['realm'], layer: number): number {
+  return Math.floor(cultivateGain(classId, realm, layer) * currentRules().cultivateMul)
+}
+
+function gainSeclusion(
+  classId: PlayerState['classId'],
+  realm: PlayerState['realm'],
+  layer: number,
+  days: number,
+): number {
+  return Math.floor(seclusionGain(classId, realm, layer, days) * currentRules().cultivateMul)
 }
 
 function getLearnedBonus(learned: string[]) {
@@ -191,6 +229,8 @@ interface GameState {
   /** 各秘境最高通关层 */
   towerBest: Record<string, number>
   tower: TowerRun | null
+  abode: AbodeState
+  legacy: LegacyState
   activePanel: PanelId
   exploring: boolean
   lastCombat: { enemy: EnemyDef; win: boolean; log: string[] } | null
@@ -211,6 +251,13 @@ interface GameState {
   useItem: (id: string) => void
   sellItem: (id: string) => void
   buyItem: (id: string) => void
+
+  buySeed: (seedId: string) => void
+  plantSeed: (plotIndex: number, seedId: string) => void
+  harvestPlot: (plotIndex: number) => void
+  expandPlot: () => void
+  craftItem: (recipeId: string) => void
+  reincarnate: (input: CharacterCreateInput) => void
 
   joinSect: (sectId: string) => void
   leaveSect: () => void
@@ -246,7 +293,12 @@ interface GameState {
     empty: boolean
   }
   exportSave: () => string
-  importSave: (json: string) => boolean
+  /** 导出加密存档字符串（固定密钥 AES，与桃源乡同构） */
+  exportSaveEncrypted: () => string
+  /** 从加密/明文字符串导入并进入游戏 */
+  importSave: (payload: string) => boolean
+  /** 导入文件内容到指定槽位（不解包进游戏，校验后落盘） */
+  importSaveToSlot: (slot: number, fileContent: string) => boolean
 }
 
 function snapshotOf(s: GameState): SlotSnapshot {
@@ -260,6 +312,8 @@ function snapshotOf(s: GameState): SlotSnapshot {
     treasures: s.treasures,
     companion: s.companion,
     towerBest: s.towerBest,
+    abode: s.abode,
+    legacy: s.legacy,
     updatedAt: Date.now(),
   }
 }
@@ -275,13 +329,43 @@ export const useGameStore = create<GameState>((set, get) => ({
   companion: freshCompanion(),
   towerBest: {},
   tower: null,
+  abode: freshAbode(),
+  legacy: freshLegacy(),
   activePanel: 'cultivate',
   exploring: false,
   lastCombat: null,
   pendingEvent: null,
 
   setPanel: (p) => set({ activePanel: p }),
-  startCreate: () => set({ phase: 'create' }),
+  startCreate: () => {
+    const { player, companion, legacy } = get()
+    // 若此世已终结，先结算道痕再开新身
+    if (player && (!player.alive || player.ascended)) {
+      const gain = reincarnateGain(player, Boolean(companion.spouseId))
+      const nextLegacy: LegacyState = {
+        daoMarks: legacy.daoMarks + gain.daoMarks,
+        reincarnations: legacy.reincarnations + 1,
+        bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
+      }
+      log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
+      set({
+        legacy: nextLegacy,
+        phase: 'create',
+        player: null,
+        lastCombat: null,
+        pendingEvent: null,
+        tower: null,
+        sect: freshSect(),
+        companion: freshCompanion(),
+        treasures: [],
+        abode: freshAbode(),
+        activePanel: 'cultivate',
+      })
+      return
+    }
+    useLogStore.getState().clear()
+    set({ phase: 'create' })
+  },
 
   backToMenu: () => {
     useLogStore.getState().clear()
@@ -296,25 +380,36 @@ export const useGameStore = create<GameState>((set, get) => ({
       companion: freshCompanion(),
       treasures: [],
       towerBest: {},
+      abode: freshAbode(),
+      // 保留道痕与转生次数，跨周目继承
     })
   },
 
   createCharacter: (input) => {
-    const player = freshPlayer(input)
-    useLogStore.getState().clear()
+    const legacy = get().legacy
+    const player = freshPlayer(input, legacy)
+    const dao = daoBonuses(legacy.daoMarks)
+    const abode = freshAbode()
+    while (abode.plots.length < Math.min(MAX_PLOTS, abode.plots.length + dao.startPlotsBonus)) {
+      abode.plots.push({ seedId: null, plantedDay: 0 })
+    }
     log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
     log(`初始寿元 ${player.lifespanLeft} 年。${dayKey(get().time)}，天朗气清。`, 'dim')
+    if (legacy.daoMarks > 0) {
+      log(`道痕 ${legacy.daoMarks}：修炼加速、突破略易，起始灵石更丰。`, 'dim')
+    }
     set({
       phase: 'play',
       player,
       time: { year: 1, month: 1, day: 1 },
-      stones: 80,
+      stones: dao.startStones,
       inventory: defaultInventory(),
       sect: freshSect(),
       companion: freshCompanion(),
       treasures: [],
       towerBest: {},
       tower: null,
+      abode,
       activePanel: 'cultivate',
       lastCombat: null,
       pendingEvent: null,
@@ -327,9 +422,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const bonus = getLearnedBonus(sect.learned)
     const sdef = sectDef(sect.sectId)
     const spouse = spouseDef(companion)
-    let gain = cultivateGain(player.classId, player.realm, player.layer)
+    const dao = daoBonuses(get().legacy.daoMarks)
+    let gain = gainCultivate(player.classId, player.realm, player.layer)
     gain = Math.floor(
-      gain * bonus.cultivate * (sdef?.bonus.cultivateMul ?? 1) * (spouse ? 1 + (spouse.dualMul - 1) * 0.35 : 1),
+      gain *
+        bonus.cultivate *
+        dao.cultivateMul *
+        (sdef?.bonus.cultivateMul ?? 1) *
+        (spouse ? 1 + (spouse.dualMul - 1) * 0.35 : 1),
     )
     const need = expNeeded(player.realm, player.layer)
     const rec = dailyRecover(player.maxHp, player.maxEnergy)
@@ -362,7 +462,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     })
 
-    const evt = pickWorldEvent(player.realm)
+    const evt = pickEvent(player.realm)
     if (evt) set({ pendingEvent: { event: evt, kind: 'meditate' } })
   },
 
@@ -373,9 +473,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const bonus = getLearnedBonus(sect.learned)
     const sdef = sectDef(sect.sectId)
     const spouse = spouseDef(companion)
-    let gain = seclusionGain(player.classId, player.realm, player.layer, n)
+    const dao = daoBonuses(get().legacy.daoMarks)
+    let gain = gainSeclusion(player.classId, player.realm, player.layer, n)
     gain = Math.floor(
-      gain * bonus.cultivate * (sdef?.bonus.cultivateMul ?? 1) * (spouse ? 1 + (spouse.dualMul - 1) * 0.35 : 1),
+      gain *
+        bonus.cultivate *
+        dao.cultivateMul *
+        (sdef?.bonus.cultivateMul ?? 1) *
+        (spouse ? 1 + (spouse.dualMul - 1) * 0.35 : 1),
     )
     const advanced = advanceTime(time, n)
     const aged = player.age + advanced.agedYears
@@ -405,7 +510,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     })
 
-    const evt = pickWorldEvent(player.realm)
+    const evt = pickEvent(player.realm)
     if (evt) set({ pendingEvent: { event: evt, kind: 'seclude' } })
   },
 
@@ -428,11 +533,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const sdef = sectDef(sect.sectId)
     const spouse = spouseDef(companion)
     const spouseBonus = spouse?.breakthroughBonus ?? 0
+    const dao = daoBonuses(get().legacy.daoMarks)
     const rate = Math.min(
       95,
       breakthroughRate(player.classId, player.realm) +
         (sdef?.bonus.breakthroughBonus ?? 0) +
-        spouseBonus,
+        spouseBonus +
+        dao.breakthroughBonus +
+        currentRules().breakthroughRateDelta,
     )
     const roll = Math.random() * 100
     // 用含宗门/道侣加成后的 rate 重判，保证 severity 与展示一致
@@ -466,7 +574,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           maxEnergy,
           hp: finalHp,
           energy: maxEnergy,
-          lifespanLeft: Math.max(player.lifespanLeft, REALMS[next.realm].lifespan),
+          lifespanLeft: Math.max(
+            player.lifespanLeft,
+            Math.floor(REALMS[next.realm].lifespan * currentRules().lifespanMul),
+          ),
         },
       })
       return
@@ -527,6 +638,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const rep = repDeltaOnKill(enemy)
       const inv = { ...get().inventory }
       const dropRate = enemy.loot.dropRate ?? 1
+      const stoneMul = currentRules().exploreStoneMul
       if (result.itemId && ITEMS[result.itemId] && Math.random() < dropRate) {
         inv[result.itemId] = (inv[result.itemId] ?? 0) + 1
         lines.push(`获得「${ITEMS[result.itemId].name}」×1`)
@@ -536,14 +648,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         inv.tiger_bone = (inv.tiger_bone ?? 0) + 1
         lines.push('获得「虎王骨」×1')
       }
+      const stoneGain = Math.floor(result.stoneGain * stoneMul)
       log(`历练遭遇 ${enemy.name}，获胜。`, 'good')
-      log(`修为 +${result.expGain}，灵石 +${result.stoneGain}`, 'good')
+      log(`修为 +${result.expGain}，灵石 +${stoneGain}`, 'good')
       if (enemy.faction === 'demonic') {
         log(`斩杀魔修：正道声望 +${rep.right}，魔道声望 +${rep.demonic}`, 'dim')
       }
       set({
         time: advanced.time,
-        stones: get().stones + result.stoneGain,
+        stones: get().stones + stoneGain,
         inventory: inv,
         exploring: false,
         lastCombat: { enemy, win: true, log: lines },
@@ -577,11 +690,138 @@ export const useGameStore = create<GameState>((set, get) => ({
       })
     }
 
-    const evt = pickWorldEvent(player.realm)
+    const evt = pickEvent(player.realm)
     if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
   },
 
   clearCombat: () => set({ lastCombat: null }),
+
+  buySeed: (seedId) => {
+    const { stones, inventory, player } = get()
+    const seed = SEEDS[seedId]
+    if (!seed || !player || stones < seed.seedPrice) return
+    const inv = { ...inventory }
+    inv[seedId] = (inv[seedId] ?? 0) + 1
+    log(`购入「${seed.name}」×1，花费灵石 ${seed.seedPrice}`, 'dim')
+    set({ inventory: inv, stones: stones - seed.seedPrice })
+  },
+
+  plantSeed: (plotIndex, seedId) => {
+    const { abode, inventory, player, time } = get()
+    if (!player || !player.alive || player.ascended) return
+    const plot = abode.plots[plotIndex]
+    if (!plot || plot.seedId) return
+    const seed = SEEDS[seedId]
+    if (!seed || (inventory[seedId] ?? 0) <= 0) {
+      log('没有种子。', 'bad')
+      return
+    }
+    const inv = { ...inventory }
+    inv[seedId] -= 1
+    if (inv[seedId] <= 0) delete inv[seedId]
+    const plots = abode.plots.map((p, i) =>
+      i === plotIndex ? { seedId, plantedDay: dayNumber(time) } : p,
+    )
+    log(`在灵田种下「${seed.name}」，约 ${seed.growDays} 日可熟。`, 'good')
+    set({ inventory: inv, abode: { plots } })
+  },
+
+  harvestPlot: (plotIndex) => {
+    const { abode, inventory, player, time } = get()
+    if (!player || !player.alive) return
+    const plot = abode.plots[plotIndex]
+    if (!plot?.seedId) return
+    const prog = plotProgress(plot, time)
+    if (!prog.ready) {
+      log('尚未成熟。', 'dim')
+      return
+    }
+    const seed = SEEDS[plot.seedId]
+    const amount = harvestYield(plot.seedId)
+    const inv = { ...inventory }
+    inv[seed.yieldItemId] = (inv[seed.yieldItemId] ?? 0) + amount
+    const plots = abode.plots.map((p, i) => (i === plotIndex ? { seedId: null, plantedDay: 0 } : p))
+    log(`收获「${ITEMS[seed.yieldItemId]?.name ?? seed.yieldItemId}」×${amount}。`, 'gold')
+    set({ inventory: inv, abode: { plots } })
+  },
+
+  expandPlot: () => {
+    const { abode, stones, player } = get()
+    if (!player || !player.alive) return
+    if (abode.plots.length >= MAX_PLOTS) return
+    const cost = expandPlotCost(abode.plots.length)
+    if (stones < cost) {
+      log('灵石不足，无法扩建。', 'bad')
+      return
+    }
+    log(`开垦新灵田，花费灵石 ${cost}。`, 'gold')
+    set({
+      stones: stones - cost,
+      abode: { plots: [...abode.plots, { seedId: null, plantedDay: 0 }] },
+    })
+  },
+
+  craftItem: (recipeId) => {
+    const { player, inventory, time } = get()
+    if (!player || !player.alive || player.ascended) return
+    const recipe = RECIPES[recipeId]
+    if (!recipe) return
+    if (!canCraft(recipe, inventory)) {
+      log('药材不足。', 'bad')
+      return
+    }
+    const rate = craftRate(recipe, player.classId, get().legacy.daoMarks)
+    const inv = { ...inventory }
+    for (const input of recipe.inputs) {
+      inv[input.itemId] = (inv[input.itemId] ?? 0) - input.count
+      if (inv[input.itemId] <= 0) delete inv[input.itemId]
+    }
+    const advanced = advanceTime(time, recipe.craftDays)
+    const aged = player.age + advanced.agedYears
+    const life = player.lifespanLeft - advanced.agedYears
+    if (life <= 0) {
+      set({
+        time: advanced.time,
+        inventory: inv,
+        player: { ...player, age: aged, lifespanLeft: 0, alive: false },
+      })
+      log('炼丹耗神，寿元耗尽……', 'bad')
+      return
+    }
+    const success = Math.random() * 100 < rate
+    if (success) {
+      inv[recipe.outputItemId] = (inv[recipe.outputItemId] ?? 0) + recipe.outputCount
+      log(
+        `丹成！「${ITEMS[recipe.outputItemId]?.name ?? recipe.outputItemId}」×${recipe.outputCount}`,
+        'gold',
+      )
+    } else {
+      log('炉火失控，药材尽废……', 'bad')
+    }
+    set({
+      time: advanced.time,
+      inventory: inv,
+      player: { ...player, age: aged, lifespanLeft: life },
+    })
+  },
+
+  reincarnate: (input) => {
+    const { player, companion, legacy } = get()
+    if (!player || (player.alive && !player.ascended)) {
+      log('此身尚在修行，无需转生。', 'dim')
+      return
+    }
+    const gain = reincarnateGain(player, Boolean(companion.spouseId))
+    const nextLegacy: LegacyState = {
+      daoMarks: legacy.daoMarks + gain.daoMarks,
+      reincarnations: legacy.reincarnations + 1,
+      bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
+    }
+    log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
+    log(`转生次数 ${nextLegacy.reincarnations}，累计道痕 ${nextLegacy.daoMarks}。择新身再修。`, 'gold')
+    set({ legacy: nextLegacy })
+    get().createCharacter(input)
+  },
 
   resolveEvent: (actionId) => {
     const { pendingEvent, player, inventory, stones, treasures } = get()
@@ -1031,7 +1271,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return
     }
 
-    const base = cultivateGain(player.classId, player.realm, player.layer)
+    const base = gainCultivate(player.classId, player.realm, player.layer)
     const gain = Math.floor(base * c.dualMul * 2)
     const advanced = advanceTime(time, 1)
     const life = player.lifespanLeft - advanced.agedYears
@@ -1126,7 +1366,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { player } = get()
     if (!player) return false
     try {
-      localStorage.setItem(SAVE_PREFIX + slot, JSON.stringify(snapshotOf(get())))
+      const plain = JSON.stringify(snapshotOf(get()))
+      localStorage.setItem(SAVE_PREFIX + slot, encryptSave(plain))
       log(`已存入存档位 ${slot}。`, 'gold')
       return true
     } catch {
@@ -1139,7 +1380,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     try {
       const raw = localStorage.getItem(SAVE_PREFIX + slot)
       if (!raw) return false
-      const snap = JSON.parse(raw) as SlotSnapshot
+      const json = decryptSave(raw) ?? (raw.startsWith('{') ? raw : null)
+      if (!json) return false
+      const snap = JSON.parse(json) as SlotSnapshot
       if (!snap?.player) return false
       useLogStore.getState().clear()
       log(
@@ -1169,6 +1412,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         treasures: snap.treasures ?? [],
         companion: snap.companion ?? freshCompanion(),
         towerBest: snap.towerBest ?? {},
+        abode: snap.abode ?? freshAbode(),
+        legacy: snap.legacy ?? freshLegacy(),
         tower: null,
         lastCombat: null,
         pendingEvent: null,
@@ -1190,7 +1435,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!raw) {
         return { index: slot, name: '', realmLabel: '', year: 0, updatedAt: 0, empty: true }
       }
-      const snap = JSON.parse(raw) as SlotSnapshot
+      const json = decryptSave(raw) ?? (raw.startsWith('{') ? raw : null)
+      if (!json) {
+        return { index: slot, name: '', realmLabel: '', year: 0, updatedAt: 0, empty: true }
+      }
+      const snap = JSON.parse(json) as SlotSnapshot
       return {
         index: slot,
         name: snap.player.name,
@@ -1210,8 +1459,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     return JSON.stringify(snapshotOf(get()))
   },
 
-  importSave: (json) => {
+  exportSaveEncrypted: () => {
+    const { player } = get()
+    if (!player) throw new Error('NO_PLAYER')
+    return encryptSave(JSON.stringify(snapshotOf(get())))
+  },
+
+  importSave: (payload) => {
     try {
+      let json = payload.trim()
+      if (!json) return false
+      const decrypted = decryptSave(json)
+      if (decrypted) json = decrypted
+      else if (!json.startsWith('{')) return false
       const snap = JSON.parse(json) as SlotSnapshot
       if (!snap?.player?.name) return false
       set({
@@ -1224,11 +1484,31 @@ export const useGameStore = create<GameState>((set, get) => ({
         treasures: snap.treasures ?? [],
         companion: snap.companion ?? freshCompanion(),
         towerBest: snap.towerBest ?? {},
+        abode: snap.abode ?? freshAbode(),
+        legacy: snap.legacy ?? freshLegacy(),
         tower: null,
         lastCombat: null,
         pendingEvent: null,
       })
       log('存档导入成功。', 'gold')
+      return true
+    } catch {
+      log('导入失败：存档文件已损坏。', 'bad')
+      return false
+    }
+  },
+
+  importSaveToSlot: (slot, fileContent) => {
+    if (slot < 0 || slot > 3) return false
+    try {
+      let json = fileContent.trim()
+      const decrypted = decryptSave(json)
+      if (decrypted) json = decrypted
+      else if (!json.startsWith('{')) return false
+      const snap = JSON.parse(json) as SlotSnapshot
+      if (!snap?.player?.name) return false
+      // 统一存为密文
+      localStorage.setItem(SAVE_PREFIX + slot, encryptSave(json))
       return true
     } catch {
       return false

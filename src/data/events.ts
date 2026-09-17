@@ -145,8 +145,8 @@ export const WORLD_EVENTS: WorldEvent[] = [
   },
 ]
 
-export function pickWorldEvent(realm: RealmId): WorldEvent | null {
-  const pool = WORLD_EVENTS.filter((e) => {
+export function pickWorldEvent(realm: RealmId, extra: WorldEvent[] = []): WorldEvent | null {
+  const pool = [...WORLD_EVENTS, ...extra].filter((e) => {
     const min = e.payload?.minRealm
     if (!min) return true
     return realmIndex(realm) >= realmIndex(min)
