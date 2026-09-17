@@ -6,6 +6,11 @@ export function dayKey(t: GameTime): string {
   return `第${t.year}年${t.month}月${t.day}日`
 }
 
+/** 绝对日序（1年=12月，1月=30日） */
+export function dayNumber(t: GameTime): number {
+  return (Math.max(1, t.year) - 1) * 360 + (Math.max(1, t.month) - 1) * 30 + (Math.max(1, t.day) - 1)
+}
+
 function nextDay(t: GameTime): { time: GameTime; agedYears: number } {
   let { year, month, day } = t
   day += 1

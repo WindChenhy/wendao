@@ -1,7 +1,9 @@
 import type { ItemDef, RealmId } from '../types'
 import { REALMS, REALM_ORDER } from './realms'
+import { HERB_ITEMS } from './abode'
 
 export const ITEMS: Record<string, ItemDef> = {
+  ...HERB_ITEMS,
   pill_qi: {
     id: 'pill_qi',
     name: '聚气丹',
@@ -17,6 +19,14 @@ export const ITEMS: Record<string, ItemDef> = {
     desc: '恢复气血。',
     price: 30,
     effect: { hp: 80 },
+  },
+  pill_great: {
+    id: 'pill_great',
+    name: '凝元丹',
+    type: 'consumable',
+    desc: '灵植炼成的上品丹药，服之修为大涨。',
+    price: 200,
+    effect: { exp: 280 },
   },
   snake_gall: {
     id: 'snake_gall',

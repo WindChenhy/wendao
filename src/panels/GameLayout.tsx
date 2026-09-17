@@ -2,6 +2,7 @@ import { EventModal } from '../components/EventModal'
 import { LogPanel } from '../components/LogPanel'
 import { SideNav, StatusBar } from '../components/Chrome'
 import { useGameStore } from '../stores/useGameStore'
+import { AbodePanel } from './AbodePanel'
 import { CharacterPanel } from './CharacterPanel'
 import { CompanionPanel } from './CompanionPanel'
 import { SettingsPanel } from './MetaPanels'
@@ -25,6 +26,7 @@ export function GameLayout() {
           {activePanel === 'explore' && <ExplorePanel />}
           {activePanel === 'secret_realm' && <SecretRealmPanel />}
           {activePanel === 'inventory' && <InventoryPanel />}
+          {activePanel === 'abode' && <AbodePanel />}
           {activePanel === 'sect' && <SectPanel />}
           {activePanel === 'companion' && <CompanionPanel />}
           {activePanel === 'settings' && <SettingsPanel />}

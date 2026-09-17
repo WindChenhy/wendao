@@ -11,6 +11,7 @@ const NAV: { id: PanelId; label: string }[] = [
   { id: 'explore', label: '历练' },
   { id: 'secret_realm', label: '秘境' },
   { id: 'inventory', label: '背包' },
+  { id: 'abode', label: '洞府' },
   { id: 'sect', label: '宗门' },
   { id: 'companion', label: '道侣' },
   { id: 'settings', label: '设置' },
@@ -20,6 +21,7 @@ export function StatusBar() {
   const player = useGameStore((s) => s.player)
   const time = useGameStore((s) => s.time)
   const stones = useGameStore((s) => s.stones)
+  const legacy = useGameStore((s) => s.legacy)
   if (!player) return null
   const c = CLASSES[player.classId]
   const ri = REALM_ORDER.indexOf(player.realm)
@@ -53,6 +55,7 @@ export function StatusBar() {
         寿元 {player.lifespanLeft} 年 · 寿龄 {player.age}
       </span>
       <span className="text-text-dim">正道 {player.repRight} · 魔道 {player.repDemonic}</span>
+      <span className="text-text-dim">道痕 {legacy.daoMarks}</span>
       <span className="text-text-dim hidden sm:inline">境阶 {ri + 1}/10</span>
       {!player.alive && <span className="text-vermilion font-display">道消</span>}
     </header>
@@ -68,7 +71,7 @@ export function SideNav() {
     <nav className="w-full md:w-36 shrink-0 border-b md:border-b-0 md:border-r border-border bg-ink-2 flex md:flex-col overflow-x-auto">
       {NAV.map((n) => {
         const locked =
-          (n.id === 'sect' || n.id === 'companion' || n.id === 'secret_realm') &&
+          (n.id === 'sect' || n.id === 'companion' || n.id === 'secret_realm' || n.id === 'abode') &&
           (!player || !player.alive)
         return (
           <button

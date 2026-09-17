@@ -137,6 +137,7 @@ export type PanelId =
   | 'explore'
   | 'secret_realm'
   | 'inventory'
+  | 'abode'
   | 'sect'
   | 'companion'
   | 'settings'
@@ -156,4 +157,23 @@ export interface TowerRun {
   /** 本次探索战报 */
   log: string[]
   left: boolean
+}
+
+export interface PlotState {
+  seedId: string | null
+  /** 种植时的绝对日序 */
+  plantedDay: number
+}
+
+export interface AbodeState {
+  plots: PlotState[]
+}
+
+export interface LegacyState {
+  /** 道痕：转生永久点数 */
+  daoMarks: number
+  /** 已转生次数 */
+  reincarnations: number
+  /** 历史最高境界序号（含飞升） */
+  bestRealmIndex: number
 }
