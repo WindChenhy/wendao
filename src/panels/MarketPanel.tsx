@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { CATEGORY_LABELS, ITEMS, itemCategory, MARKET_STOCK, treasureEffectText } from '../data/items'
-import { GONGFA_GRADE_CLASS, GONGFA_STAGE_LABELS, GONGFAS } from '../data/gongfa'
+import {
+  GONGFA_GRADE_CLASS,
+  GONGFA_STAGE_LABELS,
+  GONGFAS,
+  canLearnGongfa,
+  gongfaRealmText,
+} from '../data/gongfa'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
@@ -20,6 +26,7 @@ export function MarketPanel() {
   const stones = useGameStore((s) => s.stones)
   const inventory = useGameStore((s) => s.inventory)
   const learned = useGameStore((s) => s.gongfa.learned)
+  const player = useGameStore((s) => s.player)
   const buyItem = useGameStore((s) => s.buyItem)
 
   const ids = TABS.filter((t) => t !== 'all')
@@ -83,6 +90,15 @@ export function MarketPanel() {
                         <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
                         <span className="text-gold">{g.name}</span>
                         <span className="text-xs text-text-dim ml-2">秘籍</span>
+                        <span
+                          className={`text-xs ml-2 ${
+                            player && canLearnGongfa(g, player.realm)
+                              ? 'text-text-dim'
+                              : 'text-vermilion'
+                          }`}
+                        >
+                          {gongfaRealmText(g)}
+                        </span>
                         {st && (
                           <span className="text-xs text-bamboo ml-2">
                             已学习/已参悟

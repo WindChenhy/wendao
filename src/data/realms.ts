@@ -1,6 +1,6 @@
 import type { RealmDef, RealmId } from '../types'
 
-/** 经验曲线：跨境界指数抬升；层内 1.5^(layer-1) */
+/** 经验曲线参考值：仅作境界节奏展示；实际所需修为见 expNeeded（全程连续递增） */
 export const REALMS: Record<RealmId, RealmDef> = {
   qi: {
     id: 'qi',
@@ -113,31 +113,88 @@ export function nextRealm(realm: RealmId): RealmId | null {
   return REALM_ORDER[i + 1]
 }
 
-/** 每层所需修为：跨境界大幅抬升，层内按 1.5 的幂增长 */
+/** 连续曲线基准：练气一层 */
+const EXP_BASE = 80
+/**
+ * 连续层步增长率。
+ * 用全局层序号（跨大境界不重置）计算，保证「化神九层 → 炼虚一层」所需修为严格上升，
+ * 而不会像旧公式那样在跨境界时因层号回到 1 而回落。
+ * 取值使化神九层约 40 万量级，与原先后期体感接近。
+ */
+const EXP_GROWTH = 1.215
+
+/** 战斗属性：随大境界指数抬升；大乘纯数值需达到百万量级 */
+const HP_BASE = 200
+const HP_GROWTH = 3.4
+const EN_BASE = 180
+const EN_GROWTH = 3.4
+const ATK_BASE = 48
+const ATK_GROWTH = 3.85
+const DEF_BASE = 20
+const DEF_GROWTH = 3.25
+
+/** 该大境界之前累计层数（用于全局连续层序号） */
+export function layersBeforeRealm(realm: RealmId): number {
+  const ri = realmIndex(realm)
+  if (ri <= 0) return 0
+  let sum = 0
+  for (let i = 0; i < ri; i++) {
+    sum += REALMS[REALM_ORDER[i]]?.layers ?? 9
+  }
+  return sum
+}
+
+/**
+ * 冲击下一层/下一大境界所需修为。
+ * 按「练气一层起的全局连续层步」指数增长：境界越高、层越高，所需修为只增不减。
+ */
 export function expNeeded(realm: RealmId, layer: number): number {
   const def = REALMS[realm]
-  if (realm === 'ascended') return 0
-  return Math.floor(def.expPerLayer * Math.pow(1.5, Math.max(0, layer - 1)))
+  if (realm === 'ascended' || !def) return 0
+  const before = layersBeforeRealm(realm)
+  const safeLayer = Math.max(1, Math.min(def.layers, layer))
+  // 全局步号：0 = 练气一层
+  const step = before + safeLayer - 1
+  return Math.floor(EXP_BASE * Math.pow(EXP_GROWTH, step))
 }
 
-/** 境界带来的基础气血：大境界基数逐级抬升，小层每层 +3%（第 9 层约 +24%） */
+/** 层数对属性的小幅放大（每层 +4%） */
+function layerMul(layer: number): number {
+  return 1 + (Math.max(1, layer) - 1) * 0.04
+}
+
+/** 某大境界/层的战斗基准属性（未计职业、功法、法宝） */
+export function realmCombatBase(realm: RealmId, layer = 1): {
+  hp: number
+  energy: number
+  atk: number
+  def: number
+  ri: number
+} {
+  const ri = Math.max(0, realmIndex(realm))
+  const lm = layerMul(layer)
+  return {
+    ri,
+    hp: Math.floor(HP_BASE * Math.pow(HP_GROWTH, ri) * lm),
+    energy: Math.floor(EN_BASE * Math.pow(EN_GROWTH, ri) * lm),
+    atk: Math.floor((ATK_BASE + Math.max(1, layer) * 3) * Math.pow(ATK_GROWTH, ri) * lm),
+    def: Math.floor((DEF_BASE + Math.max(1, layer) * 2) * Math.pow(DEF_GROWTH, ri) * lm),
+  }
+}
+
+/** 境界带来的基础气血：随大境界指数抬升，小层每层 +4% */
 export function realmMaxHp(realm: RealmId, hpMul: number, layer = 1): number {
-  const ri = Math.max(0, realmIndex(realm))
-  const base = 200 + ri * 120 + Math.pow(ri, 2.2) * 30
-  const layerMul = 1 + (Math.max(1, layer) - 1) * 0.03
-  return Math.floor(base * layerMul * hpMul)
+  return Math.floor(realmCombatBase(realm, layer).hp * hpMul)
 }
 
-/** 境界带来的基础灵力/魔元：大境界基数逐级抬升，小层每层 +3% */
+/** 境界带来的基础灵力/魔元：随大境界指数抬升 */
 export function realmMaxEnergy(realm: RealmId, isDemon: boolean, layer = 1): number {
-  const ri = Math.max(0, realmIndex(realm))
-  const base = 160 + ri * 90 + Math.pow(ri, 2.2) * 20
-  const layerMul = 1 + (Math.max(1, layer) - 1) * 0.03
-  return Math.floor((isDemon ? base * 1.1 : base) * layerMul)
+  const e = realmCombatBase(realm, layer).energy
+  return Math.floor(isDemon ? e * 1.1 : e)
 }
 
-/** 战斗力粗略估值 */
+/** 战斗力粗略估值（与新属性曲线同阶） */
 export function combatPower(realm: RealmId, layer: number, atk: number, def: number, hp: number): number {
-  const ri = realmIndex(realm) + 1
-  return Math.floor((ri + 1) * 1000 + layer * 80 + atk * 3 + def * 2 + hp * 0.5)
+  const ri = Math.max(0, realmIndex(realm))
+  return Math.floor((ri + 1) * 2000 + layer * 120 + atk * 4 + def * 6 + hp * 0.15)
 }

@@ -1,7 +1,8 @@
 import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsFor } from '../data/sects'
-import { GONGFA_GRADE_CLASS, GONGFAS } from '../data/gongfa'
+import { GONGFA_GRADE_CLASS, GONGFAS, canLearnGongfa, gongfaRealmText } from '../data/gongfa'
 import { ITEMS } from '../data/items'
 import { realmIndex, realmLabel } from '../data/realms'
+import { CombatPanel } from '../components/CombatPanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
@@ -17,6 +18,8 @@ export function SectPanel() {
   const sectLearn = useGameStore((s) => s.sectLearn)
   const sectGrandCompetition = useGameStore((s) => s.sectGrandCompetition)
   const promoteRank = useGameStore((s) => s.promoteRank)
+  const activeCombat = useGameStore((s) => s.activeCombat)
+  const inCombat = Boolean(activeCombat && !activeCombat.finished)
 
   if (!player) return null
   const current = sect.sectId ? SECTS.find((s) => s.id === sect.sectId) : null
@@ -54,6 +57,7 @@ export function SectPanel() {
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
+      {inCombat && <CombatPanel />}
       {current ? (
         <>
           <div className="panel-box p-4">
@@ -150,11 +154,11 @@ export function SectPanel() {
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {examNeeded && !examOk && (
-                    <button className="pixel-btn primary" onClick={sectGrandCompetition}>
+                    <button className="pixel-btn primary" disabled={inCombat} onClick={sectGrandCompetition}>
                       参与宗门大比
                     </button>
                   )}
-                  <button className="pixel-btn" disabled={!canPromote} onClick={promoteRank}>
+                  <button className="pixel-btn" disabled={!canPromote || inCombat} onClick={promoteRank}>
                     晋升{nextDef.name}
                   </button>
                 </div>
@@ -206,6 +210,7 @@ export function SectPanel() {
               {current.library.map((lib) => {
                 const g = GONGFAS[lib.id]
                 const known = Boolean(gongfa.learned[lib.id])
+                const realmOk = g ? canLearnGongfa(g, player.realm) : true
                 return (
                   <div key={lib.id} className="border border-border px-3 py-2">
                     <div className="flex justify-between items-center gap-2">
@@ -218,6 +223,15 @@ export function SectPanel() {
                             </>
                           )}
                           <span className="text-gold">{lib.name}</span>
+                          {g && (
+                            <span
+                              className={`text-xs ml-2 ${
+                                realmOk ? 'text-text-dim' : 'text-vermilion'
+                              }`}
+                            >
+                              {gongfaRealmText(g)}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-text-dim mt-0.5">{lib.desc}</div>
                       </div>
@@ -226,10 +240,10 @@ export function SectPanel() {
                       ) : (
                         <button
                           className="pixel-btn text-xs"
-                          disabled={!canEnterLibrary || sect.contribution < lib.cost}
+                          disabled={!canEnterLibrary || sect.contribution < lib.cost || !realmOk}
                           onClick={() => sectLearn(lib.id, lib.cost)}
                         >
-                          {lib.cost} 贡献
+                          {!realmOk ? '境界不足' : `${lib.cost} 贡献`}
                         </button>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 import { canEnterRealm, isBossFloor, SECRET_REALMS } from '../data/secretRealms'
 import { ITEMS } from '../data/items'
 import { realmLabel } from '../data/realms'
+import { CombatPanel } from '../components/CombatPanel'
 import { useGameStore } from '../stores/useGameStore'
 
 export function SecretRealmPanel() {
@@ -8,6 +9,7 @@ export function SecretRealmPanel() {
   const tower = useGameStore((s) => s.tower)
   const towerBest = useGameStore((s) => s.towerBest)
   const lastCombat = useGameStore((s) => s.lastCombat)
+  const activeCombat = useGameStore((s) => s.activeCombat)
   const enterTower = useGameStore((s) => s.enterTower)
   const towerFight = useGameStore((s) => s.towerFight)
   const towerRest = useGameStore((s) => s.towerRest)
@@ -16,10 +18,12 @@ export function SecretRealmPanel() {
 
   if (!player) return null
   const dead = !player.alive
+  const inCombat = Boolean(activeCombat && !activeCombat.finished)
   const active = tower ? SECRET_REALMS.find((r) => r.id === tower.realmId) : null
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
+      {inCombat && <CombatPanel />}
       {tower && active ? (
         <>
           <div className="panel-box p-4 border-gold-dim">
@@ -48,10 +52,10 @@ export function SecretRealmPanel() {
               每 {active.bossEvery} 层一镇守，掉落突破材料概率更高。调息消耗一日。
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
-              <button className="pixel-btn primary" disabled={dead} onClick={towerFight}>
+              <button className="pixel-btn primary" disabled={dead || inCombat} onClick={towerFight}>
                 迎战本层
               </button>
-              <button className="pixel-btn" disabled={dead} onClick={towerRest}>
+              <button className="pixel-btn" disabled={dead || inCombat} onClick={towerRest}>
                 石台调息
               </button>
             </div>

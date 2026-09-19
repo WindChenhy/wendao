@@ -1,5 +1,5 @@
 import { CLASSES } from '../data/classes'
-import { realmIndex } from '../data/realms'
+import { realmCombatBase } from '../data/realms'
 import type { ClassId, EnemyDef, RealmId } from '../types'
 
 interface Combatant {
@@ -38,12 +38,11 @@ export function playerCombatStats(
   dmgReduce = 0,
 ): Combatant {
   const c = CLASSES[classId]
-  const ri = realmIndex(realm) + 1
-  const base = 8 + ri * 12 + layer * 4
+  const base = realmCombatBase(realm, layer)
   return {
     name: '你',
-    atk: Math.floor(base * c.atkMul * atkMul),
-    def: Math.floor((4 + ri * 6 + layer * 2.5) * c.defMul * defMul),
+    atk: Math.floor(base.atk * c.atkMul * atkMul),
+    def: Math.floor(base.def * c.defMul * defMul),
     hp,
     maxHp,
     isDemon: classId === 'demon',

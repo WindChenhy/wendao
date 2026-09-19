@@ -1,0 +1,32 @@
+[
+  {
+    "id": "seed_qi",
+    "name": "聚气草种",
+    "desc": "三日一熟，可炼聚气丹。",
+    "growDays": 3,
+    "yieldItemId": "herb_qi",
+    "yieldMin": 2,
+    "yieldMax": 4,
+    "seedPrice": 20
+  },
+  {
+    "id": "seed_moon",
+    "name": "月华花种",
+    "desc": "七日开花，药性温润。",
+    "growDays": 7,
+    "yieldItemId": "herb_moon",
+    "yieldMin": 1,
+    "yieldMax": 3,
+    "seedPrice": 45
+  },
+  {
+    "id": "seed_blood",
+    "name": "血参种",
+    "desc": "半月方成，气血大补。",
+    "growDays": 15,
+    "yieldItemId": "herb_blood",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 120
+  }
+]

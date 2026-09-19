@@ -79,6 +79,9 @@ export interface ItemDef {
     hp?: number
     exp?: number
     stone?: number
+    energy?: number
+    /** 服用后提升本次/后续突破成功率（百分点）；突破丹药在冲击壁垒时自动消耗 */
+    breakthroughRate?: number
   }
 }
 

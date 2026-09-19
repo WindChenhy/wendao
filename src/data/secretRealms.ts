@@ -1,4 +1,4 @@
-import { realmIndex, realmMaxHp } from './realms'
+import { realmIndex, realmCombatBase } from './realms'
 import type { RealmId } from '../types'
 
 export interface SecretRealmDef {
@@ -167,9 +167,10 @@ export function towerEnemy(realmId: string, floor: number, boss: boolean) {
   const ri = realmIndex(minRealm)
   const floors = realm?.floors ?? 30
   // 玩家基准：最低大境界入门层、未计职业/功法系数
-  const refAtk = 8 + (ri + 1) * 12 + 4
-  const refDef = 4 + (ri + 1) * 6 + 2.5
-  const refHp = realmMaxHp(minRealm, 1, 1)
+  const ref = realmCombatBase(minRealm, 1)
+  const refAtk = ref.atk
+  const refDef = ref.def
+  const refHp = ref.hp
   // 层内爬升：首层 1.0 → 顶层约 2.2
   const ramp = 1 + ((floor - 1) / Math.max(1, floors - 1)) * 1.2
   const bm = boss ? { atk: 1.15, def: 1.15, hp: 1.5 } : { atk: 1, def: 1, hp: 1 }

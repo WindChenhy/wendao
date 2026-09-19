@@ -2,6 +2,7 @@ import { CLASSES } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { REALMS, combatPower, realmLabel } from '../data/realms'
 import { sectRankLabel } from '../data/sects'
+import { isSkillUnlocked, skillsForClass } from '../data/skills'
 import { playerCombatStats } from '../game/combat'
 import { formatNum } from '../game/format'
 import { useGameStore, gongfaBonuses, treasureBonus } from '../stores/useGameStore'
@@ -57,6 +58,31 @@ export function CharacterPanel() {
               {t}
             </span>
           ))}
+        </div>
+      </div>
+
+      <div className="panel-box p-4">
+        <div className="font-display text-gold mb-2">战斗传承</div>
+        <div className="space-y-2 text-xs">
+          {skillsForClass(player.classId).map((sk) => {
+            const unlocked = isSkillUnlocked(sk, player.realm, player.layer)
+            return (
+              <div key={sk.id} className="border border-border px-2 py-1.5">
+                <div className="text-sm">
+                  <span className={unlocked ? 'text-gold' : 'text-text-dim'}>
+                    {sk.name}
+                  </span>
+                  <span className="text-text-dim ml-2">
+                    {sk.type === 'passive' ? '被动' : `主动 · ${sk.cost?.energy ?? 0}灵`}
+                    {!unlocked && sk.unlock
+                      ? ` · 需${REALMS[sk.unlock.realm]?.name}${sk.unlock.layer}层`
+                      : ''}
+                  </span>
+                </div>
+                <div className="text-text-dim mt-0.5">{sk.desc}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

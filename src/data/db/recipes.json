@@ -1,0 +1,53 @@
+[
+  {
+    "id": "craft_pill_qi",
+    "name": "炼聚气丹",
+    "desc": "草药入炉，凝作聚气丹。",
+    "inputs": [{ "itemId": "herb_qi", "count": 2 }],
+    "outputItemId": "pill_qi",
+    "outputCount": 1,
+    "craftDays": 1,
+    "baseRate": 85
+  },
+  {
+    "id": "craft_pill_heal",
+    "name": "炼回春散",
+    "desc": "月华入引，可续气血。",
+    "inputs": [
+      { "itemId": "herb_qi", "count": 1 },
+      { "itemId": "herb_moon", "count": 1 }
+    ],
+    "outputItemId": "pill_heal",
+    "outputCount": 2,
+    "craftDays": 1,
+    "baseRate": 78
+  },
+  {
+    "id": "craft_pill_great",
+    "name": "炼凝元丹",
+    "desc": "血参为君，药力远胜聚气。",
+    "inputs": [
+      { "itemId": "herb_blood", "count": 1 },
+      { "itemId": "herb_moon", "count": 2 },
+      { "itemId": "herb_qi", "count": 3 }
+    ],
+    "outputItemId": "pill_great",
+    "outputCount": 1,
+    "craftDays": 2,
+    "baseRate": 62
+  },
+  {
+    "id": "craft_pill_break",
+    "name": "炼破境丹",
+    "desc": "以突破灵物为引，炼制冲击壁垒的辅丹。",
+    "inputs": [
+      { "itemId": "herb_blood", "count": 2 },
+      { "itemId": "herb_moon", "count": 2 },
+      { "itemId": "mat_foundation", "count": 1 }
+    ],
+    "outputItemId": "pill_break",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 55
+  }
+]
