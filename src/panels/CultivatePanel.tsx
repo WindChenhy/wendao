@@ -1,5 +1,14 @@
 import { CLASSES } from '../data/classes'
 import { SECTS } from '../data/sects'
+import {
+  GONGFA_GRADE_CLASS,
+  GONGFA_GRADE_ORDER,
+  GONGFA_STAGE_LABELS,
+  GONGFAS,
+  gongfaAdvanceCost,
+  gongfaByScrollId,
+  gongfaEffectText,
+} from '../data/gongfa'
 import { REALMS, expNeeded } from '../data/realms'
 import { ITEMS, requiredMaterial } from '../data/items'
 import { canBreakthrough, breakthroughRate } from '../game/breakthrough'
@@ -12,6 +21,7 @@ export function CultivatePanel() {
   const player = useGameStore((s) => s.player)
   const sect = useGameStore((s) => s.sect)
   const inventory = useGameStore((s) => s.inventory)
+  const gongfa = useGameStore((s) => s.gongfa)
   const legacy = useGameStore((s) => s.legacy)
   const companion = useGameStore((s) => s.companion)
   const meditate = useGameStore((s) => s.meditate)
@@ -21,6 +31,8 @@ export function CultivatePanel() {
   const recoverFull = useGameStore((s) => s.recoverFull)
   const reincarnate = useGameStore((s) => s.reincarnate)
   const startCreate = useGameStore((s) => s.startCreate)
+  const comprehendGongfa = useGameStore((s) => s.comprehendGongfa)
+  const advanceGongfaStage = useGameStore((s) => s.advanceGongfaStage)
 
   if (!player) return null
   const need = expNeeded(player.realm, player.layer)
@@ -43,6 +55,15 @@ export function CultivatePanel() {
   const matOk = !matId || matCount > 0
   const options = seclusionYearOptions(player.realm)
   const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId)) : null
+  const learnedList = Object.entries(gongfa.learned).sort((a, b) => {
+    const ga = GONGFAS[a[0]]
+    const gb2 = GONGFAS[b[0]]
+    if (!ga || !gb2) return 0
+    return GONGFA_GRADE_ORDER.indexOf(gb2.grade) - GONGFA_GRADE_ORDER.indexOf(ga.grade)
+  })
+  const scrollIds = Object.keys(inventory).filter(
+    (id) => gongfaByScrollId(id) && (inventory[id] ?? 0) > 0,
+  )
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
@@ -93,6 +114,95 @@ export function CultivatePanel() {
             {dao.breakthroughBonus}% · 已转生 {legacy.reincarnations} 次
           </p>
         )}
+      </div>
+
+      <div className="panel-box p-4">
+        <div className="flex justify-between items-center mb-2">
+          <div className="font-display text-gold">功法</div>
+          <div className="text-xs text-text-dim">可动用修为 {formatNum(player.exp)}</div>
+        </div>
+        {learnedList.length === 0 && scrollIds.length === 0 && (
+          <p className="text-xs text-text-dim mb-1">
+            尚未修习任何功法。可前往坊市购入秘籍，或在宗门藏经阁以贡献参悟。
+          </p>
+        )}
+        <div className="space-y-2">
+          {learnedList.map(([id, st]) => {
+            const g = GONGFAS[id]
+            if (!g) return null
+            const maxed = st.stage >= GONGFA_STAGE_LABELS.length - 1
+            const nextStage = maxed ? '' : GONGFA_STAGE_LABELS[st.stage + 1]
+            const cost = gongfaAdvanceCost(g, st.stage)
+            return (
+              <div key={id} className="border border-border px-3 py-2">
+                <div className="flex justify-between items-center gap-2">
+                  <div className="text-sm">
+                    <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
+                    <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
+                    <span className="text-gold">{g.name}</span>
+                  </div>
+                  <span className={`text-xs shrink-0 ${maxed ? 'text-gold' : 'text-jade'}`}>
+                    {GONGFA_STAGE_LABELS[st.stage]}
+                  </span>
+                </div>
+                <div className="text-xs text-text-dim mt-0.5">
+                  当前加成：{gongfaEffectText(g, st.stage)}
+                  {!maxed && (
+                    <span className="ml-2">
+                      （圆满：{gongfaEffectText(g, GONGFA_STAGE_LABELS.length - 1)}）
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center gap-2 mt-2">
+                  {maxed ? (
+                    <div className="text-xs text-gold">已臻圆满，进境无可复加。</div>
+                  ) : (
+                    <div className="text-xs text-text-dim">
+                      以修为温养冲关，可进阶「{nextStage}」（需修为 {formatNum(cost)}）
+                    </div>
+                  )}
+                  {!maxed && (
+                    <button
+                      className="pixel-btn text-xs primary shrink-0"
+                      disabled={dead || win || player.exp < cost}
+                      onClick={() => advanceGongfaStage(id)}
+                    >
+                      进阶 · {nextStage}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          {scrollIds.map((id) => {
+            const g = gongfaByScrollId(id)
+            const item = ITEMS[id]
+            if (!g || !item) return null
+            return (
+              <div
+                key={id}
+                className="border border-border px-3 py-2 flex justify-between items-center gap-2"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm">
+                    <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
+                    <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
+                    <span className="text-gold">{g.name}</span>
+                    <span className="text-text-dim text-xs ml-2">秘籍 ×{inventory[id]} · 待参悟</span>
+                  </div>
+                  <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
+                </div>
+                <button
+                  className="pixel-btn text-xs primary shrink-0"
+                  disabled={dead || win}
+                  onClick={() => comprehendGongfa(id)}
+                >
+                  参悟
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <div className="panel-box p-4">

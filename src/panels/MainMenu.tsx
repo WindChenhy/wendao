@@ -134,12 +134,6 @@ export function MainMenu() {
             有空槽位时自动写入该槽；否则直接读入当前进度。文件为 AES 密文，无需密码。
           </p>
         </div>
-
-        <p className="text-center text-xs text-text-dim mt-6 leading-relaxed">
-          参考桃源乡式面板养成 · 本作为原创修仙题材原型
-          <br />
-          本地槽位以密文保存在浏览器 localStorage
-        </p>
       </div>
     </div>
   )

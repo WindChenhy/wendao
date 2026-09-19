@@ -66,10 +66,13 @@ function PlotCard({ index }: { index: number }) {
 
 export function AbodePanel() {
   const player = useGameStore((s) => s.player)
+  const time = useGameStore((s) => s.time)
   const inventory = useGameStore((s) => s.inventory)
   const stones = useGameStore((s) => s.stones)
   const abode = useGameStore((s) => s.abode)
   const buySeed = useGameStore((s) => s.buySeed)
+  const plantAll = useGameStore((s) => s.plantAll)
+  const harvestAll = useGameStore((s) => s.harvestAll)
   const expandPlot = useGameStore((s) => s.expandPlot)
   const craftItem = useGameStore((s) => s.craftItem)
   const legacy = useGameStore((s) => s.legacy)
@@ -78,6 +81,8 @@ export function AbodePanel() {
   const dead = !player.alive || player.ascended
   const cost = expandPlotCost(abode.plots.length)
   const canExpand = abode.plots.length < MAX_PLOTS && stones >= cost
+  const readyCount = abode.plots.filter((p) => p.seedId && plotProgress(p, time).ready).length
+  const emptyCount = abode.plots.filter((p) => !p.seedId).length
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
@@ -95,6 +100,31 @@ export function AbodePanel() {
           {abode.plots.map((_, i) => (
             <PlotCard key={i} index={i} />
           ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <button
+              className="pixel-btn primary text-xs"
+              disabled={dead || readyCount === 0}
+              onClick={harvestAll}
+            >
+              一键收获{readyCount > 0 ? `（${readyCount} 块可收）` : ''}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1 items-center">
+            <span className="text-xs text-text-dim mr-1">一键播种（闲置灵田 {emptyCount} 块）：</span>
+            {SEED_LIST.map((s: SeedDef) => (
+              <button
+                key={s.id}
+                className="pixel-btn text-xs"
+                disabled={dead || (inventory[s.id] ?? 0) <= 0 || emptyCount === 0}
+                title={s.desc}
+                onClick={() => plantAll(s.id)}
+              >
+                种{s.name.replace('种', '')}×{inventory[s.id] ?? 0}
+              </button>
+            ))}
+          </div>
         </div>
         {abode.plots.length < MAX_PLOTS && (
           <button

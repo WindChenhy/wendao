@@ -1,7 +1,194 @@
 import { realmIndex } from './realms'
-import type { RealmId } from '../types'
+import type { EnemyDef, RealmId } from '../types'
 
 export type SectAlignment = 'righteous' | 'demonic'
+
+/** 宗门职位：杂役 → 外门 → 内门 → 亲传 → 真传 → 执事 → 长老 → 大长老 → 宗主 → 太上长老 */
+export type SectRank =
+  | 'menial'
+  | 'outer'
+  | 'inner'
+  | 'personal'
+  | 'true'
+  | 'steward'
+  | 'elder'
+  | 'grand_elder'
+  | 'master'
+  | 'supreme'
+
+/** 进入该职位的方式；optional 为无条件自由晋升（宗主→太上长老） */
+export type RankEntry = 'none' | 'contribution' | 'exam' | 'realm' | 'optional'
+
+export interface SectRankDef {
+  id: SectRank
+  name: string
+  desc: string
+  /** 晋升进入此职位所需贡献 */
+  entryCost: number
+  /** 晋升方式：杂役为起点；外门只看贡献；弟子晋升需大比考核；执事及以上看贡献与修为 */
+  entry: RankEntry
+  /** entry === 'exam' 时的大比难度层级（1-3） */
+  examTier?: 1 | 2 | 3
+  /** entry === 'realm' 时的修为门槛 */
+  realmReq?: { realm: RealmId; layer: number }
+  /** 职级修炼速度倍率 */
+  cultivateMul: number
+  /** 职级委托贡献倍率 */
+  taskMul: number
+}
+
+export const SECT_RANK_ORDER: SectRank[] = [
+  'menial',
+  'outer',
+  'inner',
+  'personal',
+  'true',
+  'steward',
+  'elder',
+  'grand_elder',
+  'master',
+  'supreme',
+]
+
+export const SECT_RANKS: Record<SectRank, SectRankDef> = {
+  menial: {
+    id: 'menial',
+    name: '杂役弟子',
+    desc: '洒扫药园、搬运灵材，以苦役换一线道缘。',
+    entryCost: 0,
+    entry: 'none',
+    cultivateMul: 1,
+    taskMul: 0.8,
+  },
+  outer: {
+    id: 'outer',
+    name: '外门弟子',
+    desc: '录入外门名册，可领宗门委托、兑换丹材。',
+    entryCost: 30,
+    entry: 'contribution',
+    cultivateMul: 1.02,
+    taskMul: 1,
+  },
+  inner: {
+    id: 'inner',
+    name: '内门弟子',
+    desc: '内门真修，月例倍增，藏经阁向你开放。',
+    entryCost: 80,
+    entry: 'exam',
+    examTier: 1,
+    cultivateMul: 1.05,
+    taskMul: 1.2,
+  },
+  personal: {
+    id: 'personal',
+    name: '亲传弟子',
+    desc: '得长老亲授，宗门气运加身。',
+    entryCost: 200,
+    entry: 'exam',
+    examTier: 2,
+    cultivateMul: 1.08,
+    taskMul: 1.4,
+  },
+  true: {
+    id: 'true',
+    name: '真传弟子',
+    desc: '一脉真传，可窥宗门根本大法。',
+    entryCost: 400,
+    entry: 'exam',
+    examTier: 3,
+    cultivateMul: 1.12,
+    taskMul: 1.6,
+  },
+  steward: {
+    id: 'steward',
+    name: '执事',
+    desc: '执掌一殿庶务，门下弟子皆听调遣。',
+    entryCost: 600,
+    entry: 'realm',
+    realmReq: { realm: 'foundation', layer: 1 },
+    cultivateMul: 1.14,
+    taskMul: 1.8,
+  },
+  elder: {
+    id: 'elder',
+    name: '长老',
+    desc: '开坛讲法，坐镇一方。',
+    entryCost: 1000,
+    entry: 'realm',
+    realmReq: { realm: 'golden_core', layer: 1 },
+    cultivateMul: 1.16,
+    taskMul: 2,
+  },
+  grand_elder: {
+    id: 'grand_elder',
+    name: '大长老',
+    desc: '一人之下，代掌门户兵符。',
+    entryCost: 2000,
+    entry: 'realm',
+    realmReq: { realm: 'nascent_soul', layer: 1 },
+    cultivateMul: 1.18,
+    taskMul: 2.2,
+  },
+  master: {
+    id: 'master',
+    name: '宗主',
+    desc: '执一宗之权柄，掌山门气运。',
+    entryCost: 3000,
+    entry: 'realm',
+    realmReq: { realm: 'spirit_sea', layer: 1 },
+    cultivateMul: 1.2,
+    taskMul: 2.5,
+  },
+  supreme: {
+    id: 'supreme',
+    name: '太上长老',
+    desc: '不问俗务，天地间自在逍遥。宗主可自行抉择是否退位隐修。',
+    entryCost: 0,
+    entry: 'optional',
+    cultivateMul: 1.25,
+    taskMul: 3,
+  },
+}
+
+export function nextSectRank(rank: SectRank): SectRank | null {
+  const i = SECT_RANK_ORDER.indexOf(rank)
+  return i >= 0 && i < SECT_RANK_ORDER.length - 1 ? SECT_RANK_ORDER[i + 1] : null
+}
+
+export function sectRankLabel(rank: SectRank): string {
+  return SECT_RANKS[rank]?.name ?? rank
+}
+
+/** 权限门槛：0 杂役 / 1 外门可兑换 / 2 内门可入藏经阁 */
+export function sectRankIndex(rank: SectRank): number {
+  return SECT_RANK_ORDER.indexOf(rank)
+}
+
+/**
+ * 宗门大比考核对手：同门弟子，境界随玩家、层数随考核层级抬升。
+ * tier 1 对外门、tier 2 对内门、tier 3 对亲传。
+ */
+export function sectExamOpponent(realm: RealmId, layer: number, tier: 1 | 2 | 3): EnemyDef {
+  const names: Record<1 | 2 | 3, string> = {
+    1: '同门俊才',
+    2: '内门翘楚',
+    3: '亲传首席',
+  }
+  const ri = Math.max(0, realmIndex(realm))
+  const L = Math.min(9, layer + tier)
+  return {
+    id: `sect_exam_${tier}`,
+    name: names[tier],
+    faction: 'righteous',
+    realm,
+    layer: L,
+    atk: Math.floor((8 + ri * 12 + L * 4) * (0.9 + tier * 0.05)),
+    def: Math.floor((4 + ri * 6 + L * 2.5) * (0.95 + tier * 0.05)),
+    hp: Math.floor((100 + ri * 55 + Math.pow(ri, 1.6) * 12) * (1 + tier * 0.15)),
+    loot: { exp: Math.floor(60 * (ri + 1) * tier) },
+    flavor: '大比台上的同门对手，招式堂堂正正。',
+  }
+}
 
 export interface SectDef {
   id: string
@@ -118,6 +305,21 @@ export const SECTS: SectDef[] = [
     ],
   },
 ]
+
+/** 藏经阁秘法展示信息（修炼页功法栏/背包功法页共用） */
+export interface SectArtInfo {
+  id: string
+  name: string
+  /** 效果文案，如 "攻击 +10%" */
+  label: string
+  sectName: string
+}
+
+export const SECT_ART_MAP: Record<string, SectArtInfo> = Object.fromEntries(
+  SECTS.flatMap((s) =>
+    s.library.map((l) => [l.id, { id: l.id, name: l.name, label: l.desc, sectName: s.name }]),
+  ),
+)
 
 export function sectsFor(
   alignment: 'righteous' | 'demonic',

@@ -11,6 +11,7 @@ const NAV: { id: PanelId; label: string }[] = [
   { id: 'explore', label: '历练' },
   { id: 'secret_realm', label: '秘境' },
   { id: 'inventory', label: '背包' },
+  { id: 'market', label: '坊市' },
   { id: 'abode', label: '洞府' },
   { id: 'sect', label: '宗门' },
   { id: 'companion', label: '道侣' },

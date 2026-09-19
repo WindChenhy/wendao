@@ -1,6 +1,7 @@
 import type { ItemDef, RealmId } from '../types'
 import { REALMS, REALM_ORDER } from './realms'
 import { HERB_ITEMS } from './abode'
+import { GONGFA_LIST, gongfaByScrollId, gongfaScrollId, isMarketGongfa } from './gongfa'
 
 export const ITEMS: Record<string, ItemDef> = {
   ...HERB_ITEMS,
@@ -117,28 +118,81 @@ export const ITEMS: Record<string, ItemDef> = {
     price: 5000000,
   },
 
-  // —— 法宝/装备（奇遇）——
+  // —— 法宝/装备（奇遇 + 坊市重金可购）——
   treasure_sword: {
     id: 'treasure_sword',
     name: '青冥剑胚',
     type: 'material',
-    desc: '出世法宝，攻击大增（角色面板已计）。',
+    desc: '出世法宝，认主后剑意加持。',
     price: 5000,
   },
   treasure_mirror: {
     id: 'treasure_mirror',
     name: '护心宝镜',
     type: 'material',
-    desc: '出世法宝，防御大增。',
+    desc: '出世法宝，认主后护体生光。',
     price: 5000,
   },
   treasure_pagoda: {
     id: 'treasure_pagoda',
     name: '镇魂塔',
     type: 'material',
-    desc: '出世法宝，气血大增。',
+    desc: '出世法宝，认主后塔影护身。',
     price: 8000,
   },
+
+  // —— 功法秘籍（坊市购入，参悟后进入修炼页功法栏）——
+  // —— 功法秘籍（仅坊市在售的功法；宗门秘法走藏经阁贡献参悟，不生成秘籍物品）——
+  ...Object.fromEntries(
+    GONGFA_LIST.filter(isMarketGongfa).map((g) => [
+      gongfaScrollId(g.id),
+      {
+        id: gongfaScrollId(g.id),
+        name: `${g.name}·秘籍`,
+        type: 'quest',
+        desc: `${g.grade}功法。${g.desc}`,
+        price: g.price,
+      } satisfies ItemDef,
+    ]),
+  ),
+}
+
+/** 背包/坊市分类 */
+export type ItemCategory = 'herb' | 'gongfa' | 'treasure' | 'pill' | 'misc'
+
+export function itemCategory(id: string): ItemCategory {
+  if (gongfaByScrollId(id)) return 'gongfa'
+  if (id.startsWith('treasure_')) return 'treasure'
+  if (id.startsWith('pill_')) return 'pill'
+  return 'herb'
+}
+
+/** 分类显示名 */
+export const CATEGORY_LABELS: Record<ItemCategory | 'all', string> = {
+  all: '全部',
+  herb: '灵药',
+  gongfa: '功法',
+  treasure: '法宝/装备',
+  pill: '丹药',
+  misc: '其他',
+}
+
+/** 法宝属性加成（store 内 treasureBonus 以此为数据源，勿两处改数） */
+export const TREASURE_BONUS: Record<string, { atk?: number; def?: number; hp?: number }> = {
+  treasure_sword: { atk: 0.25 },
+  treasure_mirror: { def: 0.25 },
+  treasure_pagoda: { hp: 0.3 },
+}
+
+/** 法宝加成文案，如 "攻击 +25%" */
+export function treasureEffectText(id: string): string {
+  const b = TREASURE_BONUS[id]
+  if (!b) return ''
+  const parts: string[] = []
+  if (b.atk) parts.push(`攻击 +${Math.round(b.atk * 100)}%`)
+  if (b.def) parts.push(`防御 +${Math.round(b.def * 100)}%`)
+  if (b.hp) parts.push(`气血 +${Math.round(b.hp * 100)}%`)
+  return parts.join('、')
 }
 
 /** 大境界突破材料表 */
@@ -170,4 +224,10 @@ export function pillExp(realm: RealmId): number {
   return Math.floor(60 * Math.pow(1.55, ri))
 }
 
-export const SHOP_STOCK = ['pill_qi', 'pill_heal']
+/** 坊市货架（按分类）；功法只上架坊市秘籍，宗门秘法仅藏经阁产出 */
+export const MARKET_STOCK: Record<'herb' | 'gongfa' | 'treasure' | 'pill', string[]> = {
+  pill: ['pill_qi', 'pill_heal', 'pill_great'],
+  herb: ['herb_qi', 'herb_moon', 'herb_blood', 'mat_foundation', 'mat_core'],
+  gongfa: GONGFA_LIST.filter(isMarketGongfa).map((g) => gongfaScrollId(g.id)),
+  treasure: ['treasure_sword', 'treasure_mirror', 'treasure_pagoda'],
+}
