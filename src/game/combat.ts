@@ -9,6 +9,8 @@ interface Combatant {
   hp: number
   maxHp: number
   isDemon: boolean
+  /** 受到伤害降低比例（身法类功法） */
+  dmgReduce?: number
 }
 
 export interface CombatRound {
@@ -33,6 +35,7 @@ export function playerCombatStats(
   maxHp: number,
   atkMul = 1,
   defMul = 1,
+  dmgReduce = 0,
 ): Combatant {
   const c = CLASSES[classId]
   const ri = realmIndex(realm) + 1
@@ -44,6 +47,7 @@ export function playerCombatStats(
     hp,
     maxHp,
     isDemon: classId === 'demon',
+    dmgReduce,
   }
 }
 
@@ -58,8 +62,9 @@ function enemyToCombatant(e: EnemyDef): Combatant {
   }
 }
 
-function dmg(atk: number, def: number): number {
-  return Math.max(1, Math.floor(atk - def * 0.55 + (Math.random() * 8 - 3)))
+/** 原始伤害：可为负（攻击被防御完全压制时格挡，不造成伤害） */
+function rawDmg(atk: number, def: number): number {
+  return Math.floor(atk - def * 0.55 + (Math.random() * 8 - 3))
 }
 
 export function runCombat(player: Combatant, enemy: EnemyDef): CombatResult {
@@ -70,30 +75,38 @@ export function runCombat(player: Combatant, enemy: EnemyDef): CombatResult {
   const demonLifesteal = player.isDemon ? 0.18 : 0
 
   for (let i = 0; i < 40; i++) {
-    const d1 = dmg(player.atk, e.def)
-    eHp = Math.max(0, eHp - d1)
-    let text = `你对${e.name}造成 ${d1} 点伤害。`
-    if (demonLifesteal > 0 && d1 > 0) {
-      const heal = Math.floor(d1 * demonLifesteal)
-      if (heal > 0) {
-        pHp = Math.min(player.maxHp, pHp + heal)
-        text += ` 煞气反哺，回复 ${heal} 气血。`
+    const d1 = rawDmg(player.atk, e.def)
+    if (d1 <= 0) {
+      rounds.push({ text: `你的攻势被${e.name}挡下，未伤分毫。` })
+    } else {
+      eHp = Math.max(0, eHp - d1)
+      let text = `你对${e.name}造成 ${d1} 点伤害。`
+      if (demonLifesteal > 0) {
+        const heal = Math.floor(d1 * demonLifesteal)
+        if (heal > 0) {
+          pHp = Math.min(player.maxHp, pHp + heal)
+          text += ` 煞气反哺，回复 ${heal} 气血。`
+        }
       }
-    }
-    rounds.push({ text })
-    if (eHp <= 0) {
-      return {
-        win: true,
-        rounds,
-        playerHpLeft: pHp,
-        expGain: enemy.loot.exp ?? 0,
-        stoneGain: enemy.loot.stone ?? 0,
-        itemId: enemy.loot.itemId,
-        message: `${e.name}倒下了。`,
+      rounds.push({ text })
+      if (eHp <= 0) {
+        return {
+          win: true,
+          rounds,
+          playerHpLeft: pHp,
+          expGain: enemy.loot.exp ?? 0,
+          stoneGain: enemy.loot.stone ?? 0,
+          itemId: enemy.loot.itemId,
+          message: `${e.name}倒下了。`,
+        }
       }
     }
 
-    const d2 = dmg(e.atk, player.def)
+    const d2 = rawDmg(e.atk, player.def)
+    if (d2 <= 0) {
+      rounds.push({ text: `${e.name}的攻势被你轻易格挡。` })
+      continue
+    }
     pHp = Math.max(0, pHp - d2)
     rounds.push({ text: `${e.name}对你造成 ${d2} 点伤害。` })
     if (pHp <= 0) {

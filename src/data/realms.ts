@@ -120,17 +120,20 @@ export function expNeeded(realm: RealmId, layer: number): number {
   return Math.floor(def.expPerLayer * Math.pow(1.5, Math.max(0, layer - 1)))
 }
 
-/** 境界带来的基础气血 */
-export function realmMaxHp(realm: RealmId, hpMul: number): number {
+/** 境界带来的基础气血：大境界基数逐级抬升，小层每层 +3%（第 9 层约 +24%） */
+export function realmMaxHp(realm: RealmId, hpMul: number, layer = 1): number {
   const ri = Math.max(0, realmIndex(realm))
-  return Math.floor((100 + ri * 55 + Math.pow(ri, 1.6) * 12) * hpMul)
+  const base = 200 + ri * 120 + Math.pow(ri, 2.2) * 30
+  const layerMul = 1 + (Math.max(1, layer) - 1) * 0.03
+  return Math.floor(base * layerMul * hpMul)
 }
 
-/** 境界带来的基础灵力/魔元 */
-export function realmMaxEnergy(realm: RealmId, isDemon: boolean): number {
+/** 境界带来的基础灵力/魔元：大境界基数逐级抬升，小层每层 +3% */
+export function realmMaxEnergy(realm: RealmId, isDemon: boolean, layer = 1): number {
   const ri = Math.max(0, realmIndex(realm))
-  const base = 80 + ri * 40 + Math.pow(ri, 1.4) * 8
-  return Math.floor(isDemon ? base * 1.1 : base)
+  const base = 160 + ri * 90 + Math.pow(ri, 2.2) * 20
+  const layerMul = 1 + (Math.max(1, layer) - 1) * 0.03
+  return Math.floor((isDemon ? base * 1.1 : base) * layerMul)
 }
 
 /** 战斗力粗略估值 */

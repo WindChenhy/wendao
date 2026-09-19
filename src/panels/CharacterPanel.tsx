@@ -1,22 +1,28 @@
 import { CLASSES } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { REALMS, combatPower, realmLabel } from '../data/realms'
+import { sectRankLabel } from '../data/sects'
 import { playerCombatStats } from '../game/combat'
 import { formatNum } from '../game/format'
-import { useGameStore } from '../stores/useGameStore'
+import { useGameStore, gongfaBonuses, treasureBonus } from '../stores/useGameStore'
 
 export function CharacterPanel() {
   const player = useGameStore((s) => s.player)
   const treasures = useGameStore((s) => s.treasures)
   const sect = useGameStore((s) => s.sect)
+  const gongfa = useGameStore((s) => s.gongfa)
   if (!player) return null
   const c = CLASSES[player.classId]
+  const gb = gongfaBonuses(gongfa.learned)
+  const tb = treasureBonus(treasures)
   const stats = playerCombatStats(
     player.classId,
     player.realm,
     player.layer,
     player.hp,
     player.maxHp,
+    gb.atk * tb.atk,
+    gb.def * tb.def,
   )
   const power = combatPower(player.realm, player.layer, stats.atk, stats.def, player.maxHp)
 
@@ -27,7 +33,7 @@ export function CharacterPanel() {
         <div className="text-sm text-text-dim mb-3">
           {player.gender === 'male' ? '男' : '女'} · {c.name} ·{' '}
           {c.faction === 'demonic' ? '魔道' : c.faction === 'neutral' ? '亦正亦邪' : '正道'}
-          {sect.sectId ? ` · 在籍宗门` : ''}
+          {sect.sectId ? ` · 在籍${sectRankLabel(sect.rank)}` : ''}
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>境界：{realmLabel(player.realm, player.layer)}</div>

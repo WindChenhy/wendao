@@ -137,6 +137,7 @@ export type PanelId =
   | 'explore'
   | 'secret_realm'
   | 'inventory'
+  | 'market'
   | 'abode'
   | 'sect'
   | 'companion'

@@ -1,4 +1,4 @@
-import { realmIndex } from './realms'
+import { realmIndex, realmMaxHp } from './realms'
 import type { RealmId } from '../types'
 
 export interface SecretRealmDef {
@@ -92,6 +92,54 @@ export const SECRET_REALMS: SecretRealmDef[] = [
     },
     flavor: '脚下星光碎裂，头顶虚空倒悬。',
   },
+  {
+    id: 'lingxu_palace',
+    name: '灵虚仙府',
+    desc: '上古仙府遗落云海，禁制森严。虚空晶藏于府库深处。',
+    minRealm: 'spirit_sea',
+    minLayer: 1,
+    floors: 70,
+    bossEvery: 14,
+    env: { playerHpMul: 0.75, rewardMul: 2.8 },
+    loot: {
+      stonePerFloor: 600,
+      expPerFloor: 1100,
+      bossItemId: 'mat_void',
+    },
+    flavor: '白玉阶前云海翻涌，禁制如活物呼吸。',
+  },
+  {
+    id: 'taixu_battlefield',
+    name: '太虚古战场',
+    desc: '两位大能陨落之地，法则残痕犹存。合体石嵌于将陨者的眉心。',
+    minRealm: 'void',
+    minLayer: 1,
+    floors: 80,
+    bossEvery: 16,
+    env: { playerHpMul: 0.7, rewardMul: 3.4 },
+    loot: {
+      stonePerFloor: 1600,
+      expPerFloor: 3000,
+      bossItemId: 'mat_integration',
+    },
+    flavor: '断剑插地成林，虚空里仍回荡着那一战的金铁声。',
+  },
+  {
+    id: 'guixu_land',
+    name: '归墟之地',
+    desc: '万物归墟之所，道则崩坏。大乘道种于归墟中心沉浮。',
+    minRealm: 'integration',
+    minLayer: 1,
+    floors: 90,
+    bossEvery: 18,
+    env: { playerHpMul: 0.65, rewardMul: 4.2 },
+    loot: {
+      stonePerFloor: 4200,
+      expPerFloor: 8000,
+      bossItemId: 'mat_mahayana',
+    },
+    flavor: '天光在此折断，唯有道种自放光明。',
+  },
 ]
 
 export function canEnterRealm(
@@ -108,28 +156,55 @@ export function isBossFloor(realm: SecretRealmDef, floor: number): boolean {
   return floor > 0 && floor % realm.bossEvery === 0
 }
 
-/** 按秘境与层数生成临时敌人 */
+/**
+ * 按秘境与层数生成临时敌人。
+ * 数值锚定秘境所属大境界：以「恰好处于该秘境最低大境界入门层的玩家」为基准，
+ * 层数爬升约 2.2 倍，镇守再乘额外系数——高境界玩家闯低阶秘境应当碾压般轻松。
+ */
 export function towerEnemy(realmId: string, floor: number, boss: boolean) {
   const realm = SECRET_REALMS.find((r) => r.id === realmId)
-  const mul = 1 + floor * 0.08
-  const base = {
+  const minRealm: RealmId = realm?.minRealm ?? 'qi'
+  const ri = realmIndex(minRealm)
+  const floors = realm?.floors ?? 30
+  // 玩家基准：最低大境界入门层、未计职业/功法系数
+  const refAtk = 8 + (ri + 1) * 12 + 4
+  const refDef = 4 + (ri + 1) * 6 + 2.5
+  const refHp = realmMaxHp(minRealm, 1, 1)
+  // 层内爬升：首层 1.0 → 顶层约 2.2
+  const ramp = 1 + ((floor - 1) / Math.max(1, floors - 1)) * 1.2
+  const bm = boss ? { atk: 1.15, def: 1.15, hp: 1.5 } : { atk: 1, def: 1, hp: 1 }
+  // 奖励随秘境品阶抬升，层内同步爬升
+  const tierMul = Math.pow(2.2, ri)
+  const rewardRamp = 0.8 + 0.4 * (ramp - 1)
+  return {
     id: `${realmId}_${floor}`,
     name: boss
       ? `${realm?.name ?? '秘境'}镇守`
       : `${realm?.name ?? '秘境'}守卫·${floor}`,
     faction: 'beast' as const,
-    realm: 'qi' as const,
-    layer: Math.max(1, floor),
-    atk: Math.floor((10 + floor * 3.2) * (boss ? 1.5 : 1) * mul * 0.55),
-    def: Math.floor((4 + floor * 1.6) * (boss ? 1.4 : 1)),
-    hp: Math.floor((50 + floor * 18) * (boss ? 2.2 : 1) * mul * 0.5),
+    realm: minRealm,
+    layer: Math.max(1, Math.min(9, floor)),
+    atk: Math.floor(refAtk * (0.75 + 0.35 * (ramp - 1)) * bm.atk),
+    def: Math.floor(refDef * (0.9 + 0.3 * (ramp - 1)) * bm.def),
+    hp: Math.floor(refHp * (0.55 + 0.45 * (ramp - 1)) * bm.hp),
     loot: {
-      stone: Math.floor((realm?.loot.stonePerFloor ?? 10) * (boss ? 4 : 1) * (realm?.env.rewardMul ?? 1)),
-      exp: Math.floor((realm?.loot.expPerFloor ?? 20) * (boss ? 3 : 1) * (realm?.env.rewardMul ?? 1)),
+      stone: Math.floor(
+        (realm?.loot.stonePerFloor ?? 10) *
+          tierMul *
+          (realm?.env.rewardMul ?? 1) *
+          rewardRamp *
+          (boss ? 4 : 1),
+      ),
+      exp: Math.floor(
+        (realm?.loot.expPerFloor ?? 20) *
+          tierMul *
+          (realm?.env.rewardMul ?? 1) *
+          rewardRamp *
+          (boss ? 3 : 1),
+      ),
       itemId: boss ? realm?.loot.bossItemId : undefined,
       dropRate: boss ? 0.75 : 0,
     },
     flavor: boss ? '秘境镇守，杀意冲天。' : '秘境中的守卫生灵。',
   }
-  return base
 }

@@ -9,6 +9,7 @@ import { SettingsPanel } from './MetaPanels'
 import { CultivatePanel } from './CultivatePanel'
 import { ExplorePanel } from './ExplorePanel'
 import { InventoryPanel } from './InventoryPanel'
+import { MarketPanel } from './MarketPanel'
 import { SecretRealmPanel } from './SecretRealmPanel'
 import { SectPanel } from './SectPanel'
 
@@ -26,6 +27,7 @@ export function GameLayout() {
           {activePanel === 'explore' && <ExplorePanel />}
           {activePanel === 'secret_realm' && <SecretRealmPanel />}
           {activePanel === 'inventory' && <InventoryPanel />}
+          {activePanel === 'market' && <MarketPanel />}
           {activePanel === 'abode' && <AbodePanel />}
           {activePanel === 'sect' && <SectPanel />}
           {activePanel === 'companion' && <CompanionPanel />}

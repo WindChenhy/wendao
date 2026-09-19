@@ -1,25 +1,21 @@
-import { SECTS, sectsFor } from '../data/sects'
+import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsFor } from '../data/sects'
+import { GONGFA_GRADE_CLASS, GONGFAS } from '../data/gongfa'
 import { ITEMS } from '../data/items'
-import { realmLabel } from '../data/realms'
+import { realmIndex, realmLabel } from '../data/realms'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
-
-const RANK_LABEL: Record<string, string> = {
-  disciple: '外门弟子',
-  inner: '内门弟子',
-  true: '真传弟子',
-  elder: '长老',
-}
 
 export function SectPanel() {
   const player = useGameStore((s) => s.player)
   const sect = useGameStore((s) => s.sect)
+  const gongfa = useGameStore((s) => s.gongfa)
   const inventory = useGameStore((s) => s.inventory)
   const joinSect = useGameStore((s) => s.joinSect)
   const leaveSect = useGameStore((s) => s.leaveSect)
   const sectTask = useGameStore((s) => s.sectTask)
   const sectExchange = useGameStore((s) => s.sectExchange)
   const sectLearn = useGameStore((s) => s.sectLearn)
+  const sectGrandCompetition = useGameStore((s) => s.sectGrandCompetition)
   const promoteRank = useGameStore((s) => s.promoteRank)
 
   if (!player) return null
@@ -35,6 +31,27 @@ export function SectPanel() {
   )
   const allOfAlign = SECTS.filter((s) => s.alignment === alignment)
 
+  const rankDef = SECT_RANKS[sect.rank]
+  const curIdx = sectRankIndex(sect.rank)
+  const nextId = nextSectRank(sect.rank)
+  const nextDef = nextId ? SECT_RANKS[nextId] : null
+  const freePromote = nextDef?.entry === 'optional' || nextDef?.entry === 'none'
+  const contribOk = nextDef ? freePromote || sect.contribution >= nextDef.entryCost : true
+  const examNeeded = nextDef?.entry === 'exam'
+  const examOk = examNeeded ? sect.examPassed : true
+  const realmOk = (() => {
+    const req = nextDef?.realmReq
+    if (!req || freePromote) return true
+    if (realmIndex(player.realm) < realmIndex(req.realm)) return false
+    if (player.realm === req.realm && player.layer < req.layer) return false
+    return true
+  })()
+  const canPromote = Boolean(nextDef) && contribOk && examOk && realmOk
+  const canExchange = curIdx >= 1
+  const canEnterLibrary = curIdx >= 2
+
+  const reqMark = (ok: boolean) => (ok ? <span className="text-jade">✔</span> : <span className="text-vermilion">✘</span>)
+
   return (
     <div className="p-4 space-y-4 max-w-2xl">
       {current ? (
@@ -44,8 +61,9 @@ export function SectPanel() {
               <div>
                 <div className="font-display text-gold text-lg">{current.name}</div>
                 <div className="text-xs text-text-dim mt-1">
-                  {RANK_LABEL[sect.rank]} · 贡献{' '}
+                  当前身份 <span className="text-gold">{rankDef.name}</span> · 贡献{' '}
                   <span className="text-gold">{formatNum(sect.contribution)}</span>
+                  {sect.examPassed && <span className="text-jade"> · 大比已过</span>}
                 </div>
               </div>
               <button className="pixel-btn text-xs danger" onClick={leaveSect}>
@@ -58,18 +76,105 @@ export function SectPanel() {
               {current.bonus.breakthroughBonus >= 0 ? '+' : ''}
               {current.bonus.breakthroughBonus}%
             </p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <button className="pixel-btn primary" onClick={sectTask}>
-                完成今日委托
-              </button>
-              <button className="pixel-btn" onClick={promoteRank}>
-                晋升身份
-              </button>
+            <p className="text-xs text-text-dim mt-1">
+              职位加成：修炼 ×{rankDef.cultivateMul}，委托贡献 ×{rankDef.taskMul} —— {rankDef.desc}
+            </p>
+          </div>
+
+          <div className="panel-box p-4">
+            <div className="font-display text-gold mb-3">职位阶梯</div>
+            <div className="flex flex-wrap gap-1.5">
+              {SECT_RANK_ORDER.map((r) => {
+                const ri = sectRankIndex(r)
+                const cls =
+                  ri < curIdx
+                    ? 'border-jade/50 text-jade/80'
+                    : ri === curIdx
+                      ? 'border-gold text-gold bg-[#2a2618]'
+                      : 'border-border text-text-dim'
+                return (
+                  <span key={r} className={`border px-2 py-0.5 text-xs ${cls}`}>
+                    {SECT_RANKS[r].name}
+                  </span>
+                )
+              })}
             </div>
+            <p className="text-xs text-text-dim mt-3 leading-relaxed">
+              晋升规则：杂役→外门只需贡献；外门→真传需贡献并通过宗门大比；执事及以上需贡献足够且修为达标；宗主→太上长老可自由选择，无需贡献与境界。
+            </p>
+          </div>
+
+          <div className="panel-box p-4">
+            <div className="font-display text-gold mb-3">晋升</div>
+            {!nextDef ? (
+              <div className="text-sm text-gold">你已是太上长老，宗门之中再无高位。</div>
+            ) : (
+              <>
+                <div className="text-sm text-text mb-1">
+                  下一职位：<span className="text-gold">{nextDef.name}</span>
+                  <span className="text-xs text-text-dim ml-2">{nextDef.desc}</span>
+                </div>
+                <div className="space-y-1 text-xs mt-2">
+                  {freePromote ? (
+                    <div className="flex items-center gap-2">
+                      {reqMark(true)}
+                      <span className="text-bamboo">
+                        可自由选择是否晋升，无需贡献与境界要求
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        {reqMark(contribOk)}
+                        <span>
+                          贡献 ≥ {nextDef.entryCost}（当前 {formatNum(sect.contribution)}）
+                        </span>
+                      </div>
+                      {examNeeded && (
+                        <div className="flex items-center gap-2">
+                          {reqMark(examOk)}
+                          <span>宗门大比考核（{examOk ? '已通过' : '未通过'}）</span>
+                        </div>
+                      )}
+                      {nextDef.realmReq && (
+                        <div className="flex items-center gap-2">
+                          {reqMark(realmOk)}
+                          <span>
+                            修为 ≥ {realmLabel(nextDef.realmReq.realm, nextDef.realmReq.layer)}（你现为{' '}
+                            {realmLabel(player.realm, player.layer)}）
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {examNeeded && !examOk && (
+                    <button className="pixel-btn primary" onClick={sectGrandCompetition}>
+                      参与宗门大比
+                    </button>
+                  )}
+                  <button className="pixel-btn" disabled={!canPromote} onClick={promoteRank}>
+                    晋升{nextDef.name}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button className="pixel-btn primary" onClick={sectTask}>
+              完成今日委托
+            </button>
           </div>
 
           <div className="panel-box p-4">
             <div className="font-display text-gold mb-3">贡献兑换</div>
+            {!canExchange && (
+              <p className="text-xs text-vermilion mb-2">
+                杂役弟子不可兑换宗门物资，晋升外门弟子后开放。
+              </p>
+            )}
             <div className="space-y-2">
               {current.shop.map((row) => (
                 <div
@@ -82,7 +187,7 @@ export function SectPanel() {
                   </div>
                   <button
                     className="pixel-btn text-xs"
-                    disabled={sect.contribution < row.cost}
+                    disabled={!canExchange || sect.contribution < row.cost}
                     onClick={() => sectExchange(row.itemId, row.cost)}
                   >
                     {row.cost} 贡献
@@ -94,14 +199,26 @@ export function SectPanel() {
 
           <div className="panel-box p-4">
             <div className="font-display text-gold mb-3">藏经阁</div>
+            {!canEnterLibrary && (
+              <p className="text-xs text-vermilion mb-2">藏经阁仅对内门及以上职位开放。</p>
+            )}
             <div className="space-y-2">
               {current.library.map((lib) => {
-                const known = sect.learned.includes(lib.id)
+                const g = GONGFAS[lib.id]
+                const known = Boolean(gongfa.learned[lib.id])
                 return (
                   <div key={lib.id} className="border border-border px-3 py-2">
                     <div className="flex justify-between items-center gap-2">
                       <div>
-                        <div className="text-sm text-gold">{lib.name}</div>
+                        <div className="text-sm">
+                          {g && (
+                            <>
+                              <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
+                              <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
+                            </>
+                          )}
+                          <span className="text-gold">{lib.name}</span>
+                        </div>
                         <div className="text-xs text-text-dim mt-0.5">{lib.desc}</div>
                       </div>
                       {known ? (
@@ -109,7 +226,7 @@ export function SectPanel() {
                       ) : (
                         <button
                           className="pixel-btn text-xs"
-                          disabled={sect.contribution < lib.cost}
+                          disabled={!canEnterLibrary || sect.contribution < lib.cost}
                           onClick={() => sectLearn(lib.id, lib.cost)}
                         >
                           {lib.cost} 贡献
@@ -124,11 +241,12 @@ export function SectPanel() {
 
           <div className="panel-box p-4 text-xs text-text-dim">
             <div className="text-xs text-text-dim">
-              已学秘法：
-              {sect.learned.length === 0
+              已参悟功法：
+              {current.library.filter((l) => gongfa.learned[l.id]).length === 0
                 ? '无'
-                : sect.learned
-                    .map((id) => current.library.find((l) => l.id === id)?.name ?? id)
+                : current.library
+                    .filter((l) => gongfa.learned[l.id])
+                    .map((l) => l.name)
                     .join('、')}
             </div>
             <div className="mt-2">
@@ -148,7 +266,7 @@ export function SectPanel() {
               当前倾向：
               {demonicPref ? '魔道更近，可拜魔门。' : '正道路线，可投名山。'}
               你现为 {realmLabel(player.realm, player.layer)}，正道声望 {player.repRight}，魔道声望{' '}
-              {player.repDemonic}。
+              {player.repDemonic}。入门皆自杂役弟子做起，凭贡献与大比晋升；晋至宗主后，可自由抉择是否退居太上长老。
             </p>
           </div>
 
