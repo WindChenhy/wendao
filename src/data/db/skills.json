@@ -1,0 +1,307 @@
+{
+  "combatConfig": {
+    "maxRounds": 28,
+    "defendDmgReduce": 0.5,
+    "defendEnergyRegen": 8,
+    "combatPotionLimit": 2,
+    "critBaseChance": 0.05,
+    "critMultiplier": 1.6,
+    "swordIntentPerStack": 0.04,
+    "swordIntentMax": 5,
+    "shaQiPerStack": 0.03,
+    "shaQiMax": 8,
+    "demonLifesteal": 0.12,
+    "enemySkillChance": { "minion": 0.2, "normal": 0.28, "elite": 0.4, "boss": 0.55 },
+    "autoDefaultExplore": false,
+    "autoDefaultSect": false
+  },
+  "skills": [
+    {
+      "id": "pas_sword_intent",
+      "classId": "sword",
+      "name": "剑意叠层",
+      "type": "passive",
+      "desc": "攻击命中叠剑意，每层攻击+4%，上限5层；未叠层的回合结束时衰减1层。",
+      "effects": []
+    },
+    {
+      "id": "sk_sword_combo",
+      "classId": "sword",
+      "name": "御剑连斩",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 12 },
+      "cd": 2,
+      "hits": 3,
+      "multiplier": 0.72,
+      "defPierce": 1,
+      "autoPriority": 40,
+      "desc": "连出三剑，每剑叠加剑意。",
+      "effects": [{ "type": "add_status", "status": "sword_intent", "stacks": 1, "perHit": true }]
+    },
+    {
+      "id": "sk_sword_break",
+      "classId": "sword",
+      "name": "一剑破万法",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 22 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 1.85,
+      "defPierce": 1.4,
+      "autoPriority": 90,
+      "desc": "强破防御一击，消耗全部剑意，每层额外+12%倍率。",
+      "effects": [{ "type": "consume_status", "status": "sword_intent", "bonusPerStack": 0.12 }]
+    },
+    {
+      "id": "pas_body_counter",
+      "classId": "body",
+      "name": "铁骨反震",
+      "type": "passive",
+      "desc": "受击反弹12%实际伤害。",
+      "effects": [{ "type": "counter", "ratio": 0.12 }]
+    },
+    {
+      "id": "sk_body_wall",
+      "classId": "body",
+      "name": "铁山靠",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 10 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 55,
+      "desc": "获得25%最大气血护盾（3回合），反伤提升至20%。",
+      "effects": [
+        { "type": "shield", "ratio": 0.25, "turns": 3 },
+        { "type": "add_status", "status": "counter_buff", "value": 0.2, "turns": 3 }
+      ]
+    },
+    {
+      "id": "sk_body_rage",
+      "classId": "body",
+      "name": "血气爆发",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 18 },
+      "cd": 5,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 70,
+      "desc": "2回合攻击+30%；并按已损气血造成额外伤害。",
+      "effects": [
+        { "type": "add_status", "status": "atk_up", "value": 0.3, "turns": 2 },
+        { "type": "missing_hp_damage", "ratio": 0.15, "capAtk": 1.2 }
+      ]
+    },
+    {
+      "id": "pas_alchemy_pill",
+      "classId": "alchemy",
+      "name": "丹道入微",
+      "type": "passive",
+      "desc": "战斗服药效果×1.35，用药上限+1。",
+      "effects": [{ "type": "potion_bonus", "ratio": 1.35, "extraLimit": 1 }]
+    },
+    {
+      "id": "sk_alchemy_mist",
+      "classId": "alchemy",
+      "name": "药雾回春",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 14 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 60,
+      "desc": "回复18%最大气血+20，并获得3回合药力回复。",
+      "effects": [
+        { "type": "heal", "ratio": 0.18, "flat": 20 },
+        { "type": "add_status", "status": "regen", "value": 0.04, "turns": 3 }
+      ]
+    },
+    {
+      "id": "sk_alchemy_blast",
+      "classId": "alchemy",
+      "name": "爆丹",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 20 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 1.2,
+      "defPierce": 1,
+      "autoPriority": 75,
+      "desc": "消耗背包1枚丹药，按丹价提升倍率并削弱敌人。",
+      "effects": [
+        { "type": "consume_pill_blast" },
+        { "type": "add_status", "status": "weaken", "value": 0.2, "turns": 2, "target": "enemy" }
+      ]
+    },
+    {
+      "id": "pas_artifact_sync",
+      "classId": "artifact",
+      "name": "人宝合一",
+      "type": "passive",
+      "desc": "认主法宝战斗加成额外×1.15；每件法宝战斗灵力上限+5。",
+      "effects": [{ "type": "artifact_sync" }]
+    },
+    {
+      "id": "sk_artifact_sword",
+      "classId": "artifact",
+      "name": "祭·青冥剑",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 16 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 1.4,
+      "defPierce": 1.1,
+      "autoPriority": 50,
+      "desc": "祭出法宝攻敌；已认主攻击法宝时威力更强。",
+      "effects": [{ "type": "artifact_attack", "strongMul": 2.0, "weakMul": 1.4 }]
+    },
+    {
+      "id": "sk_artifact_pagoda",
+      "classId": "artifact",
+      "name": "祭·镇魂塔",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 18 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 58,
+      "desc": "祭出法宝护体；已认主防御法宝时护盾更强。",
+      "effects": [{ "type": "artifact_defend", "strongRatio": 0.3, "weakRatio": 0.15, "turns": 3, "energyGain": 10 }]
+    },
+    {
+      "id": "pas_talisman_charge",
+      "classId": "talisman",
+      "name": "袖里符",
+      "type": "passive",
+      "desc": "开战自带2符能，每3回合+1，上限4；可抵扣灵力消耗。",
+      "effects": [{ "type": "talisman_charge" }]
+    },
+    {
+      "id": "sk_talisman_thunder",
+      "classId": "talisman",
+      "name": "雷符",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 16, "talismanChargeAlt": { "charge": 1, "energy": 8 } },
+      "cd": 2,
+      "hits": 1,
+      "multiplier": 1.55,
+      "defPierce": 1.05,
+      "autoPriority": 45,
+      "desc": "雷符轰击，30%概率眩晕1回合。",
+      "effects": [{ "type": "chance_status", "chance": 0.3, "status": "stun", "turns": 1, "target": "enemy" }]
+    },
+    {
+      "id": "sk_talisman_seal",
+      "classId": "talisman",
+      "name": "镇魂符",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 20, "talismanChargeAlt": { "charge": 2, "energy": 4 } },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 0.45,
+      "defPierce": 1,
+      "autoPriority": 85,
+      "desc": "必中眩晕1回合并施加虚弱2回合。",
+      "effects": [
+        { "type": "add_status", "status": "stun", "turns": 1, "target": "enemy" },
+        { "type": "add_status", "status": "weaken", "value": 0.2, "turns": 2, "target": "enemy" }
+      ]
+    },
+    {
+      "id": "pas_soul_trade",
+      "classId": "soul",
+      "name": "窥阴阳",
+      "type": "passive",
+      "desc": "战斗中每造成100点伤害，回复2点灵力。",
+      "effects": [{ "type": "energy_on_damage", "per": 100, "gain": 2 }]
+    },
+    {
+      "id": "sk_soul_burn",
+      "classId": "soul",
+      "name": "燃寿一击",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 15 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 2.2,
+      "defPierce": 1.2,
+      "autoPriority": 80,
+      "desc": "消耗1年寿元，打出强力一击。",
+      "effects": [{ "type": "cost_lifespan", "years": 1 }]
+    },
+    {
+      "id": "sk_soul_lock",
+      "classId": "soul",
+      "name": "魂锁",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 18 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 0.6,
+      "defPierce": 1,
+      "autoPriority": 72,
+      "desc": "使敌虚弱3回合，并获得护盾；敌已虚弱则追加魂伤。",
+      "effects": [
+        { "type": "add_status", "status": "weaken", "value": 0.25, "turns": 3, "target": "enemy" },
+        { "type": "shield", "ratio": 0.12, "turns": 3 },
+        { "type": "bonus_if_status", "status": "weaken", "target": "enemy", "multiplier": 0.6 }
+      ]
+    },
+    {
+      "id": "pas_demon_sha",
+      "classId": "demon",
+      "name": "煞气加身",
+      "type": "passive",
+      "desc": "命中叠煞气（每层攻击+3%，上限8）；伤害12%吸血；煞气≥6时每回合有反噬风险。",
+      "effects": [{ "type": "demon_sha" }]
+    },
+    {
+      "id": "sk_demon_blood",
+      "classId": "demon",
+      "name": "血煞斩",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 14 },
+      "cd": 2,
+      "hits": 1,
+      "multiplier": 1.4,
+      "defPierce": 1.05,
+      "autoPriority": 48,
+      "desc": "血煞一斩，本击吸血提升至35%，+2煞气。",
+      "effects": [
+        { "type": "lifesteal_override", "ratio": 0.35 },
+        { "type": "add_status", "status": "sha_qi", "stacks": 2 }
+      ]
+    },
+    {
+      "id": "sk_demon_burst",
+      "classId": "demon",
+      "name": "煞气爆发",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 20 },
+      "cd": 5,
+      "hits": 1,
+      "multiplier": 1,
+      "defPierce": 1.1,
+      "autoPriority": 92,
+      "desc": "消耗全部煞气，每层+18%倍率；消耗≥6层时自身可能眩晕。",
+      "effects": [
+        { "type": "consume_status", "status": "sha_qi", "bonusPerStack": 0.18 },
+        { "type": "self_stun_if_consume", "status": "sha_qi", "threshold": 6, "turns": 1 }
+      ]
+    }
+  ]
+}

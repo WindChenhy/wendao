@@ -1,0 +1,26 @@
+[
+  {
+    "id": "herb_qi",
+    "name": "聚气草",
+    "type": "material",
+    "desc": "灵田所出灵植，可入药。",
+    "price": 18,
+    "effect": { "exp": 25 }
+  },
+  {
+    "id": "herb_moon",
+    "name": "月华花",
+    "type": "material",
+    "desc": "月下凝露的灵花。",
+    "price": 50,
+    "effect": { "hp": 40 }
+  },
+  {
+    "id": "herb_blood",
+    "name": "血参",
+    "type": "material",
+    "desc": "药力雄浑的血色参根。",
+    "price": 150,
+    "effect": { "hp": 120, "exp": 60 }
+  }
+]

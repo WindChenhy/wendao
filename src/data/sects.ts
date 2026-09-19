@@ -1,4 +1,4 @@
-import { realmIndex } from './realms'
+import { realmIndex, realmCombatBase } from './realms'
 import type { EnemyDef, RealmId } from '../types'
 
 export type SectAlignment = 'righteous' | 'demonic'
@@ -174,18 +174,17 @@ export function sectExamOpponent(realm: RealmId, layer: number, tier: 1 | 2 | 3)
     2: '内门翘楚',
     3: '亲传首席',
   }
-  const ri = Math.max(0, realmIndex(realm))
-  const L = Math.min(9, layer + tier)
+  const base = realmCombatBase(realm, Math.min(9, layer + tier))
   return {
     id: `sect_exam_${tier}`,
     name: names[tier],
     faction: 'righteous',
     realm,
-    layer: L,
-    atk: Math.floor((8 + ri * 12 + L * 4) * (0.9 + tier * 0.05)),
-    def: Math.floor((4 + ri * 6 + L * 2.5) * (0.95 + tier * 0.05)),
-    hp: Math.floor((100 + ri * 55 + Math.pow(ri, 1.6) * 12) * (1 + tier * 0.15)),
-    loot: { exp: Math.floor(60 * (ri + 1) * tier) },
+    layer: Math.min(9, layer + tier),
+    atk: Math.floor(base.atk * (0.9 + tier * 0.05)),
+    def: Math.floor(base.def * (0.95 + tier * 0.05)),
+    hp: Math.floor(base.hp * (0.85 + tier * 0.1)),
+    loot: { exp: Math.floor(60 * (realmIndex(realm) + 1) * tier) },
     flavor: '大比台上的同门对手，招式堂堂正正。',
   }
 }
@@ -224,11 +223,14 @@ export const SECTS: SectDef[] = [
     shop: [
       { itemId: 'pill_qi', cost: 15 },
       { itemId: 'pill_heal', cost: 10 },
+      { itemId: 'pill_break', cost: 40 },
       { itemId: 'mat_foundation', cost: 80 },
     ],
     library: [
       { id: 'js_jian', name: '青云剑诀', cost: 100, desc: '攻击 +10%', effect: 'atk' },
       { id: 'js_xin', name: '澄心诀', cost: 60, desc: '修炼速度 +8%', effect: 'cultivate' },
+      { id: 'js_jiantai', name: '青云剑胎', cost: 360, desc: '攻击 +20%', effect: 'atk' },
+      { id: 'js_taixu', name: '青云太虚剑典', cost: 1200, desc: '攻击 +28%、受伤降低 5%', effect: 'atk' },
     ],
   },
   {
@@ -242,12 +244,16 @@ export const SECTS: SectDef[] = [
     bonus: { cultivateMul: 1.08, breakthroughBonus: 2 },
     shop: [
       { itemId: 'pill_qi', cost: 12 },
+      { itemId: 'pill_break', cost: 35 },
+      { itemId: 'pill_break_adv', cost: 120 },
       { itemId: 'mat_foundation', cost: 70 },
       { itemId: 'mat_core', cost: 250 },
     ],
     library: [
       { id: 'ty_dan', name: '太一丹解', cost: 80, desc: '修炼速度 +12%', effect: 'cultivate' },
       { id: 'ty_ti', name: '药体诀', cost: 90, desc: '气血 +15%', effect: 'hp' },
+      { id: 'ty_danding', name: '丹鼎真火录', cost: 420, desc: '修炼 +20%、气血 +8%', effect: 'cultivate' },
+      { id: 'ty_changsheng', name: '长生药王经', cost: 1100, desc: '修炼 +22%、气血 +18%', effect: 'cultivate' },
     ],
   },
   {
@@ -266,6 +272,7 @@ export const SECTS: SectDef[] = [
     library: [
       { id: 'ht_ti', name: '浩天淬体篇', cost: 120, desc: '防御 +15%', effect: 'def' },
       { id: 'ht_mai', name: '不灭经', cost: 200, desc: '气血 +25%', effect: 'hp' },
+      { id: 'ht_shenshen', name: '神身合一法', cost: 1000, desc: '气血 +28%、防御 +18%', effect: 'hp' },
     ],
   },
   {
@@ -285,6 +292,8 @@ export const SECTS: SectDef[] = [
     library: [
       { id: 'xs_sha', name: '血煞魔功', cost: 100, desc: '攻击 +18%', effect: 'atk' },
       { id: 'xs_sui', name: '噬魂秘录', cost: 150, desc: '修炼速度 +15%', effect: 'cultivate' },
+      { id: 'xs_xuehai', name: '血海魔身', cost: 480, desc: '攻击 +12%、气血 +20%', effect: 'hp' },
+      { id: 'xs_wangmo', name: '万魔朝宗', cost: 1300, desc: '攻击 +32%', effect: 'atk' },
     ],
   },
   {
@@ -302,6 +311,8 @@ export const SECTS: SectDef[] = [
     ],
     library: [
       { id: 'ym_gui', name: '幽冥引魂经', cost: 180, desc: '修炼速度 +20%', effect: 'cultivate' },
+      { id: 'ym_zhanshen', name: '幽冥斩神录', cost: 620, desc: '攻击 +26%、受伤降低 6%', effect: 'atk' },
+      { id: 'ym_lunhui', name: '轮回鬼典', cost: 1250, desc: '修炼 +30%、受伤降低 8%', effect: 'cultivate' },
     ],
   },
 ]

@@ -1,0 +1,735 @@
+[
+  {
+    "id": "gf_yangqi",
+    "name": "养气诀",
+    "grade": "黄阶",
+    "kind": "功法",
+    "desc": "吐纳养气的入门功法，绵长醇厚。",
+    "minRealm": "qi",
+    "price": 180,
+    "effect": {
+      "hp": 0.08
+    }
+  },
+  {
+    "id": "gf_tiegong",
+    "name": "铁骨功",
+    "grade": "黄阶",
+    "kind": "锻体法",
+    "desc": "淬炼筋骨皮膜，硬撼刀剑。",
+    "minRealm": "qi",
+    "price": 180,
+    "effect": {
+      "def": 0.08
+    }
+  },
+  {
+    "id": "gf_juling",
+    "name": "聚灵诀",
+    "grade": "黄阶",
+    "kind": "心法",
+    "desc": "引聚天地灵气入体，修行事半功倍。",
+    "minRealm": "qi",
+    "price": 220,
+    "effect": {
+      "cultivate": 0.08
+    }
+  },
+  {
+    "id": "gf_liufeng",
+    "name": "流风身法",
+    "grade": "黄阶",
+    "kind": "身法",
+    "desc": "身随风波流，避实就虚。",
+    "minRealm": "qi",
+    "price": 260,
+    "effect": {
+      "dodge": 0.05
+    }
+  },
+  {
+    "id": "gf_jifeng",
+    "name": "疾风拳",
+    "grade": "黄阶",
+    "kind": "攻击法诀",
+    "desc": "拳出如风，专打对手立足未稳。",
+    "minRealm": "qi",
+    "price": 240,
+    "effect": {
+      "atk": 0.07
+    }
+  },
+  {
+    "id": "gf_panshi",
+    "name": "磐石桩",
+    "grade": "黄阶",
+    "kind": "锻体法",
+    "desc": "站桩如山，下盘沉稳。",
+    "minRealm": "qi",
+    "price": 200,
+    "effect": {
+      "def": 0.06,
+      "hp": 0.04
+    }
+  },
+  {
+    "id": "gf_guyuan",
+    "name": "固元功",
+    "grade": "黄阶",
+    "kind": "心法",
+    "desc": "固本培元，根基绵长。",
+    "minRealm": "qi",
+    "price": 280,
+    "effect": {
+      "cultivate": 0.05,
+      "hp": 0.05
+    }
+  },
+  {
+    "id": "gf_qingyuan",
+    "name": "青元剑气",
+    "grade": "玄阶",
+    "kind": "攻击法诀",
+    "desc": "剑气离体三尺，凌厉无俦。",
+    "minRealm": "foundation",
+    "price": 700,
+    "effect": {
+      "atk": 0.1
+    }
+  },
+  {
+    "id": "gf_guiyuan",
+    "name": "龟息功",
+    "grade": "玄阶",
+    "kind": "防御法",
+    "desc": "气机内敛如龟息，护体不破。",
+    "minRealm": "foundation",
+    "price": 800,
+    "effect": {
+      "def": 0.1
+    }
+  },
+  {
+    "id": "gf_xuanbing",
+    "name": "玄冰诀",
+    "grade": "玄阶",
+    "kind": "心法",
+    "desc": "寒气凝神，心湖不起波澜，进境稳健。",
+    "minRealm": "foundation",
+    "price": 750,
+    "effect": {
+      "cultivate": 0.1
+    }
+  },
+  {
+    "id": "gf_liedi",
+    "name": "裂地掌",
+    "grade": "玄阶",
+    "kind": "攻击法诀",
+    "desc": "掌落如裂地，刚猛霸道。",
+    "minRealm": "foundation",
+    "price": 820,
+    "effect": {
+      "atk": 0.12
+    }
+  },
+  {
+    "id": "gf_yugu",
+    "name": "玉骨功",
+    "grade": "玄阶",
+    "kind": "锻体法",
+    "desc": "淬骨如玉，气血充盈。",
+    "minRealm": "foundation",
+    "price": 780,
+    "effect": {
+      "hp": 0.12
+    }
+  },
+  {
+    "id": "gf_huanying",
+    "name": "幻影步",
+    "grade": "玄阶",
+    "kind": "身法",
+    "desc": "步生残影，难辨真身。",
+    "minRealm": "foundation",
+    "price": 860,
+    "effect": {
+      "dodge": 0.06
+    }
+  },
+  {
+    "id": "gf_zhenwu",
+    "name": "真武七截",
+    "grade": "玄阶",
+    "kind": "攻击法诀",
+    "desc": "七势连环，攻守一体。",
+    "minRealm": "foundation",
+    "price": 960,
+    "effect": {
+      "atk": 0.08,
+      "def": 0.05
+    }
+  },
+  {
+    "id": "gf_taixu",
+    "name": "太虚引灵篇",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "神游太虚，引灵入髓，悟性大开。",
+    "minRealm": "golden_core",
+    "price": 2400,
+    "effect": {
+      "cultivate": 0.15
+    }
+  },
+  {
+    "id": "gf_bengshan",
+    "name": "崩山劲",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "一劲既出，崩山裂石。",
+    "minRealm": "golden_core",
+    "price": 3000,
+    "effect": {
+      "atk": 0.18
+    }
+  },
+  {
+    "id": "gf_lingxu",
+    "name": "凌虚步",
+    "grade": "地阶",
+    "kind": "身法",
+    "desc": "踏虚而行，敌手难触衣角。",
+    "minRealm": "golden_core",
+    "price": 3200,
+    "effect": {
+      "dodge": 0.08
+    }
+  },
+  {
+    "id": "gf_jindanhu",
+    "name": "金丹护体真言",
+    "grade": "地阶",
+    "kind": "防御法",
+    "desc": "金丹光华护体，万法难侵。",
+    "minRealm": "golden_core",
+    "price": 2800,
+    "effect": {
+      "def": 0.14
+    }
+  },
+  {
+    "id": "gf_changchun",
+    "name": "长春功",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "春意常驻经脉，气血与修为同增。",
+    "minRealm": "golden_core",
+    "price": 2600,
+    "effect": {
+      "cultivate": 0.1,
+      "hp": 0.1
+    }
+  },
+  {
+    "id": "gf_jianxin",
+    "name": "剑心通明",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "心剑合一，锋芒所指无物不破。",
+    "minRealm": "golden_core",
+    "price": 3400,
+    "effect": {
+      "atk": 0.15,
+      "dodge": 0.04
+    }
+  },
+  {
+    "id": "gf_tatian",
+    "name": "踏天步",
+    "grade": "地阶",
+    "kind": "身法",
+    "desc": "步踏云霓，身形飘忽若仙。",
+    "minRealm": "golden_core",
+    "price": 3100,
+    "effect": {
+      "dodge": 0.07,
+      "atk": 0.05
+    }
+  },
+  {
+    "id": "gf_yuanying",
+    "name": "元婴出窍法",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "元婴神游，采天地精纯以壮己身。",
+    "minRealm": "nascent_soul",
+    "price": 4200,
+    "effect": {
+      "cultivate": 0.18
+    }
+  },
+  {
+    "id": "gf_jiuzhuan",
+    "name": "九转崩天劲",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "九转叠加，一击可撼苍穹。",
+    "minRealm": "nascent_soul",
+    "price": 4800,
+    "effect": {
+      "atk": 0.22
+    }
+  },
+  {
+    "id": "gf_buhuai",
+    "name": "不坏金身",
+    "grade": "地阶",
+    "kind": "锻体法",
+    "desc": "肉身近乎不坏，气血浩瀚。",
+    "minRealm": "nascent_soul",
+    "price": 4500,
+    "effect": {
+      "hp": 0.2,
+      "def": 0.08
+    }
+  },
+  {
+    "id": "gf_xingyun",
+    "name": "星云遁术",
+    "grade": "地阶",
+    "kind": "身法",
+    "desc": "身化星云，一闪百丈。",
+    "minRealm": "nascent_soul",
+    "price": 4300,
+    "effect": {
+      "dodge": 0.1
+    }
+  },
+  {
+    "id": "gf_dayan",
+    "name": "大衍真解",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "推演天机的无上真解，攻悟兼备。",
+    "minRealm": "spirit_sea",
+    "price": 9000,
+    "effect": {
+      "atk": 0.1,
+      "cultivate": 0.18
+    }
+  },
+  {
+    "id": "gf_huashen",
+    "name": "化神分神诀",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "一念化神，分神参玄，修炼神速。",
+    "minRealm": "spirit_sea",
+    "price": 9800,
+    "effect": {
+      "cultivate": 0.22
+    }
+  },
+  {
+    "id": "gf_taixujian",
+    "name": "太虚剑意",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "剑意充塞太虚，锋锐难当。",
+    "minRealm": "spirit_sea",
+    "price": 11000,
+    "effect": {
+      "atk": 0.24
+    }
+  },
+  {
+    "id": "gf_xinghe",
+    "name": "星河护身录",
+    "grade": "天阶",
+    "kind": "防御法",
+    "desc": "引星河之力护持周身。",
+    "minRealm": "spirit_sea",
+    "price": 10500,
+    "effect": {
+      "def": 0.2,
+      "hp": 0.08
+    }
+  },
+  {
+    "id": "gf_liuli",
+    "name": "琉璃仙身",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "身若琉璃，不染尘劫。",
+    "minRealm": "spirit_sea",
+    "price": 10200,
+    "effect": {
+      "hp": 0.22,
+      "dodge": 0.05
+    }
+  },
+  {
+    "id": "gf_xukong",
+    "name": "虚空经",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "参悟虚空法则，道行一日千里。",
+    "minRealm": "void",
+    "price": 16000,
+    "effect": {
+      "cultivate": 0.28
+    }
+  },
+  {
+    "id": "gf_mieshi",
+    "name": "灭世一指",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "一指点出，寂灭之意笼罩敌手。",
+    "minRealm": "void",
+    "price": 18000,
+    "effect": {
+      "atk": 0.3
+    }
+  },
+  {
+    "id": "gf_lianxu",
+    "name": "炼虚化身术",
+    "grade": "天阶",
+    "kind": "身法",
+    "desc": "化身万千，真身难觅。",
+    "minRealm": "void",
+    "price": 17000,
+    "effect": {
+      "dodge": 0.12,
+      "def": 0.08
+    }
+  },
+  {
+    "id": "gf_heyi",
+    "name": "合一天道篇",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "人身小天地与大天地相合，修为通玄。",
+    "minRealm": "integration",
+    "price": 28000,
+    "effect": {
+      "cultivate": 0.32,
+      "hp": 0.1
+    }
+  },
+  {
+    "id": "gf_yinyang",
+    "name": "阴阳磨盘劲",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "阴阳二气成磨，绞杀万物。",
+    "minRealm": "integration",
+    "price": 32000,
+    "effect": {
+      "atk": 0.35
+    }
+  },
+  {
+    "id": "gf_wuxiang",
+    "name": "无相法体",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "法体无相，随劫而转。",
+    "minRealm": "integration",
+    "price": 30000,
+    "effect": {
+      "def": 0.25,
+      "hp": 0.15
+    }
+  },
+  {
+    "id": "gf_dacheng",
+    "name": "大乘渡劫心经",
+    "grade": "仙阶",
+    "kind": "心法",
+    "desc": "大乘正宗心法，预演天劫、夯实道基。",
+    "minRealm": "mahayana",
+    "price": 60000,
+    "effect": {
+      "cultivate": 0.4,
+      "hp": 0.12
+    }
+  },
+  {
+    "id": "gf_wanxiang",
+    "name": "万象归一诀",
+    "grade": "仙阶",
+    "kind": "功法",
+    "desc": "万法归一，攻防一体的无上妙法。",
+    "minRealm": "mahayana",
+    "price": 72000,
+    "effect": {
+      "atk": 0.28,
+      "def": 0.2,
+      "cultivate": 0.15
+    }
+  },
+  {
+    "id": "gf_tiandao",
+    "name": "天道剑典",
+    "grade": "仙阶",
+    "kind": "攻击法诀",
+    "desc": "以天道为剑，一剑既出风云变色。",
+    "minRealm": "mahayana",
+    "price": 80000,
+    "effect": {
+      "atk": 0.42
+    }
+  },
+  {
+    "id": "gf_dujie",
+    "name": "渡劫仙经",
+    "grade": "仙阶",
+    "kind": "心法",
+    "desc": "专为渡劫而创，雷火淬神、道心不灭。",
+    "minRealm": "tribulation",
+    "price": 120000,
+    "effect": {
+      "cultivate": 0.45,
+      "dodge": 0.08
+    }
+  },
+  {
+    "id": "gf_bumie",
+    "name": "不灭道体",
+    "grade": "仙阶",
+    "kind": "锻体法",
+    "desc": "道体不灭，近乎永恒。",
+    "minRealm": "tribulation",
+    "price": 110000,
+    "effect": {
+      "hp": 0.4,
+      "def": 0.22
+    }
+  },
+  {
+    "id": "js_jian",
+    "name": "青云剑诀",
+    "grade": "玄阶",
+    "kind": "攻击法诀",
+    "desc": "青云剑宗根本剑诀，剑气纵横。",
+    "minRealm": "qi",
+    "price": 0,
+    "effect": {
+      "atk": 0.1
+    }
+  },
+  {
+    "id": "js_xin",
+    "name": "澄心诀",
+    "grade": "黄阶",
+    "kind": "心法",
+    "desc": "澄澈心湖，灵台清明。",
+    "minRealm": "qi",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.08
+    }
+  },
+  {
+    "id": "js_jiantai",
+    "name": "青云剑胎",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "剑宗真传，蕴养剑胎于丹田。",
+    "minRealm": "golden_core",
+    "price": 0,
+    "effect": {
+      "atk": 0.2
+    }
+  },
+  {
+    "id": "js_taixu",
+    "name": "青云太虚剑典",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "剑冢深处的无上剑典。",
+    "minRealm": "spirit_sea",
+    "price": 0,
+    "effect": {
+      "atk": 0.28,
+      "dodge": 0.05
+    }
+  },
+  {
+    "id": "ty_dan",
+    "name": "太一丹解",
+    "grade": "玄阶",
+    "kind": "心法",
+    "desc": "以丹道印证心法，药力催化修行。",
+    "minRealm": "qi",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.12
+    }
+  },
+  {
+    "id": "ty_ti",
+    "name": "药体诀",
+    "grade": "玄阶",
+    "kind": "锻体法",
+    "desc": "以药力淬体，气血雄浑。",
+    "minRealm": "foundation",
+    "price": 0,
+    "effect": {
+      "hp": 0.15
+    }
+  },
+  {
+    "id": "ty_danding",
+    "name": "丹鼎真火录",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "丹宗真传，以火炼神，修行与丹道双进。",
+    "minRealm": "golden_core",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.2,
+      "hp": 0.08
+    }
+  },
+  {
+    "id": "ty_changsheng",
+    "name": "长生药王经",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "药王谷遗篇，长春不老之秘。",
+    "minRealm": "nascent_soul",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.22,
+      "hp": 0.18
+    }
+  },
+  {
+    "id": "ht_ti",
+    "name": "浩天淬体篇",
+    "grade": "玄阶",
+    "kind": "锻体法",
+    "desc": "浩天体宗根本锻体法，金刚不坏。",
+    "minRealm": "qi",
+    "price": 0,
+    "effect": {
+      "def": 0.15
+    }
+  },
+  {
+    "id": "ht_mai",
+    "name": "不灭经",
+    "grade": "地阶",
+    "kind": "锻体法",
+    "desc": "肉身成圣之经，气血生生不息。",
+    "minRealm": "golden_core",
+    "price": 0,
+    "effect": {
+      "hp": 0.25
+    }
+  },
+  {
+    "id": "ht_shenshen",
+    "name": "神身合一法",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "神与身合，肉身成圣的宗门至高秘传。",
+    "minRealm": "spirit_sea",
+    "price": 0,
+    "effect": {
+      "hp": 0.28,
+      "def": 0.18
+    }
+  },
+  {
+    "id": "xs_sha",
+    "name": "血煞魔功",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "血煞入体，魔功霸道。",
+    "minRealm": "foundation",
+    "price": 0,
+    "effect": {
+      "atk": 0.18
+    }
+  },
+  {
+    "id": "xs_sui",
+    "name": "噬魂秘录",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "以魂魄淬炼心神，进境极快。",
+    "minRealm": "golden_core",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.15
+    }
+  },
+  {
+    "id": "xs_xuehai",
+    "name": "血海魔身",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "以血海铸魔身，越战越强。",
+    "minRealm": "nascent_soul",
+    "price": 0,
+    "effect": {
+      "atk": 0.12,
+      "hp": 0.2
+    }
+  },
+  {
+    "id": "xs_wangmo",
+    "name": "万魔朝宗",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "魔宫镇宫绝学，万魔之力汇于一击。",
+    "minRealm": "spirit_sea",
+    "price": 0,
+    "effect": {
+      "atk": 0.32
+    }
+  },
+  {
+    "id": "ym_gui",
+    "name": "幽冥引魂经",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "引幽冥之气入体，修行一日千里。",
+    "minRealm": "foundation",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.2
+    }
+  },
+  {
+    "id": "ym_zhanshen",
+    "name": "幽冥斩神录",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "斩神魂于幽冥，专破护体灵光。",
+    "minRealm": "nascent_soul",
+    "price": 0,
+    "effect": {
+      "atk": 0.26,
+      "dodge": 0.06
+    }
+  },
+  {
+    "id": "ym_lunhui",
+    "name": "轮回鬼典",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "窥轮回之秘，魂力通玄。",
+    "minRealm": "spirit_sea",
+    "price": 0,
+    "effect": {
+      "cultivate": 0.3,
+      "dodge": 0.08
+    }
+  }
+]

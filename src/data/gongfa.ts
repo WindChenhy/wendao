@@ -1,4 +1,8 @@
-/** 功法品阶：黄 < 玄 < 地 < 天 < 仙（仙阶为后续拓展预留） */
+import { REALMS, realmIndex } from './realms'
+import type { RealmId } from '../types'
+import gongfaJson from './db/gongfa.json'
+
+/** 功法品阶：黄 < 玄 < 地 < 天 < 仙 */
 export type GongfaGrade = '黄阶' | '玄阶' | '地阶' | '天阶' | '仙阶'
 
 /** 功法类型：心法主修行、攻击法诀主攻伐、防御法主护身、身法主遁走、锻体法炼体魄 */
@@ -13,6 +17,8 @@ export interface GongfaDef {
   grade: GongfaGrade
   kind: GongfaKind
   desc: string
+  /** 起步修炼大境界门槛（达到该大境界方可参悟） */
+  minRealm: RealmId
   /** 坊市秘籍售价；宗门秘法为 0（以贡献参悟） */
   price: number
   /** 圆满时的加成（按阶段系数缩放）；dodge 为受到伤害降低比例 */
@@ -50,182 +56,18 @@ export function gongfaAdvanceCost(g: GongfaDef, stage: number): number {
   return GONGFA_GRADE_ADVANCE_BASE[g.grade] * GONGFA_STAGE_ADVANCE_MUL[stage]
 }
 
-export const GONGFA_LIST: GongfaDef[] = [
-  // —— 坊市流通 ——
-  {
-    id: 'gf_yangqi',
-    name: '养气诀',
-    grade: '黄阶',
-    kind: '功法',
-    desc: '吐纳养气的入门功法，绵长醇厚。',
-    price: 180,
-    effect: { hp: 0.08 },
-  },
-  {
-    id: 'gf_tiegong',
-    name: '铁骨功',
-    grade: '黄阶',
-    kind: '锻体法',
-    desc: '淬炼筋骨皮膜，硬撼刀剑。',
-    price: 180,
-    effect: { def: 0.08 },
-  },
-  {
-    id: 'gf_juling',
-    name: '聚灵诀',
-    grade: '黄阶',
-    kind: '心法',
-    desc: '引聚天地灵气入体，修行事半功倍。',
-    price: 220,
-    effect: { cultivate: 0.08 },
-  },
-  {
-    id: 'gf_liufeng',
-    name: '流风身法',
-    grade: '黄阶',
-    kind: '身法',
-    desc: '身随风波流，避实就虚。',
-    price: 260,
-    effect: { dodge: 0.05 },
-  },
-  {
-    id: 'gf_qingyuan',
-    name: '青元剑气',
-    grade: '玄阶',
-    kind: '攻击法诀',
-    desc: '剑气离体三尺，凌厉无俦。',
-    price: 700,
-    effect: { atk: 0.1 },
-  },
-  {
-    id: 'gf_guiyuan',
-    name: '龟息功',
-    grade: '玄阶',
-    kind: '防御法',
-    desc: '气机内敛如龟息，护体不破。',
-    price: 800,
-    effect: { def: 0.1 },
-  },
-  {
-    id: 'gf_taixu',
-    name: '太虚引灵篇',
-    grade: '地阶',
-    kind: '心法',
-    desc: '神游太虚，引灵入髓，悟性大开。',
-    price: 2400,
-    effect: { cultivate: 0.15 },
-  },
-  {
-    id: 'gf_bengshan',
-    name: '崩山劲',
-    grade: '地阶',
-    kind: '攻击法诀',
-    desc: '一劲既出，崩山裂石。',
-    price: 3000,
-    effect: { atk: 0.18 },
-  },
-  {
-    id: 'gf_lingxu',
-    name: '凌虚步',
-    grade: '地阶',
-    kind: '身法',
-    desc: '踏虚而行，敌手难触衣角。',
-    price: 3200,
-    effect: { dodge: 0.08 },
-  },
-  {
-    id: 'gf_dayan',
-    name: '大衍真解',
-    grade: '天阶',
-    kind: '心法',
-    desc: '推演天机的无上真解，攻悟兼备。',
-    price: 9000,
-    effect: { atk: 0.1, cultivate: 0.18 },
-  },
+/** 大境界门槛文案，如「需筑基」 */
+export function gongfaRealmText(g: GongfaDef): string {
+  return `需${REALMS[g.minRealm]?.name ?? g.minRealm}`
+}
 
-  // —— 宗门藏经阁秘法（以贡献参悟，坊市不售）——
-  {
-    id: 'js_jian',
-    name: '青云剑诀',
-    grade: '玄阶',
-    kind: '攻击法诀',
-    desc: '青云剑宗根本剑诀，剑气纵横。',
-    price: 0,
-    effect: { atk: 0.1 },
-  },
-  {
-    id: 'js_xin',
-    name: '澄心诀',
-    grade: '黄阶',
-    kind: '心法',
-    desc: '澄澈心湖，灵台清明。',
-    price: 0,
-    effect: { cultivate: 0.08 },
-  },
-  {
-    id: 'ty_dan',
-    name: '太一丹解',
-    grade: '玄阶',
-    kind: '心法',
-    desc: '以丹道印证心法，药力催化修行。',
-    price: 0,
-    effect: { cultivate: 0.12 },
-  },
-  {
-    id: 'ty_ti',
-    name: '药体诀',
-    grade: '玄阶',
-    kind: '锻体法',
-    desc: '以药力淬体，气血雄浑。',
-    price: 0,
-    effect: { hp: 0.15 },
-  },
-  {
-    id: 'ht_ti',
-    name: '浩天淬体篇',
-    grade: '玄阶',
-    kind: '锻体法',
-    desc: '浩天体宗根本锻体法，金刚不坏。',
-    price: 0,
-    effect: { def: 0.15 },
-  },
-  {
-    id: 'ht_mai',
-    name: '不灭经',
-    grade: '地阶',
-    kind: '锻体法',
-    desc: '肉身成圣之经，气血生生不息。',
-    price: 0,
-    effect: { hp: 0.25 },
-  },
-  {
-    id: 'xs_sha',
-    name: '血煞魔功',
-    grade: '地阶',
-    kind: '攻击法诀',
-    desc: '血煞入体，魔功霸道。',
-    price: 0,
-    effect: { atk: 0.18 },
-  },
-  {
-    id: 'xs_sui',
-    name: '噬魂秘录',
-    grade: '地阶',
-    kind: '心法',
-    desc: '以魂魄淬炼心神，进境极快。',
-    price: 0,
-    effect: { cultivate: 0.15 },
-  },
-  {
-    id: 'ym_gui',
-    name: '幽冥引魂经',
-    grade: '地阶',
-    kind: '心法',
-    desc: '引幽冥之气入体，修行一日千里。',
-    price: 0,
-    effect: { cultivate: 0.2 },
-  },
-]
+/** 玩家大境界是否达到功法起步要求 */
+export function canLearnGongfa(g: GongfaDef, realm: RealmId): boolean {
+  return realmIndex(realm) >= realmIndex(g.minRealm)
+}
+
+/** 功法内容表：src/data/db/gongfa.json */
+export const GONGFA_LIST: GongfaDef[] = gongfaJson as GongfaDef[]
 
 export const GONGFAS: Record<string, GongfaDef> = Object.fromEntries(
   GONGFA_LIST.map((g) => [g.id, g]),

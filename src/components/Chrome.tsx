@@ -23,9 +23,17 @@ export function StatusBar() {
   const time = useGameStore((s) => s.time)
   const stones = useGameStore((s) => s.stones)
   const legacy = useGameStore((s) => s.legacy)
+  const activeCombat = useGameStore((s) => s.activeCombat)
   if (!player) return null
   const c = CLASSES[player.classId]
   const ri = REALM_ORDER.indexOf(player.realm)
+
+  // 战斗中优先显示战斗内气血/灵力，避免与战斗面板不一致
+  const inCombat = Boolean(activeCombat && !activeCombat.finished)
+  const hpCur = inCombat ? activeCombat!.player.hp : player.hp
+  const hpMax = inCombat ? activeCombat!.player.maxHp : player.maxHp
+  const enCur = inCombat ? activeCombat!.player.energy : player.energy
+  const enMax = inCombat ? activeCombat!.player.maxEnergy : player.maxEnergy
 
   return (
     <header className="border-b border-border bg-ink-2 px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
@@ -40,12 +48,13 @@ export function StatusBar() {
       </span>
       <span>
         气血{' '}
-        <span className={player.hp < player.maxHp * 0.3 ? 'text-vermilion' : ''}>
-          {player.hp}/{player.maxHp}
+        <span className={hpCur < hpMax * 0.3 ? 'text-vermilion' : ''}>
+          {formatNum(hpCur)}/{formatNum(hpMax)}
         </span>
       </span>
       <span>
-        {player.classId === 'demon' ? '魔元' : '灵力'} {player.energy}/{player.maxEnergy}
+        {player.classId === 'demon' ? '魔元' : '灵力'} {formatNum(enCur)}/{formatNum(enMax)}
+        {inCombat && <span className="text-text-dim ml-1">（战斗）</span>}
       </span>
       {player.classId === 'demon' && <span className="text-vermilion">煞气 {player.shaqi}</span>}
       <span className="text-gold">灵石 {formatNum(stones)}</span>

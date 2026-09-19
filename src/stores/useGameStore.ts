@@ -11,9 +11,11 @@ import {
   gongfaAdvanceCost,
   gongfaByScrollId,
   isMarketGongfa,
+  canLearnGongfa,
+  gongfaRealmText,
 } from '../data/gongfa'
-import { ITEMS, TREASURE_BONUS, pillExp, requiredMaterial } from '../data/items'
-import { REALMS, expNeeded, realmIndex, realmLabel, realmMaxEnergy, realmMaxHp } from '../data/realms'
+import { ITEMS, TREASURE_BONUS, bestBreakthroughPill, pillExp, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
+import { REALMS, expNeeded, realmCombatBase, realmIndex, realmLabel, realmMaxEnergy, realmMaxHp } from '../data/realms'
 import {
   SECT_RANKS,
   SECTS,
@@ -37,7 +39,22 @@ import {
   breakthroughRate,
   canBreakthrough,
 } from '../game/breakthrough'
-import { playerCombatStats, repDeltaOnKill, runCombat } from '../game/combat'
+import { repDeltaOnKill } from '../game/combat'
+import {
+  buildPlayerCombatActor,
+  combatResultFromState,
+  createCombatState,
+  defaultAutoAction,
+  getUnlockedPlayerSkills,
+  runCombatAuto,
+  stepCombat,
+  canPaySkill,
+  type CombatActor,
+  type CombatContext,
+  type CombatEngineState,
+  type PlayerAction,
+} from '../game/combatEngine'
+import { COMBAT_CONFIG } from '../data/skills'
 import {
   advanceTime,
   cultivateGain,
@@ -255,14 +272,17 @@ function gainSeclusion(
   return Math.floor(seclusionGain(classId, realm, layer, days) * currentRules().cultivateMul)
 }
 
-/** 法宝加成：剑胚攻、宝镜防、镇魂塔气血（气血部分经 recomputeVitals 计入 maxHp） */
+/** 法宝加成：剑胚攻、宝镜防、镇魂塔气血（同类只计一次，避免重复堆叠爆炸） */
 export function treasureBonus(treasures: string[]) {
   let atk = 1
   let def = 1
   let hp = 1
+  const seen = new Set<string>()
   for (const id of treasures) {
+    if (seen.has(id)) continue
     const b = TREASURE_BONUS[id]
     if (!b) continue
+    seen.add(id)
     if (b.atk) atk *= 1 + b.atk
     if (b.def) def *= 1 + b.def
     if (b.hp) hp *= 1 + b.hp
@@ -300,19 +320,25 @@ function sectDef(id: string | null): SectDef | null {
   return SECTS.find((s) => s.id === id) ?? null
 }
 
-function makePlayerCombatant(player: PlayerState, treasures: string[], hpScale = 1) {
+function makePlayerCombatant(player: PlayerState, treasures: string[], hpScale = 1): CombatActor {
   const gb = gongfaBonuses(useGameStore.getState().gongfa.learned)
   const tb = treasureBonus(treasures)
-  return playerCombatStats(
-    player.classId,
-    player.realm,
-    player.layer,
-    Math.floor(player.hp * hpScale),
-    Math.floor(player.maxHp * hpScale),
-    tb.atk * gb.atk,
-    tb.def * gb.def,
-    gb.dodge,
-  )
+  const base = realmCombatBase(player.realm, player.layer)
+  return buildPlayerCombatActor({
+    name: player.name || '你',
+    classId: player.classId,
+    realm: player.realm,
+    layer: player.layer,
+    hp: player.hp,
+    maxHp: player.maxHp,
+    energy: player.energy,
+    maxEnergy: player.maxEnergy,
+    atk: Math.floor(base.atk * CLASSES[player.classId].atkMul * tb.atk * gb.atk),
+    def: Math.floor(base.def * CLASSES[player.classId].defMul * tb.def * gb.def),
+    dmgReduce: gb.dodge,
+    treasures,
+    hpScale,
+  })
 }
 
 /** 环境压气血时战斗在缩放坐标系进行；写回真实气血只应扣除实际受伤，不能整段替换为缩放值 */
@@ -325,6 +351,237 @@ function realHpAfterScaledCombat(
   const combatStart = Math.floor(playerHp * hpScale)
   const dmg = Math.max(0, combatStart - combatHpLeft)
   return Math.max(0, playerHp - dmg)
+}
+
+function startEngineCombat(
+  get: () => GameState,
+  set: (partial: Partial<GameState>) => void,
+  opts: {
+    enemy: EnemyDef
+    context: CombatContext
+    hpScale?: number
+    exploring?: boolean
+  },
+) {
+  const { player, treasures } = get()
+  if (!player) return
+  const actor = makePlayerCombatant(player, treasures, opts.hpScale ?? 1)
+  const state = createCombatState(actor, opts.enemy, opts.context)
+  // 开场一律手动：先让 CombatPanel 渲染出来；灵力与存档对齐
+  set({
+    activeCombat: state,
+    autoCombat: false,
+    exploring: opts.exploring ?? false,
+    lastCombat: null,
+    player: {
+      ...player,
+      energy: Math.min(player.maxEnergy, actor.energy),
+    },
+  })
+}
+
+function applyCombatConsumables(
+  state: CombatEngineState,
+  inventory: Record<string, number>,
+): Record<string, number> {
+  const inv = { ...inventory }
+  for (const id of state.potionsUsed) {
+    if ((inv[id] ?? 0) > 0) {
+      inv[id] -= 1
+      if (inv[id] <= 0) delete inv[id]
+    }
+  }
+  for (const id of state.blastPillsUsed) {
+    if ((inv[id] ?? 0) > 0) {
+      inv[id] -= 1
+      if (inv[id] <= 0) delete inv[id]
+    }
+  }
+  return inv
+}
+
+/** 战斗结束后按场景结算奖励/惩罚，并写回角色 */
+function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) => void) {
+  const state = get().activeCombat
+  if (!state || !state.finished) return
+  const { player, time } = get()
+  if (!player) {
+    set({ activeCombat: null, exploring: false })
+    return
+  }
+  const ctx = state.context
+  const enemy = ctx.enemy
+  const result = combatResultFromState(state)
+  const lines = state.log.map((l) => l.text)
+  let inv = applyCombatConsumables(state, get().inventory)
+  const hpScale = ctx.hpScale ?? 1
+  const hpLeft = realHpAfterScaledCombat(player.hp, hpScale, result.playerHpLeft)
+  const energyLeft = Math.max(0, Math.min(player.maxEnergy, result.playerEnergyLeft))
+  const lifespanLeft = Math.max(1, player.lifespanLeft - result.lifespanCost)
+  let nextPlayer: PlayerState = {
+    ...player,
+    hp: hpLeft,
+    energy: energyLeft,
+    lifespanLeft,
+  }
+
+  if (ctx.kind === 'explore') {
+    const advanced = advanceTime(time, 1)
+    nextPlayer.age = player.age + advanced.agedYears
+    nextPlayer.lifespanLeft = lifespanLeft - advanced.agedYears
+    if (result.win) {
+      const rep = repDeltaOnKill(enemy)
+      const dropRate = enemy.loot.dropRate ?? 1
+      const stoneMul = currentRules().exploreStoneMul
+      if (result.itemId && ITEMS[result.itemId] && Math.random() < dropRate) {
+        inv[result.itemId] = (inv[result.itemId] ?? 0) + 1
+        lines.push(`获得「${ITEMS[result.itemId].name}」×1`)
+      }
+      if (Math.random() < 0.12) {
+        inv.tiger_bone = (inv.tiger_bone ?? 0) + 1
+        lines.push('获得「虎王骨」×1')
+      }
+      const stoneGain = Math.floor(result.stoneGain * stoneMul)
+      log(`历练遭遇 ${enemy.name}，获胜。`, 'good')
+      log(`修为 +${result.expGain}，灵石 +${stoneGain}`, 'good')
+      if (enemy.faction === 'demonic') {
+        log(`斩杀魔修：正道声望 +${rep.right}，魔道声望 +${rep.demonic}`, 'dim')
+      }
+      nextPlayer = {
+        ...nextPlayer,
+        exp: player.exp + result.expGain,
+        repRight: player.repRight + rep.right,
+        repDemonic: player.repDemonic + rep.demonic,
+        shaqi:
+          player.classId === 'demon'
+            ? clamp(player.shaqi + (enemy.faction === 'beast' ? 2 : 5), 0, 100)
+            : player.shaqi,
+      }
+      set({
+        time: advanced.time,
+        stones: get().stones + stoneGain,
+        inventory: inv,
+        exploring: false,
+        activeCombat: null,
+        lastCombat: { enemy, win: true, log: lines },
+        player: nextPlayer,
+      })
+    } else {
+      log(`历练遭遇 ${enemy.name}，不敌败退。`, 'bad')
+      set({
+        time: advanced.time,
+        exploring: false,
+        activeCombat: null,
+        lastCombat: { enemy, win: false, log: lines },
+        stones: Math.max(0, get().stones - 15),
+        player: {
+          ...nextPlayer,
+          hp: Math.max(1, result.playerHpLeft > 0 ? hpLeft : Math.floor(player.maxHp * 0.15)),
+        },
+      })
+    }
+    const evt = pickEvent(player.realm)
+    if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+    return
+  }
+
+  if (ctx.kind === 'tower') {
+    const { tower } = get()
+    const realm = tower ? SECRET_REALMS.find((r) => r.id === tower.realmId) : null
+    if (!tower || !realm) {
+      set({ activeCombat: null, exploring: false })
+      return
+    }
+    const boss = isBossFloor(realm, tower.floor)
+    if (result.win) {
+      if (result.itemId && Math.random() < (enemy.loot.dropRate ?? 0)) {
+        inv[result.itemId] = (inv[result.itemId] ?? 0) + 1
+        lines.push(`获得「${ITEMS[result.itemId]?.name}」`)
+      }
+      const best = Math.max(get().towerBest[realm.id] ?? 0, tower.floor)
+      const clearedAll = tower.floor >= realm.floors
+      log(
+        `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：修为 +${result.expGain}，灵石 +${result.stoneGain}`,
+        'gold',
+      )
+      set({
+        inventory: inv,
+        stones: get().stones + result.stoneGain,
+        activeCombat: null,
+        lastCombat: { enemy, win: true, log: lines },
+        towerBest: { ...get().towerBest, [realm.id]: best },
+        tower: clearedAll
+          ? { ...tower, left: true, log: lines, inCombat: false }
+          : { ...tower, floor: tower.floor + 1, inCombat: false, log: lines },
+        player: {
+          ...nextPlayer,
+          exp: player.exp + result.expGain,
+        },
+      })
+      if (clearedAll) log(`你贯通了「${realm.name}」全部 ${realm.floors} 层！`, 'gold')
+      return
+    }
+    log(`秘境第 ${tower.floor} 层不敌，被迫退出。`, 'bad')
+    set({
+      activeCombat: null,
+      lastCombat: { enemy, win: false, log: lines },
+      tower: null,
+      player: {
+        ...nextPlayer,
+        hp: Math.max(
+          1,
+          result.playerHpLeft > 0 ? hpLeft : Math.floor(player.maxHp * 0.12),
+        ),
+      },
+    })
+    return
+  }
+
+  if (ctx.kind === 'sect_exam') {
+    const { sect, time: t2 } = get()
+    const advanced = advanceTime(t2, 1)
+    const aged = player.age + advanced.agedYears
+    const nextId = nextSectRank(sect.rank)
+    const nextRank = nextId ? SECT_RANKS[nextId] : null
+    if (result.win) {
+      log(`宗门大比：你力克${enemy.name}，通过「${nextRank?.name ?? '晋升'}」考核！`, 'gold')
+      log(`修为 +${result.expGain}。考核通过，凭此可直接晋升。`, 'good')
+      set({
+        time: advanced.time,
+        activeCombat: null,
+        lastCombat: { enemy, win: true, log: lines },
+        sect: { ...sect, examPassed: true },
+        player: {
+          ...nextPlayer,
+          exp: player.exp + result.expGain,
+          hp: Math.max(1, hpLeft),
+          age: aged,
+          lifespanLeft: nextPlayer.lifespanLeft - advanced.agedYears,
+        },
+      })
+    } else {
+      log(`宗门大比不敌${enemy.name}，考核未过。调养之后再战。`, 'bad')
+      set({
+        time: advanced.time,
+        activeCombat: null,
+        lastCombat: { enemy, win: false, log: lines },
+        player: {
+          ...nextPlayer,
+          hp: Math.max(1, result.playerHpLeft > 0 ? hpLeft : Math.floor(player.maxHp * 0.15)),
+          age: aged,
+          lifespanLeft: nextPlayer.lifespanLeft - advanced.agedYears,
+        },
+      })
+    }
+    return
+  }
+
+  // event 等其它场景：仅写回战斗结果
+  set({
+    activeCombat: null,
+    lastCombat: { enemy, win: result.win, log: lines },
+    player: nextPlayer,
+  })
 }
 
 /** 按功法/法宝加成与道痕重算气血灵力上限（参悟、进阶、突破、法宝变动后调用） */
@@ -383,6 +640,9 @@ interface GameState {
   exploring: boolean
   lastCombat: { enemy: EnemyDef; win: boolean; log: string[] } | null
   pendingEvent: PendingEvent | null
+  /** 进行中的回合制战斗（v0.6 技能战） */
+  activeCombat: (CombatEngineState & { pendingEventAction?: string }) | null
+  autoCombat: boolean
 
   setPanel: (p: PanelId) => void
   startCreate: () => void
@@ -395,6 +655,9 @@ interface GameState {
   explore: () => void
   clearCombat: () => void
   resolveEvent: (actionId: string) => void
+  combatAct: (action: PlayerAction) => void
+  toggleCombatAuto: () => void
+  runCombatAutoToEnd: () => void
 
   useItem: (id: string) => void
   /** 参悟功法秘籍：消耗秘籍，功法以入门之姿入体 */
@@ -495,6 +758,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   exploring: false,
   lastCombat: null,
   pendingEvent: null,
+  activeCombat: null,
+  /** 默认手动，保证战斗面板能先显示；勾选自动后再托管 */
+  autoCombat: false,
 
   setPanel: (p) => set({ activePanel: p }),
   startCreate: () => {
@@ -521,6 +787,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         treasures: [],
         abode: freshAbode(),
         activePanel: 'cultivate',
+        activeCombat: null,
+        exploring: false,
+        autoCombat: false,
       })
       return
     }
@@ -536,6 +805,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastCombat: null,
       pendingEvent: null,
       tower: null,
+      activeCombat: null,
+      exploring: false,
       activePanel: 'cultivate',
       sect: freshSect(),
       companion: freshCompanion(),
@@ -576,12 +847,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       activePanel: 'cultivate',
       lastCombat: null,
       pendingEvent: null,
+      activeCombat: null,
+      exploring: false,
+      autoCombat: false,
     })
   },
 
   meditate: () => {
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower) return
+    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
     const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
@@ -634,7 +908,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   seclude: (days) => {
     const n = clamp(days, 1, 3650)
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower) return
+    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
     const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
@@ -683,7 +957,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   breakthrough: () => {
     const { player, inventory, sect, companion, treasures } = get()
-    if (!player || !player.alive || player.ascended || get().tower) return
+    if (!player || !player.alive || player.ascended || get().tower || get().activeCombat) return
     if (!canBreakthrough(player.realm, player.layer, player.exp)) {
       log('修为不足，无法冲击壁垒。', 'bad')
       return
@@ -701,23 +975,37 @@ export const useGameStore = create<GameState>((set, get) => ({
     const spouse = spouseDef(companion)
     const spouseBonus = spouse?.breakthroughBonus ?? 0
     const dao = daoBonuses(get().legacy.daoMarks)
+    // 突破法宝（认主常驻，同类不叠加）+ 最佳突破丹药（本次消耗）+ 渡劫令持有
+    const treasureBt = treasureBreakthroughBonus(treasures)
+    const breakPill = bestBreakthroughPill(inventory)
+    const pillBt = breakPill?.rate ?? 0
+    const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? 5 : 0
     const rate = Math.min(
       95,
       breakthroughRate(player.classId, player.realm) +
         (sdef?.bonus.breakthroughBonus ?? 0) +
         spouseBonus +
         dao.breakthroughBonus +
+        treasureBt +
+        pillBt +
+        tribTokenBt +
         currentRules().breakthroughRateDelta,
     )
     const roll = Math.random() * 100
-    // 用含宗门/道侣加成后的 rate 重判，保证 severity 与展示一致
+    // 用含宗门/道侣/法宝/丹药加成后的 rate 重判，保证 severity 与展示一致
     const result = attemptBreakthrough(player.classId, player.realm, player.layer, roll)
     const success = roll < rate
     const need = expNeeded(player.realm, player.layer)
 
+    // 冲击壁垒自动消耗一枚突破丹（无论成败）
+    const inv = { ...inventory }
+    if (breakPill) {
+      inv[breakPill.id] = (inv[breakPill.id] ?? 1) - 1
+      if (inv[breakPill.id] <= 0) delete inv[breakPill.id]
+    }
+
     if (success) {
       const next = applyLayerUp(player.realm, player.layer)
-      const inv = { ...inventory }
       if (isMajor && matId) {
         inv[matId] = (inv[matId] ?? 1) - 1
         if (inv[matId] <= 0) delete inv[matId]
@@ -730,6 +1018,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       )
       log(result.message, 'gold')
       if (spouse) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
+      if (breakPill) log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
+      if (treasureBt > 0) log(`认主法宝加持：突破成功率 +${treasureBt}%`, 'dim')
+      if (tribTokenBt > 0) log('渡劫令微光流转，稳住道基。', 'dim')
       log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
       set({
         inventory: inv,
@@ -763,6 +1054,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? `突破${def.name}圆满失败，气血逆冲，境界跌落一层。`
           : '冲击壁垒失败，经脉受损，损失部分修为与气血。'
     log(failMsg, 'bad')
+    if (breakPill) log(`服用「${breakPill.name}」，药力仍未能扭转乾坤。`, 'dim')
     log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
     let next = { realm: player.realm, layer: player.layer }
     let exp = Math.floor(player.exp * 0.55)
@@ -783,84 +1075,102 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     set({
+      inventory: inv,
       player: { ...player, realm: next.realm, layer: next.layer, exp, hp, lifespanLeft },
     })
   },
 
   explore: () => {
-    const { player, time, treasures } = get()
-    if (!player || !player.alive || player.ascended || get().exploring || get().pendingEvent || get().tower)
+    const { player, time } = get()
+    if (!player || !player.alive || player.ascended || get().exploring || get().pendingEvent || get().tower || get().activeCombat)
       return
-    set({ exploring: true })
-    const ri = Math.max(0, ['qi', 'foundation', 'golden_core'].indexOf(player.realm as 'qi'))
+    const ri = realmIndex(player.realm)
     const enemy = pickEnemy(ri < 0 ? 0 : ri, player.layer)
-    const pStats = makePlayerCombatant(player, treasures)
-    const result = runCombat(pStats, enemy)
-    const advanced = advanceTime(time, 1)
-    const lines = result.rounds.map((r) => r.text)
-    lines.push(result.message)
-
-    if (result.win) {
-      const rep = repDeltaOnKill(enemy)
-      const inv = { ...get().inventory }
-      const dropRate = enemy.loot.dropRate ?? 1
-      const stoneMul = currentRules().exploreStoneMul
-      if (result.itemId && ITEMS[result.itemId] && Math.random() < dropRate) {
-        inv[result.itemId] = (inv[result.itemId] ?? 0) + 1
-        lines.push(`获得「${ITEMS[result.itemId].name}」×1`)
-      }
-      // 偶发炼器材
-      if (Math.random() < 0.12) {
-        inv.tiger_bone = (inv.tiger_bone ?? 0) + 1
-        lines.push('获得「虎王骨」×1')
-      }
-      const stoneGain = Math.floor(result.stoneGain * stoneMul)
-      log(`历练遭遇 ${enemy.name}，获胜。`, 'good')
-      log(`修为 +${result.expGain}，灵石 +${stoneGain}`, 'good')
-      if (enemy.faction === 'demonic') {
-        log(`斩杀魔修：正道声望 +${rep.right}，魔道声望 +${rep.demonic}`, 'dim')
-      }
-      set({
-        time: advanced.time,
-        stones: get().stones + stoneGain,
-        inventory: inv,
-        exploring: false,
-        lastCombat: { enemy, win: true, log: lines },
-        player: {
-          ...player,
-          exp: player.exp + result.expGain,
-          hp: result.playerHpLeft,
-          age: player.age + advanced.agedYears,
-          lifespanLeft: player.lifespanLeft - advanced.agedYears,
-          repRight: player.repRight + rep.right,
-          repDemonic: player.repDemonic + rep.demonic,
-          shaqi:
-            player.classId === 'demon'
-              ? clamp(player.shaqi + (enemy.faction === 'beast' ? 2 : 5), 0, 100)
-              : player.shaqi,
-        },
-      })
-    } else {
-      log(`历练遭遇 ${enemy.name}，不敌败退。`, 'bad')
-      set({
-        time: advanced.time,
-        exploring: false,
-        lastCombat: { enemy, win: false, log: lines },
-        stones: Math.max(0, get().stones - 15),
-        player: {
-          ...player,
-          hp: Math.max(1, Math.floor(result.playerHpLeft || player.maxHp * 0.15)),
-          age: player.age + advanced.agedYears,
-          lifespanLeft: player.lifespanLeft - advanced.agedYears,
-        },
-      })
-    }
-
-    const evt = pickEvent(player.realm)
-    if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+    startEngineCombat(get, set, {
+      enemy,
+      context: {
+        kind: 'explore',
+        title: `历练 · 第${time.year}年${time.month}月${time.day}日`,
+        enemy,
+        hpScale: 1,
+        exploreDay: true,
+      },
+      hpScale: 1,
+      exploring: true,
+    })
   },
 
   clearCombat: () => set({ lastCombat: null }),
+
+  toggleCombatAuto: () => {
+    set({ autoCombat: !get().autoCombat })
+  },
+
+  combatAct: (action) => {
+    const { activeCombat, player, inventory } = get()
+    if (!activeCombat || activeCombat.finished || !player) return
+
+    let inv = inventory
+    if (action.type === 'potion') {
+      if ((inv[action.itemId] ?? 0) <= 0) return
+    }
+    if (action.type === 'skill') {
+      const skills = getUnlockedPlayerSkills(player.classId, player.realm, player.layer)
+      const sk = skills.find((s) => s.id === action.skillId)
+      if (!sk || !canPaySkill(activeCombat, sk)) return
+    }
+
+    const state = stepCombat(activeCombat, action, inv, player.realm, player.layer)
+    // 深拷贝一层，确保 zustand 能触发 React 更新
+    const next: CombatEngineState = {
+      ...state,
+      player: { ...state.player, statuses: state.player.statuses.map((s) => ({ ...s })), skillCd: { ...state.player.skillCd } },
+      enemy: { ...state.enemy, statuses: state.enemy.statuses.map((s) => ({ ...s })), skillCd: { ...state.enemy.skillCd } },
+      log: [...state.log],
+    }
+    // 灵力实时回写存档（战斗结算时再统一写回气血等；气血可能经环境压缩，勿在此写）
+    const syncedEnergy = Math.max(0, Math.min(player.maxEnergy, next.player.energy))
+    set({
+      activeCombat: next,
+      player: { ...player, energy: syncedEnergy },
+    })
+
+    if (next.finished) {
+      settleActiveCombat(get, set)
+    }
+  },
+
+  runCombatAutoToEnd: () => {
+    const { activeCombat, player, inventory } = get()
+    if (!activeCombat || activeCombat.finished || !player) return
+    let state: CombatEngineState = activeCombat
+    let inv = inventory
+    const cfg = COMBAT_CONFIG
+    let guard = 0
+    while (!state.finished && guard < cfg.maxRounds + 8) {
+      guard += 1
+      const action = defaultAutoAction(state, inv, player.realm, player.layer)
+      if (action.type === 'potion' && (inv[action.itemId] ?? 0) <= 0) {
+        state = stepCombat(state, { type: 'attack' }, inv, player.realm, player.layer)
+      } else {
+        state = stepCombat(state, action, inv, player.realm, player.layer)
+      }
+      inv = applyCombatConsumables(state, inv)
+      state = { ...state, potionsUsed: [], blastPillsUsed: [] }
+    }
+    const syncedEnergy = Math.max(0, Math.min(player.maxEnergy, state.player.energy))
+    set({
+      activeCombat: {
+        ...state,
+        player: { ...state.player, statuses: [...state.player.statuses] },
+        enemy: { ...state.enemy, statuses: [...state.enemy.statuses] },
+        log: [...state.log],
+      },
+      inventory: inv,
+      player: get().player ? { ...get().player!, energy: syncedEnergy } : player,
+    })
+    if (state.finished) settleActiveCombat(get, set)
+  },
 
   buySeed: (seedId) => {
     const { stones, inventory, player } = get()
@@ -1046,12 +1356,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   resolveEvent: (actionId) => {
     const { pendingEvent, player, inventory, stones, treasures } = get()
-    if (!pendingEvent || !player) {
+    if (!pendingEvent || !player || !player.alive) {
       set({ pendingEvent: null })
       return
     }
     const evt = pendingEvent.event
-    const inv = { ...inventory }
+    let inv = { ...inventory }
 
     if (actionId === 'ignore' || actionId === 'flee') {
       log(`你选择避开：${evt.title}`, 'dim')
@@ -1105,10 +1415,30 @@ export const useGameStore = create<GameState>((set, get) => ({
         evt.payload?.bossId ??
         (evt.id.includes('ice') ? 'boss_ape' : evt.id.includes('demon') ? 'boss_demon_lord' : 'boss_tiger')
       const enemy = ENEMIES.find((e) => e.id === bossId) ?? ENEMIES[0]
-      const pStats = makePlayerCombatant(player, treasures)
-      const result = runCombat(pStats, enemy)
+      const actor = makePlayerCombatant(player, treasures, 1)
       const label = actionId === 'enter' ? '秘境探索' : '奇遇战斗'
-      const lines = [`${label}：${evt.title}`, ...result.rounds.map((r) => r.text), result.message]
+      const result = runCombatAuto(
+        actor,
+        enemy,
+        {
+          kind: 'event',
+          title: `${label}：${evt.title}`,
+          enemy,
+          hpScale: 1,
+        },
+        inv,
+        player.realm,
+        player.layer,
+        (st) => defaultAutoAction(st, inv, player.realm, player.layer),
+      )
+      inv = applyCombatConsumables(
+        {
+          potionsUsed: result.potionsUsed,
+          blastPillsUsed: result.blastPillsUsed,
+        } as CombatEngineState,
+        inv,
+      )
+      const lines = result.log.map((l) => l.text)
       if (result.win) {
         const dropId = enemy.loot.itemId
         if (dropId && Math.random() < (enemy.loot.dropRate ?? 0.6)) {
@@ -1125,7 +1455,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           player: {
             ...player,
             exp: player.exp + result.expGain,
-            hp: result.playerHpLeft,
+            hp: Math.max(1, result.playerHpLeft),
+            energy: result.playerEnergyLeft,
+            lifespanLeft: Math.max(1, player.lifespanLeft - result.lifespanCost),
             repRight: player.repRight + rep.right,
             repDemonic: player.repDemonic + rep.demonic,
           },
@@ -1134,9 +1466,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         log(`${label}失败：${enemy.name}`, 'bad')
         set({
           pendingEvent: null,
+          inventory: inv,
           lastCombat: { enemy, win: false, log: lines },
           stones: Math.max(0, get().stones - 20),
-          player: { ...player, hp: Math.max(1, Math.floor(player.maxHp * 0.15)) },
+          player: {
+            ...player,
+            hp: Math.max(1, Math.floor(player.maxHp * 0.15)),
+            energy: result.playerEnergyLeft,
+            lifespanLeft: Math.max(1, player.lifespanLeft - result.lifespanCost),
+          },
         })
       }
       return
@@ -1151,6 +1489,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     const count = inventory[id] ?? 0
     const item = ITEMS[id]
     if (count <= 0 || !item?.effect) return
+    // 突破辅助丹药：冲击壁垒时自动选用并消耗，不可提前服用
+    if (item.effect.breakthroughRate && !item.effect.hp && !item.effect.exp) {
+      log(`「${item.name}」将在冲击壁垒时自动服用（成功率 +${item.effect.breakthroughRate}%）。`, 'dim')
+      return
+    }
     const inv = { ...inventory, [id]: count - 1 }
     if (inv[id] <= 0) delete inv[id]
     const p = { ...player }
@@ -1159,6 +1502,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       const gain = id === 'pill_qi' ? pillExp(player.realm) : item.effect.exp
       p.exp += gain
       log(`服用 ${item.name}，修为 +${gain}`, 'good')
+    } else if (item.effect.hp) {
+      log(`服用 ${item.name}，气血恢复。`, 'good')
     } else {
       log(`使用 ${item.name}。`, 'good')
     }
@@ -1176,6 +1521,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     if (gongfa.learned[g.id]) {
       log('此功法已在修习之中。', 'dim')
+      return
+    }
+    if (!canLearnGongfa(g, player.realm)) {
+      log(`参悟《${g.name}》需先达${gongfaRealmText(g)}，你现为${REALMS[player.realm]?.name}。`, 'bad')
       return
     }
     const inv = { ...inventory }
@@ -1226,9 +1575,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     const inv = { ...inventory, [id]: count - 1 }
     if (inv[id] <= 0) delete inv[id]
     const price = Math.floor(item.price * 0.55)
-    // 出售认主法宝会失去加成
+    // 出售认主法宝会失去加成：只扣一件，同类保留
     const isTreasure = id.startsWith('treasure_')
-    const newTreasures = isTreasure ? treasures.filter((x) => x !== id) : treasures
+    let newTreasures = treasures
+    if (isTreasure) {
+      const idx = treasures.indexOf(id)
+      if (idx >= 0) {
+        newTreasures = [...treasures.slice(0, idx), ...treasures.slice(idx + 1)]
+      }
+    }
     let p = player
     if (isTreasure && treasures.includes(id)) {
       p = recomputeVitals({ ...player }, newTreasures, gongfa.learned, legacy.daoMarks)
@@ -1243,10 +1598,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!item || stones < item.price || !player) return
     const inv = { ...inventory }
     inv[id] = (inv[id] ?? 0) + 1
-    // 法宝购入即认主，进入法宝列表生效
+    // 法宝购入即认主；同类多件全部计入列表，便于背包按 ×N 展示
     const isTreasure = id.startsWith('treasure_')
-    const newTreasures =
-      isTreasure && !treasures.includes(id) ? [...treasures, id] : treasures
+    const newTreasures = isTreasure ? [...treasures, id] : treasures
     const bought = { ...get().player!, stones: stones - item.price }
     const p = isTreasure ? recomputeVitals(bought, newTreasures, get().gongfa.learned, get().legacy.daoMarks) : bought
     log(`购入 ${item.name}，花费灵石 ${item.price}`, 'dim')
@@ -1331,6 +1685,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已在修习之中。', 'dim')
       return
     }
+    if (!canLearnGongfa(g, player.realm)) {
+      log(`参悟《${g.name}》需先达${gongfaRealmText(g)}，你现为${REALMS[player.realm]?.name}。`, 'bad')
+      return
+    }
     const learned = { ...gongfa.learned, [libId]: { stage: 0 } }
     const p = recomputeVitals({ ...player }, treasures, learned, legacy.daoMarks)
     log(`藏经阁中灵光乍现，《${g.name}》参悟入门。`, 'gold')
@@ -1342,8 +1700,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   sectGrandCompetition: () => {
-    const { player, sect, time, treasures } = get()
-    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower) return
+    const { player, sect, treasures } = get()
+    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower || get().activeCombat) return
     if (!sect.sectId) return
     const nextId = nextSectRank(sect.rank)
     const next = nextId ? SECT_RANKS[nextId] : null
@@ -1357,41 +1715,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     const tier = next.examTier ?? 1
     const enemy = sectExamOpponent(player.realm, player.layer, tier)
-    const pStats = makePlayerCombatant(player, treasures)
-    const result = runCombat(pStats, enemy)
-    const advanced = advanceTime(time, 1)
-    const lines = [`宗门大比 · ${next.name}晋升考核`, ...result.rounds.map((r) => r.text), result.message]
-    const aged = player.age + advanced.agedYears
-    const lifespanLeft = player.lifespanLeft - advanced.agedYears
-
-    if (result.win) {
-      log(`宗门大比：你力克${enemy.name}，通过「${next.name}」晋升考核！`, 'gold')
-      log(`修为 +${result.expGain}。考核通过，凭此可直接晋升。`, 'good')
-      set({
-        time: advanced.time,
-        lastCombat: { enemy, win: true, log: lines },
-        sect: { ...sect, examPassed: true },
-        player: {
-          ...player,
-          exp: player.exp + result.expGain,
-          hp: Math.max(1, result.playerHpLeft),
-          age: aged,
-          lifespanLeft,
-        },
-      })
-    } else {
-      log(`宗门大比不敌${enemy.name}，考核未过。调养之后再战。`, 'bad')
-      set({
-        time: advanced.time,
-        lastCombat: { enemy, win: false, log: lines },
-        player: {
-          ...player,
-          hp: Math.max(1, Math.floor(result.playerHpLeft || player.maxHp * 0.15)),
-          age: aged,
-          lifespanLeft,
-        },
-      })
-    }
+    const actor = makePlayerCombatant(player, treasures, 1)
+    const state = createCombatState(actor, enemy, {
+      kind: 'sect_exam',
+      title: `宗门大比 · ${next.name}晋升考核`,
+      enemy,
+      hpScale: 1,
+    })
+    set({
+      activeCombat: state,
+      autoCombat: false,
+      lastCombat: null,
+      pendingEvent: null,
+      player: {
+        ...player,
+        energy: Math.min(player.maxEnergy, actor.energy),
+      },
+    })
   },
 
   promoteRank: () => {
@@ -1464,74 +1804,29 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   towerFight: () => {
     const { tower, player, treasures, companion } = get()
-    if (!tower || !player || !player.alive || tower.left) return
+    if (!tower || !player || !player.alive || tower.left || get().activeCombat) return
     const realm = SECRET_REALMS.find((r) => r.id === tower.realmId)
     if (!realm) return
     const boss = isBossFloor(realm, tower.floor)
     const enemy = towerEnemy(realm.id, tower.floor, boss)
     const hpScale = realm.env.playerHpMul ?? 1
-    const pStats = makePlayerCombatant(player, treasures, hpScale)
+    const actor = makePlayerCombatant(player, treasures, hpScale)
     const spouse = spouseDef(companion)
-    // 道侣助战：小幅加攻
-    if (spouse) {
-      pStats.atk = Math.floor(pStats.atk * 1.08)
-    }
-    const result = runCombat(pStats, enemy)
-    const lines = [
-      `秘境 ${realm.name} · 第${tower.floor}层${boss ? '（镇守）' : ''}`,
-      ...result.rounds.map((r) => r.text),
-      result.message,
-    ]
-    const inv = { ...get().inventory }
-
-    if (result.win) {
-      if (result.itemId && Math.random() < (enemy.loot.dropRate ?? 0)) {
-        inv[result.itemId] = (inv[result.itemId] ?? 0) + 1
-        lines.push(`获得「${ITEMS[result.itemId]?.name}」`)
-      }
-      const best = Math.max(get().towerBest[realm.id] ?? 0, tower.floor)
-      const clearedAll = tower.floor >= realm.floors
-      log(
-        `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：修为 +${result.expGain}，灵石 +${result.stoneGain}`,
-        'gold',
-      )
-      set({
-        inventory: inv,
-        stones: get().stones + result.stoneGain,
-        lastCombat: { enemy, win: true, log: lines },
-        towerBest: { ...get().towerBest, [realm.id]: best },
-        tower: clearedAll
-          ? { ...tower, left: true, log: lines, inCombat: false }
-          : {
-              ...tower,
-              floor: tower.floor + 1,
-              inCombat: false,
-              log: lines,
-            },
-        player: {
-          ...player,
-          exp: player.exp + result.expGain,
-          hp: realHpAfterScaledCombat(player.hp, hpScale, result.playerHpLeft),
-        },
-      })
-      if (clearedAll) {
-        log(`你贯通了「${realm.name}」全部 ${realm.floors} 层！`, 'gold')
-      }
-      return
-    }
-
-    log(`秘境第 ${tower.floor} 层不敌，被迫退出。`, 'bad')
+    if (spouse) actor.atk = Math.floor(actor.atk * 1.08)
+    const state = createCombatState(actor, enemy, {
+      kind: 'tower',
+      title: `秘境 ${realm.name} · 第${tower.floor}层${boss ? '（镇守）' : ''}`,
+      enemy,
+      hpScale,
+    })
     set({
-      lastCombat: { enemy, win: false, log: lines },
-      tower: null,
+      activeCombat: state,
+      autoCombat: false,
+      lastCombat: null,
+      tower: { ...tower, inCombat: true },
       player: {
         ...player,
-        hp: Math.max(
-          1,
-          result.playerHpLeft > 0
-            ? realHpAfterScaledCombat(player.hp, hpScale, result.playerHpLeft)
-            : Math.floor(player.maxHp * 0.12),
-        ),
+        energy: Math.min(player.maxEnergy, actor.energy),
       },
     })
   },
@@ -1785,6 +2080,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         realmMaxEnergy(snap.player.realm, snap.player.classId === 'demon', snap.player.layer),
       )
       const lifespanFloor = REALMS[snap.player.realm].lifespan
+      const wasFullHp = snap.player.hp >= snap.player.maxHp - 1
+      const wasFullEn = snap.player.energy >= snap.player.maxEnergy - 1
       set({
         phase: 'play',
         time: snap.time,
@@ -1792,7 +2089,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           ...snap.player,
           maxHp,
           maxEnergy,
-          hp: Math.min(snap.player.hp, maxHp),
+          // 曲线调整后：原先满血/满灵的角色读档即按新上限回满
+          hp: wasFullHp ? maxHp : Math.min(maxHp, snap.player.hp),
+          energy: wasFullEn ? maxEnergy : Math.min(maxEnergy, snap.player.energy),
           lifespanLeft: Math.max(snap.player.lifespanLeft, Math.floor(lifespanFloor * 0.3)),
         },
         stones: snap.stones,
