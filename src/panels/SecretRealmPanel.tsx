@@ -15,6 +15,8 @@ export function SecretRealmPanel() {
   const towerRest = useGameStore((s) => s.towerRest)
   const towerLeave = useGameStore((s) => s.towerLeave)
   const clearCombat = useGameStore((s) => s.clearCombat)
+  const skipExploreCombat = useGameStore((s) => s.skipExploreCombat)
+  const setSkipExploreCombat = useGameStore((s) => s.setSkipExploreCombat)
 
   if (!player) return null
   const dead = !player.alive
@@ -50,14 +52,23 @@ export function SecretRealmPanel() {
             </div>
             <p className="text-xs text-text-dim mt-2">
               每 {active.bossEvery} 层一镇守，掉落突破材料概率更高。调息消耗一日。
+              {skipExploreCombat && ' 当前已开启跳过战斗：迎战本层会直接结算。'}
             </p>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap items-center gap-2 mt-3">
               <button className="pixel-btn primary" disabled={dead || inCombat} onClick={towerFight}>
-                迎战本层
+                {skipExploreCombat ? '迎战本层（跳过战斗）' : '迎战本层'}
               </button>
               <button className="pixel-btn" disabled={dead || inCombat} onClick={towerRest}>
                 石台调息
               </button>
+              <label className="text-xs text-text-dim flex items-center gap-1.5 cursor-pointer select-none ml-1">
+                <input
+                  type="checkbox"
+                  checked={skipExploreCombat}
+                  onChange={(e) => setSkipExploreCombat(e.target.checked)}
+                />
+                跳过战斗
+              </label>
             </div>
           </div>
 
@@ -88,7 +99,16 @@ export function SecretRealmPanel() {
             <div className="font-display text-gold mb-2">秘境</div>
             <p className="text-xs text-text-dim leading-relaxed">
               古阵残境散落各地。逐层挑战守卫，镇守层多藏突破灵物。失败会被迫退出，已通关层数保留，下次可从下一层续探。
+              {skipExploreCombat && ' 当前已开启「跳过战斗」：迎战本层将直接结算。'}
             </p>
+            <label className="mt-2 text-xs text-text-dim flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={skipExploreCombat}
+                onChange={(e) => setSkipExploreCombat(e.target.checked)}
+              />
+              跳过战斗，迎战本层时直接结算
+            </label>
           </div>
 
           <div className="space-y-2">

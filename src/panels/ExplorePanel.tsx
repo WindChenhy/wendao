@@ -16,6 +16,8 @@ export function ExplorePanel() {
   const activeCombat = useGameStore((s) => s.activeCombat)
   const lastCombat = useGameStore((s) => s.lastCombat)
   const clearCombat = useGameStore((s) => s.clearCombat)
+  const skipExploreCombat = useGameStore((s) => s.skipExploreCombat)
+  const setSkipExploreCombat = useGameStore((s) => s.setSkipExploreCombat)
 
   if (!player) return null
   const dead = !player.alive
@@ -29,12 +31,29 @@ export function ExplorePanel() {
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">出门历练</div>
         <p className="text-xs text-text-dim mb-3">
-          修仙界并不太平：山中妖兽、路遇魔修皆有可能。敌手境界随你的大境界抬升。战斗中可手动放技能，或勾选「自动」托管。
+          修仙界并不太平：山中妖兽、路遇魔修皆有可能。敌手境界随你的大境界抬升。
+          {skipExploreCombat
+            ? '当前已开启「跳过战斗」，点击后直接结算。'
+            : '战斗中可手动放技能，或勾选「自动」托管；也可在设置中开启跳过战斗。'}
         </p>
-        <button className="pixel-btn primary" disabled={dead || exploring || inCombat} onClick={explore}>
-          {inCombat || exploring ? '激斗中…' : '踏入山野（消耗一日）'}
-        </button>
-        {inCombat && (
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <button className="pixel-btn primary" disabled={dead || exploring || inCombat} onClick={explore}>
+            {inCombat || exploring
+              ? '激斗中…'
+              : skipExploreCombat
+                ? '踏入山野（跳过战斗）'
+                : '踏入山野（消耗一日）'}
+          </button>
+          <label className="text-xs text-text-dim flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={skipExploreCombat}
+              onChange={(e) => setSkipExploreCombat(e.target.checked)}
+            />
+            跳过战斗，直接结算
+          </label>
+        </div>
+        {inCombat && !skipExploreCombat && (
           <p className="text-xs text-jade mt-2">战斗进行中，请在上方战斗面板出招。</p>
         )}
       </div>

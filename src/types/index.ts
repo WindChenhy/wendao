@@ -176,8 +176,51 @@ export interface AbodeState {
 export interface LegacyState {
   /** 道痕：转生永久点数 */
   daoMarks: number
-  /** 已转生次数 */
+  /** 已转生次数（本档跨周目累计） */
   reincarnations: number
   /** 历史最高境界序号（含飞升） */
   bestRealmIndex: number
+  /** 历代累计寿龄（转生时累加上一世 age）；本世年号仍从第 1 年起算 */
+  totalYears: number
+  /** 上一世结束时的年号（仅备注用，便于对照导出存档） */
+  lastLifeEndYear: number
+}
+
+/** 图鉴分页 */
+export type CodexPageId = 'realm' | 'enemy' | 'gongfa' | 'item' | 'companion' | 'secret'
+
+/** 图鉴已解锁 id 集合（进存档） */
+export interface CollectionState {
+  realm: string[]
+  enemy: string[]
+  gongfa: string[]
+  item: string[]
+  companion: string[]
+  secret: string[]
+}
+
+/** 成就相关运行时统计 */
+export interface MetaStats {
+  /** 战斗获胜次数 */
+  combatsWon: number
+  /** 炼丹成功次数 */
+  pillsCrafted: number
+  /** 历史灵石峰值 */
+  stonesPeak: number
+  /** 离线结算次数 */
+  offlineSettled: number
+}
+
+/** v0.7 图鉴 / 成就 / 离线元数据（进存档） */
+export interface MetaState {
+  collection: CollectionState
+  /** 已解锁成就 id */
+  achievements: string[]
+  /** 已领取图鉴节点奖励 key，如 "realm:50" */
+  codexRewardClaimed: string[]
+  /** 已展示过的成就称号 */
+  titles: string[]
+  stats: MetaStats
+  /** 最近在线时间戳（离线修炼结算锚点） */
+  lastOnlineAt: number
 }

@@ -140,6 +140,22 @@ export const SECRET_REALMS: SecretRealmDef[] = [
     },
     flavor: '天光在此折断，唯有道种自放光明。',
   },
+  {
+    id: 'tianjie_realm',
+    name: '天劫绝域',
+    desc: '雷云压顶、劫火不熄的绝地。镇守怀有「渡劫令」，渡劫圆满破关必备。',
+    minRealm: 'mahayana',
+    minLayer: 3,
+    floors: 60,
+    bossEvery: 15,
+    env: { playerHpMul: 0.6, rewardMul: 5.0 },
+    loot: {
+      stonePerFloor: 9000,
+      expPerFloor: 16000,
+      bossItemId: 'mat_tribulation',
+    },
+    flavor: '每一步都有天雷试探道基，能走到镇守面前的，半只脚已踏在仙路。',
+  },
 ]
 
 export function canEnterRealm(

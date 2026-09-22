@@ -70,6 +70,8 @@ function matForRealmOffset(realmIdx: number, offset: number): string | undefined
     void: 'mat_integration',
     integration: 'mat_mahayana',
     mahayana: 'mat_mahayana',
+    // 大乘头目 / 渡劫期历练可掉渡劫令
+    tribulation: 'mat_tribulation',
   }
   return map[realm]
 }
@@ -79,7 +81,8 @@ function matForRealmOffset(realmIdx: number, offset: number): string | undefined
  * 强度锚定「同境界无职业/功法加成的玩家基准」，power 决定档位。
  */
 function scaleEnemyToPlayer(t: EnemyTemplate, realmIdx: number, playerLayer: number): EnemyDef {
-  const ri = Math.max(0, Math.min(REALM_ORDER.length - 2, realmIdx))
+  // 渡劫期保留可映射到 mat_tribulation；飞升不再刷材料
+  const ri = Math.max(0, Math.min(REALM_ORDER.indexOf('tribulation'), realmIdx))
   const realm = REALM_ORDER[ri]
   const layerBias = t.tier === 'boss' ? 2 : t.tier === 'elite' ? 1 : t.tier === 'minion' ? -2 : 0
   const layer = Math.max(1, Math.min(9, playerLayer + layerBias))
@@ -141,6 +144,12 @@ export function previewEnemy(t: EnemyTemplate, playerRealmIndex: number, playerL
 
 export function enemyRealmLabel(e: EnemyDef): string {
   return `${REALMS[e.realm]?.name ?? e.realm}${e.layer}层`
+}
+
+/** 历练敌人 id 形如 `{template}_{realm}_{layer}`，图鉴按模板 id 记录 */
+export function enemyTemplateId(enemyId: string): string {
+  const hit = ENEMY_TEMPLATES.find((t) => enemyId === t.id || enemyId.startsWith(`${t.id}_`))
+  return hit?.id ?? enemyId
 }
 
 export function enemyFactionLabel(e: EnemyDef): string {

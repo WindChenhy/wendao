@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { CombatPanel } from '../components/CombatPanel'
 import { EventModal } from '../components/EventModal'
 import { LogPanel } from '../components/LogPanel'
+import { OfflineReturnModal } from '../components/OfflineReturnModal'
 import { SideNav, StatusBar } from '../components/Chrome'
 import { useGameStore } from '../stores/useGameStore'
 import { AbodePanel } from './AbodePanel'
@@ -17,6 +19,19 @@ import { SectPanel } from './SectPanel'
 export function GameLayout() {
   const activePanel = useGameStore((s) => s.activePanel)
   const activeCombat = useGameStore((s) => s.activeCombat)
+  const phase = useGameStore((s) => s.phase)
+
+  // 回到前台时结算离线闭关；隐藏时不刷新锚点，让切出时长计入离线
+  useEffect(() => {
+    if (phase !== 'play') return
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        useGameStore.getState().recheckOffline()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [phase])
 
   return (
     <div className="h-full flex flex-col">
@@ -24,7 +39,6 @@ export function GameLayout() {
       <div className="flex-1 flex flex-col md:flex-row min-h-0">
         <SideNav />
         <main className="flex-1 min-w-0 overflow-y-auto scroll-thin bg-ink p-0">
-          {/* 战斗面板：在对应页内嵌一份；此处兜底，切页也能操作 */}
           {activeCombat && !activeCombat.finished && activePanel !== 'explore' && activePanel !== 'secret_realm' && activePanel !== 'sect' && (
             <div className="p-4 max-w-2xl">
               <CombatPanel />
@@ -44,6 +58,7 @@ export function GameLayout() {
       </div>
       <LogPanel />
       <EventModal />
+      <OfflineReturnModal />
     </div>
   )
 }
