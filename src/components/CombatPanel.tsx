@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { CLASSES } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { COMBAT_CONFIG } from '../data/skills'
@@ -31,6 +31,53 @@ export function CombatPanel() {
   const inventory = useGameStore((s) => s.inventory)
   const combatAct = useGameStore((s) => s.combatAct)
   const toggleCombatAuto = useGameStore((s) => s.toggleCombatAuto)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const scrolledForRef = useRef<string | null>(null)
+
+  // 开战时把战斗面板滚入视野（宗门大比/秘境等按钮在页中下部时尤其需要）
+  const combatKey =
+    activeCombat && !activeCombat.finished
+      ? `${activeCombat.context.title}|${activeCombat.enemy.name}`
+      : null
+  useEffect(() => {
+    if (!combatKey) {
+      scrolledForRef.current = null
+      return
+    }
+    if (scrolledForRef.current === combatKey) return
+    scrolledForRef.current = combatKey
+
+    const scrollPanelIntoView = () => {
+      const el = rootRef.current
+      if (!el) return
+      // 优先滚动包住面板的可滚动容器（main.overflow-y-auto），而不是 window
+      let node: HTMLElement | null = el.parentElement
+      while (node && node !== document.body) {
+        const style = window.getComputedStyle(node)
+        const scrollable =
+          /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 4
+        if (scrollable) {
+          const nodeRect = node.getBoundingClientRect()
+          const elRect = el.getBoundingClientRect()
+          const nextTop = node.scrollTop + (elRect.top - nodeRect.top) - 8
+          if (typeof node.scrollTo === 'function') {
+            node.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' })
+          } else {
+            node.scrollTop = Math.max(0, nextTop)
+          }
+          return
+        }
+        node = node.parentElement
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    // 双 rAF：等布局完成后再滚，避免面板刚插入时位置未定
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(scrollPanelIntoView)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [combatKey])
 
   // 自动战斗：逐回合推进，保证面板始终可见
   useEffect(() => {
@@ -60,7 +107,10 @@ export function CombatPanel() {
   const className = CLASSES[player.classId]?.name ?? ''
 
   return (
-    <div className="panel-box p-4 border-gold-dim">
+    <div
+      ref={rootRef}
+      className="panel-box p-4 border-gold-dim scroll-mt-2 sticky top-0 z-20 shadow-lg"
+    >
       <div className="flex justify-between items-center mb-3 gap-2">
         <div className="font-display text-gold">战斗 · {st.context.title}</div>
         <label className="text-xs text-text-dim flex items-center gap-1 cursor-pointer select-none">

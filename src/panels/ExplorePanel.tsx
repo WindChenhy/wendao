@@ -6,7 +6,6 @@ import {
 } from '../data/enemies'
 import { ITEMS } from '../data/items'
 import { realmIndex } from '../data/realms'
-import { CombatPanel } from '../components/CombatPanel'
 import { useGameStore } from '../stores/useGameStore'
 
 export function ExplorePanel() {
@@ -26,8 +25,6 @@ export function ExplorePanel() {
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
-      {inCombat && <CombatPanel />}
-
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">出门历练</div>
         <p className="text-xs text-text-dim mb-3">

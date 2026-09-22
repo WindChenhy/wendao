@@ -1,4 +1,3 @@
-import { CombatPanel } from '../components/CombatPanel'
 import { CLASSES } from '../data/classes'
 import { companionById } from '../data/companions'
 import { SECTS } from '../data/sects'
@@ -38,7 +37,6 @@ export function CultivatePanel() {
   const startCreate = useGameStore((s) => s.startCreate)
   const comprehendGongfa = useGameStore((s) => s.comprehendGongfa)
   const advanceGongfaStage = useGameStore((s) => s.advanceGongfaStage)
-  const activeCombat = useGameStore((s) => s.activeCombat)
 
   if (!player) return null
   const need = expNeeded(player.realm, player.layer)
@@ -84,7 +82,6 @@ export function CultivatePanel() {
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
-      {activeCombat && !activeCombat.finished && <CombatPanel />}
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">洞府静修</div>
         <p className="text-xs text-text-dim mb-3">{c.desc}</p>

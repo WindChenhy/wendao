@@ -20,6 +20,7 @@ export function GameLayout() {
   const activePanel = useGameStore((s) => s.activePanel)
   const activeCombat = useGameStore((s) => s.activeCombat)
   const phase = useGameStore((s) => s.phase)
+  const inCombat = Boolean(activeCombat && !activeCombat.finished)
 
   // 回到前台时结算离线闭关；隐藏时不刷新锚点，让切出时长计入离线
   useEffect(() => {
@@ -33,17 +34,27 @@ export function GameLayout() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [phase])
 
+  // 战斗中锁滚动，避免透过遮罩操作页面
+  useEffect(() => {
+    if (!inCombat) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [inCombat])
+
   return (
     <div className="h-full flex flex-col">
       <StatusBar />
       <div className="flex-1 flex flex-col md:flex-row min-h-0">
         <SideNav />
-        <main className="flex-1 min-w-0 overflow-y-auto scroll-thin bg-ink p-0">
-          {activeCombat && !activeCombat.finished && activePanel !== 'explore' && activePanel !== 'secret_realm' && activePanel !== 'sect' && (
-            <div className="p-4 max-w-2xl">
-              <CombatPanel />
-            </div>
-          )}
+        <main
+          className={`flex-1 min-w-0 overflow-y-auto scroll-thin bg-ink p-0 ${
+            inCombat ? 'pointer-events-none select-none opacity-40' : ''
+          }`}
+          aria-hidden={inCombat}
+        >
           {activePanel === 'cultivate' && <CultivatePanel />}
           {activePanel === 'character' && <CharacterPanel />}
           {activePanel === 'explore' && <ExplorePanel />}
@@ -59,6 +70,20 @@ export function GameLayout() {
       <LogPanel />
       <EventModal />
       <OfflineReturnModal />
+
+      {/* 战斗全屏接管：进行中不可做委托/历练/切页等其他操作 */}
+      {inCombat && (
+        <div className="fixed inset-0 z-40 bg-ink/95 flex flex-col">
+          <div className="border-b border-border bg-ink-2 px-3 py-2 text-xs text-gold font-display">
+            战斗进行中 · 本场结束前无法进行其他行动
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto scroll-thin p-4">
+            <div className="max-w-3xl mx-auto">
+              <CombatPanel />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

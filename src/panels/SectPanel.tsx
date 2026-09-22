@@ -2,7 +2,6 @@ import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsF
 import { GONGFA_GRADE_CLASS, GONGFAS, canLearnGongfa, gongfaRealmText } from '../data/gongfa'
 import { ITEMS } from '../data/items'
 import { realmIndex, realmLabel } from '../data/realms'
-import { CombatPanel } from '../components/CombatPanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
@@ -67,7 +66,6 @@ export function SectPanel() {
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
-      {inCombat && <CombatPanel />}
       {current ? (
         <>
           <div className="panel-box p-4">

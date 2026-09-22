@@ -5,6 +5,22 @@ import { dayNumber } from './day'
 export function freshAbode(): AbodeState {
   return {
     plots: Array.from({ length: BASE_PLOTS }, () => ({ seedId: null, plantedDay: 0 })),
+    forgeLevel: 0,
+  }
+}
+
+/** 旧档迁移：补器阁等级 */
+export function migrateAbode(raw: unknown): AbodeState {
+  const base = freshAbode()
+  if (!raw || typeof raw !== 'object') return base
+  const r = raw as Partial<AbodeState> & { plots?: PlotState[] }
+  const plots =
+    Array.isArray(r.plots) && r.plots.length > 0
+      ? r.plots.map((p) => ({ seedId: p?.seedId ?? null, plantedDay: Number(p?.plantedDay) || 0 }))
+      : base.plots
+  return {
+    plots,
+    forgeLevel: Math.max(0, Math.min(3, Number(r.forgeLevel) || 0)),
   }
 }
 

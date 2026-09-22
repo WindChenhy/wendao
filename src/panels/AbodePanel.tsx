@@ -1,6 +1,7 @@
 import { SEEDS, SEED_LIST, RECIPE_LIST, expandPlotCost, MAX_PLOTS, type SeedDef } from '../data/abode'
 import { ITEMS } from '../data/items'
 import { canCraft, craftRate, plotProgress } from '../game/farm'
+import { ArtifactForgePanel } from './ArtifactForgePanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
@@ -152,6 +153,8 @@ export function AbodePanel() {
           ))}
         </div>
       </div>
+
+      <ArtifactForgePanel />
 
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">丹房</div>

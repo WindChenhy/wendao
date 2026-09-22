@@ -2,7 +2,7 @@
   "name": "wendao",
   "title": "问道",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
