@@ -1,8 +1,20 @@
 import { create } from 'zustand'
 import { expandPlotCost, MAX_PLOTS, RECIPES, SEEDS } from '../data/abode'
+import {
+  ACHIEVEMENT_MAP,
+  describeReward as describeAchieveReward,
+  evaluateAchievementIds,
+} from '../data/achievements'
 import { CLASSES } from '../data/classes'
+import {
+  CODEX_PAGE_META,
+  codexRewardKey,
+  emptyCollection,
+  pendingCodexRewards,
+  describeCodexReward,
+} from '../data/codex'
 import { companionById, giftAffinity, type CompanionDef } from '../data/companions'
-import { ENEMIES, pickEnemy } from '../data/enemies'
+import { ENEMIES, ENEMY_TEMPLATES, enemyTemplateId, pickEnemy } from '../data/enemies'
 import { pickWorldEvent, type WorldEvent } from '../data/events'
 import {
   GONGFA_STAGE_LABELS,
@@ -15,7 +27,16 @@ import {
   gongfaRealmText,
 } from '../data/gongfa'
 import { ITEMS, TREASURE_BONUS, bestBreakthroughPill, pillExp, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
-import { REALMS, expNeeded, realmCombatBase, realmIndex, realmLabel, realmMaxEnergy, realmMaxHp } from '../data/realms'
+import {
+  REALMS,
+  REALM_ORDER,
+  expNeeded,
+  realmCombatBase,
+  realmIndex,
+  realmLabel,
+  realmMaxEnergy,
+  realmMaxHp,
+} from '../data/realms'
 import {
   SECT_RANKS,
   SECTS,
@@ -56,6 +77,7 @@ import {
 } from '../game/combatEngine'
 import { COMBAT_CONFIG } from '../data/skills'
 import {
+  GAME_DAYS_PER_YEAR,
   advanceTime,
   cultivateGain,
   dailyRecover,
@@ -64,16 +86,27 @@ import {
   seclusionGain,
   weatherOf,
 } from '../game/day'
+import {
+  OFFLINE_PILL_BONUS,
+  OFFLINE_PILL_IDS,
+  calcOfflineCultivation,
+  formatOfflineDuration,
+  type OfflineSettlement,
+} from '../game/offline'
 import { canCraft, craftRate, freshAbode, harvestYield, plotProgress } from '../game/farm'
 import { clamp } from '../game/format'
-import { applyDaoToMaxHp, daoBonuses, reincarnateGain } from '../game/reincarnate'
+import { applyDaoToMaxHp, daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
 import { decryptSave, encryptSave } from '../game/saveCrypto'
+import { loadGameSettings, saveGameSettings } from '../game/settings'
 import type {
   AbodeState,
   CharacterCreateInput,
+  CollectionState,
+  CodexPageId,
   EnemyDef,
   GameTime,
   LegacyState,
+  MetaState,
   PanelId,
   PlayerState,
   TowerRun,
@@ -81,7 +114,13 @@ import type {
 import { useLogStore } from './useLogStore'
 
 const SAVE_PREFIX = 'wendao-slot-'
-const SAVE_VERSION = 7
+const SAVE_VERSION = 8
+
+export interface OfflinePending extends OfflineSettlement {
+  stones: number
+  pillId: string | null
+  pillName: string
+}
 
 export type GamePhase = 'menu' | 'create' | 'play'
 
@@ -129,6 +168,8 @@ export interface SlotSnapshot {
   towerBest: Record<string, number>
   abode: AbodeState
   legacy: LegacyState
+  /** v0.7 图鉴/成就/离线元数据 */
+  meta?: MetaState
   updatedAt: number
 }
 
@@ -213,7 +254,125 @@ function freshGongfa(): GongfaState {
 }
 
 function freshLegacy(): LegacyState {
-  return { daoMarks: 0, reincarnations: 0, bestRealmIndex: 0 }
+  return { daoMarks: 0, reincarnations: 0, bestRealmIndex: 0, totalYears: 0, lastLifeEndYear: 0 }
+}
+
+function migrateLegacy(raw: unknown): LegacyState {
+  const base = freshLegacy()
+  if (!raw || typeof raw !== 'object') return base
+  const r = raw as Partial<LegacyState>
+  return {
+    daoMarks: Number(r.daoMarks) || 0,
+    reincarnations: Number(r.reincarnations) || 0,
+    bestRealmIndex: Number(r.bestRealmIndex) || 0,
+    totalYears: Number(r.totalYears) || 0,
+    lastLifeEndYear: Number(r.lastLifeEndYear) || 0,
+  }
+}
+
+function freshMeta(): MetaState {
+  return {
+    collection: emptyCollection(),
+    achievements: [],
+    codexRewardClaimed: [],
+    titles: [],
+    stats: { combatsWon: 0, pillsCrafted: 0, stonesPeak: 0, offlineSettled: 0 },
+    lastOnlineAt: Date.now(),
+  }
+}
+
+function uniqIds(list: string[]): string[] {
+  return Array.from(new Set(list.filter(Boolean)))
+}
+
+function migrateMeta(raw: unknown): MetaState {
+  const base = freshMeta()
+  if (!raw || typeof raw !== 'object') return base
+  const r = raw as Partial<MetaState> & { collection?: Partial<CollectionState> }
+  const col: Partial<CollectionState> = r.collection ?? {}
+  return {
+    collection: {
+      realm: uniqIds(col.realm ?? []),
+      enemy: uniqIds(col.enemy ?? []),
+      gongfa: uniqIds(col.gongfa ?? []),
+      item: uniqIds(col.item ?? []),
+      companion: uniqIds(col.companion ?? []),
+      secret: uniqIds(col.secret ?? []),
+    },
+    achievements: uniqIds(r.achievements ?? []),
+    codexRewardClaimed: uniqIds(r.codexRewardClaimed ?? []),
+    titles: uniqIds(r.titles ?? []),
+    stats: {
+      combatsWon: Number(r.stats?.combatsWon) || 0,
+      pillsCrafted: Number(r.stats?.pillsCrafted) || 0,
+      stonesPeak: Number(r.stats?.stonesPeak) || 0,
+      offlineSettled: Number(r.stats?.offlineSettled) || 0,
+    },
+    lastOnlineAt:
+      Number(r.lastOnlineAt) > 0 && Number(r.lastOnlineAt) <= Date.now()
+        ? Number(r.lastOnlineAt)
+        : Date.now(),
+  }
+}
+
+/** 从当前角色状态推导可补录的图鉴条目（旧档迁移/读档对齐） */
+function deriveCollectionFromState(s: {
+  player: PlayerState | null
+  gongfa: { learned: Record<string, unknown> }
+  treasures: string[]
+  inventory: Record<string, number>
+  companion: CompanionState
+  towerBest: Record<string, number>
+  legacy: LegacyState
+}): Partial<CollectionState> {
+  const realmIds: string[] = []
+  if (s.player) {
+    const idx = isAscended(s.player) ? 9 : realmIndex(s.player.realm)
+    const best = Math.max(idx, s.legacy.bestRealmIndex)
+    for (let i = 0; i <= best; i++) {
+      const id = REALM_ORDER[i]
+      if (id) realmIds.push(id)
+    }
+  } else if (s.legacy.bestRealmIndex >= 0) {
+    for (let i = 0; i <= s.legacy.bestRealmIndex; i++) {
+      const id = REALM_ORDER[i]
+      if (id) realmIds.push(id)
+    }
+  }
+
+  const itemIds = [
+    ...Object.keys(s.inventory).filter(
+      (id) => id.startsWith('pill_') || id.startsWith('treasure_') || id.startsWith('mat_'),
+    ),
+    ...s.treasures,
+  ]
+
+  const companionIds = Object.entries(s.companion.affinity)
+    .filter(([, v]) => v >= 1)
+    .map(([id]) => id)
+  if (s.companion.spouseId) companionIds.push(s.companion.spouseId)
+  for (const [id, n] of Object.entries(s.companion.heartsSeen)) {
+    if ((n ?? 0) > 0) companionIds.push(id)
+  }
+
+  return {
+    realm: realmIds,
+    gongfa: Object.keys(s.gongfa.learned),
+    item: itemIds,
+    companion: companionIds,
+    secret: Object.keys(s.towerBest),
+  }
+}
+
+function mergeCollection(base: CollectionState, patch: Partial<CollectionState>): CollectionState {
+  return {
+    realm: uniqIds([...base.realm, ...(patch.realm ?? [])]),
+    enemy: uniqIds([...base.enemy, ...(patch.enemy ?? [])]),
+    gongfa: uniqIds([...base.gongfa, ...(patch.gongfa ?? [])]),
+    item: uniqIds([...base.item, ...(patch.item ?? [])]),
+    companion: uniqIds([...base.companion, ...(patch.companion ?? [])]),
+    secret: uniqIds([...base.secret, ...(patch.secret ?? [])]),
+  }
 }
 
 function currentRules(): RuntimeRules {
@@ -270,6 +429,198 @@ function gainSeclusion(
   days: number,
 ): number {
   return Math.floor(seclusionGain(classId, realm, layer, days) * currentRules().cultivateMul)
+}
+
+/** 合并修炼倍率：道痕 / 宗门 / 职位 / 功法 / 道侣（与打坐一致） */
+function cultivateMultipliers(
+  player: PlayerState | null,
+  sect: SectState,
+  companion: CompanionState,
+  gongfaLearned: Record<string, GongfaLearned>,
+  daoMarks: number,
+): number {
+  if (!player) return 1
+  const sdef = sectDef(sect.sectId)
+  const rankBonus = SECT_RANKS[sect.rank]?.cultivateMul ?? 1
+  const gongfaMul = gongfaBonuses(gongfaLearned).cultivate
+  const spouse = spouseDef(companion)
+  const dao = daoBonuses(daoMarks)
+  return (
+    dao.cultivateMul *
+    (sdef?.bonus.cultivateMul ?? 1) *
+    rankBonus *
+    gongfaMul *
+    (spouse ? 1 + (spouse.dualMul - 1) * 0.35 : 1) *
+    currentRules().cultivateMul
+  )
+}
+
+type MetaSet = (partial: Partial<GameState>) => void
+type MetaGet = () => GameState
+
+/** 记录图鉴条目；若有新解锁则继续跑图鉴奖励与成就 */
+function unlockCodex(get: MetaGet, set: MetaSet, page: CodexPageId, id: string) {
+  if (!id) return
+  const meta = get().meta
+  if (meta.collection[page]?.includes(id)) return
+  const collection = {
+    ...meta.collection,
+    [page]: [...(meta.collection[page] ?? []), id],
+  }
+  const pageMeta = CODEX_PAGE_META[page]
+  log(`图鉴收录：「${pageMeta.name}」新条目。`, 'dim')
+  set({ meta: { ...meta, collection } })
+  processMetaProgress(get, set)
+}
+
+/** 结算图鉴节点奖励与新达成的成就（自动入账 + 日志） */
+function processMetaProgress(get: MetaGet, set: MetaSet) {
+  const state = get()
+  const meta = state.meta
+  let stones = state.stones
+  let legacy = state.legacy
+  let claimed = [...meta.codexRewardClaimed]
+  let titles = [...meta.titles]
+  let achievements = [...meta.achievements]
+  let stats = { ...meta.stats, stonesPeak: Math.max(meta.stats.stonesPeak, stones) }
+
+  const codexHits = pendingCodexRewards(meta.collection, claimed)
+  for (const hit of codexHits) {
+    claimed.push(codexRewardKey(hit.page, hit.pct))
+    if (hit.reward.stones) stones += hit.reward.stones
+    if (hit.reward.daoMarks) {
+      legacy = { ...legacy, daoMarks: legacy.daoMarks + hit.reward.daoMarks }
+    }
+    if (hit.reward.title && !titles.includes(hit.reward.title)) {
+      titles.push(hit.reward.title)
+    }
+    log(
+      `图鉴「${CODEX_PAGE_META[hit.page].name}」达成 ${hit.pct}%：${describeCodexReward(hit.reward)}`,
+      'gold',
+    )
+  }
+
+  const progressIds = evaluateAchievementIds({
+    player: state.player,
+    legacy,
+    stones,
+    gongfaCount: Object.keys(state.gongfa.learned).length,
+    treasureCount: state.treasures.length,
+    companion: state.companion,
+    sect: state.sect,
+    towerBest: state.towerBest,
+    collection: meta.collection,
+    stats,
+  })
+
+  const unlockedSet = new Set(achievements)
+  for (const id of progressIds) {
+    if (unlockedSet.has(id)) continue
+    const def = ACHIEVEMENT_MAP[id]
+    if (!def) continue
+    achievements.push(id)
+    unlockedSet.add(id)
+    if (def.reward.stones) stones += def.reward.stones
+    if (def.reward.daoMarks) {
+      legacy = { ...legacy, daoMarks: legacy.daoMarks + def.reward.daoMarks }
+    }
+    if (def.reward.title && !titles.includes(def.reward.title)) {
+      titles.push(def.reward.title)
+    }
+    log(`成就解锁「${def.name}」：${def.desc} · ${describeAchieveReward(def.reward)}`, 'gold')
+  }
+
+  set({
+    stones,
+    legacy,
+    meta: {
+      ...meta,
+      achievements: uniqIds(achievements),
+      codexRewardClaimed: claimed,
+      titles,
+      stats,
+    },
+  })
+}
+
+/** 触达图鉴/成就的通用入口（战斗获胜、获得物品等之后调用） */
+function afterProgressSnapshot(get: MetaGet, set: MetaSet) {
+  const state = get()
+  if (!state.player) return
+  const derived = deriveCollectionFromState(state)
+  const collection = mergeCollection(state.meta.collection, derived)
+  const stats = {
+    ...state.meta.stats,
+    stonesPeak: Math.max(state.meta.stats.stonesPeak, state.stones),
+  }
+  if (
+    collection.realm.length !== state.meta.collection.realm.length ||
+    collection.gongfa.length !== state.meta.collection.gongfa.length ||
+    collection.item.length !== state.meta.collection.item.length ||
+    collection.companion.length !== state.meta.collection.companion.length ||
+    collection.secret.length !== state.meta.collection.secret.length ||
+    stats.stonesPeak !== state.meta.stats.stonesPeak
+  ) {
+    set({ meta: { ...state.meta, collection, stats } })
+  }
+  processMetaProgress(get, set)
+}
+
+function pickOfflinePill(inventory: Record<string, number>): { id: string; name: string } | null {
+  for (const id of OFFLINE_PILL_IDS) {
+    if ((inventory[id] ?? 0) > 0) {
+      return { id, name: ITEMS[id]?.name ?? id }
+    }
+  }
+  return null
+}
+
+function buildOfflinePending(get: MetaGet, settlement: OfflineSettlement): OfflinePending | null {
+  const state = get()
+  if (!state.player || !settlement.active) return null
+  const pill = pickOfflinePill(state.inventory)
+  return {
+    ...settlement,
+    stones: state.stones,
+    pillId: pill?.id ?? null,
+    pillName: pill?.name ?? '无可用丹药',
+  }
+}
+
+/** 计算并挂起离线闭关结算（读档/回前台时调用） */
+function trySettleOffline(get: MetaGet, set: MetaSet) {
+  if (get().offlinePending) return
+  const state = get()
+  const player = state.player
+  if (!player || !player.alive || isAscended(player)) return
+  const settlement = calcOfflineCultivation({
+    lastOnlineAt: state.meta.lastOnlineAt,
+    now: Date.now(),
+    classId: player.classId,
+    realm: player.realm,
+    layer: player.layer,
+    multipliers: cultivateMultipliers(
+      player,
+      state.sect,
+      state.companion,
+      state.gongfa.learned,
+      state.legacy.daoMarks,
+    ),
+  })
+  if (settlement.reason === 'clock_backward') {
+    log('检测到时间异常，离线修炼未结算。已重置在线锚点。', 'bad')
+    set({ meta: { ...state.meta, lastOnlineAt: Date.now() } })
+    return
+  }
+  if (!settlement.active) return
+  const pending = buildOfflinePending(get, settlement)
+  if (!pending) return
+  set({ offlinePending: pending })
+}
+
+function touchOnline(get: MetaGet, set: MetaSet) {
+  const meta = get().meta
+  set({ meta: { ...meta, lastOnlineAt: Date.now() } })
 }
 
 /** 法宝加成：剑胚攻、宝镜防、镇魂塔气血（同类只计一次，避免重复堆叠爆炸） */
@@ -447,6 +798,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
       if (enemy.faction === 'demonic') {
         log(`斩杀魔修：正道声望 +${rep.right}，魔道声望 +${rep.demonic}`, 'dim')
       }
+      const meta = get().meta
       nextPlayer = {
         ...nextPlayer,
         exp: player.exp + result.expGain,
@@ -465,7 +817,14 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
         activeCombat: null,
         lastCombat: { enemy, win: true, log: lines },
         player: nextPlayer,
+        meta: {
+          ...meta,
+          stats: { ...meta.stats, combatsWon: meta.stats.combatsWon + 1 },
+        },
       })
+      unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
+      if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+      afterProgressSnapshot(get, set)
     } else {
       log(`历练遭遇 ${enemy.name}，不敌败退。`, 'bad')
       set({
@@ -504,6 +863,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
         `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：修为 +${result.expGain}，灵石 +${result.stoneGain}`,
         'gold',
       )
+      const meta = get().meta
       set({
         inventory: inv,
         stones: get().stones + result.stoneGain,
@@ -517,7 +877,19 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
           ...nextPlayer,
           exp: player.exp + result.expGain,
         },
+        meta: {
+          ...meta,
+          stats: { ...meta.stats, combatsWon: meta.stats.combatsWon + 1 },
+        },
       })
+      unlockCodex(get, set, 'secret', realm.id)
+      // 秘境守卫为动态生成 id；镇守若对应模板则按模板 id 收录
+      const templateId = enemyTemplateId(enemy.id)
+      if (ENEMY_TEMPLATES.some((t) => t.id === templateId)) {
+        unlockCodex(get, set, 'enemy', templateId)
+      }
+      if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+      afterProgressSnapshot(get, set)
       if (clearedAll) log(`你贯通了「${realm.name}」全部 ${realm.floors} 层！`, 'gold')
       return
     }
@@ -546,6 +918,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
     if (result.win) {
       log(`宗门大比：你力克${enemy.name}，通过「${nextRank?.name ?? '晋升'}」考核！`, 'gold')
       log(`修为 +${result.expGain}。考核通过，凭此可直接晋升。`, 'good')
+      const metaExam = get().meta
       set({
         time: advanced.time,
         activeCombat: null,
@@ -558,7 +931,13 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
           age: aged,
           lifespanLeft: nextPlayer.lifespanLeft - advanced.agedYears,
         },
+        meta: {
+          ...metaExam,
+          stats: { ...metaExam.stats, combatsWon: metaExam.stats.combatsWon + 1 },
+        },
       })
+      unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
+      afterProgressSnapshot(get, set)
     } else {
       log(`宗门大比不敌${enemy.name}，考核未过。调养之后再战。`, 'bad')
       set({
@@ -636,6 +1015,10 @@ interface GameState {
   tower: TowerRun | null
   abode: AbodeState
   legacy: LegacyState
+  /** v0.7 图鉴/成就/离线元数据 */
+  meta: MetaState
+  /** 待确认的离线闭关结算 */
+  offlinePending: OfflinePending | null
   activePanel: PanelId
   exploring: boolean
   lastCombat: { enemy: EnemyDef; win: boolean; log: string[] } | null
@@ -643,11 +1026,20 @@ interface GameState {
   /** 进行中的回合制战斗（v0.6 技能战） */
   activeCombat: (CombatEngineState & { pendingEventAction?: string }) | null
   autoCombat: boolean
+  /** 历练跳过交互战斗，直接自动结算 */
+  skipExploreCombat: boolean
 
   setPanel: (p: PanelId) => void
+  setSkipExploreCombat: (v: boolean) => void
   startCreate: () => void
   createCharacter: (input: CharacterCreateInput) => void
   backToMenu: () => void
+  /** 刷新在线锚点（页面隐藏/定时心跳） */
+  touchOnline: () => void
+  /** 回到前台或必要时重算离线闭关 */
+  recheckOffline: () => void
+  /** 处理离线闭关归来 */
+  resolveOffline: (mode: 'accept' | 'stone' | 'pill') => void
 
   meditate: () => void
   seclude: (days: number) => void
@@ -736,6 +1128,7 @@ function snapshotOf(s: GameState): SlotSnapshot {
     towerBest: s.towerBest,
     abode: s.abode,
     legacy: s.legacy,
+    meta: { ...s.meta, lastOnlineAt: Date.now() },
     updatedAt: Date.now(),
   }
 }
@@ -754,6 +1147,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   tower: null,
   abode: freshAbode(),
   legacy: freshLegacy(),
+  meta: freshMeta(),
+  offlinePending: null,
   activePanel: 'cultivate',
   exploring: false,
   lastCombat: null,
@@ -761,19 +1156,96 @@ export const useGameStore = create<GameState>((set, get) => ({
   activeCombat: null,
   /** 默认手动，保证战斗面板能先显示；勾选自动后再托管 */
   autoCombat: false,
+  skipExploreCombat: loadGameSettings().skipExploreCombat,
 
   setPanel: (p) => set({ activePanel: p }),
+  setSkipExploreCombat: (v) => {
+    saveGameSettings({ skipExploreCombat: v })
+    set({ skipExploreCombat: v })
+    log(
+      v
+        ? '已开启：历练与秘境将跳过战斗，直接结算战报。'
+        : '已关闭：历练与秘境将进入战斗面板手动出招。',
+      'dim',
+    )
+  },
+  touchOnline: () => touchOnline(get, set),
+  recheckOffline: () => trySettleOffline(get, set),
+  resolveOffline: (mode) => {
+    const pending = get().offlinePending
+    const { player } = get()
+    if (!pending || !player || !player.alive) {
+      set({ offlinePending: null })
+      return
+    }
+    let gain = pending.expGain
+    let stones = get().stones
+    let inv = { ...get().inventory }
+    if (mode === 'stone') {
+      if (stones < pending.deepenStoneCost || pending.deepenStoneExp <= 0) {
+        set({ offlinePending: null })
+        return
+      }
+      stones -= pending.deepenStoneCost
+      gain += pending.deepenStoneExp
+      log(`灵石加深闭关，花费 ${pending.deepenStoneCost}，额外修为 +${pending.deepenStoneExp}`, 'gold')
+    } else if (mode === 'pill') {
+      const pillId = pending.pillId
+      if (!pillId || (inv[pillId] ?? 0) <= 0 || pending.deepenPillExp <= 0) {
+        set({ offlinePending: null })
+        return
+      }
+      inv[pillId] = (inv[pillId] ?? 0) - 1
+      if (inv[pillId] <= 0) delete inv[pillId]
+      gain += pending.deepenPillExp
+      log(
+        `服下${ITEMS[pillId]?.name ?? pillId}加深闭关，额外修为 +${pending.deepenPillExp}（+${Math.round(OFFLINE_PILL_BONUS * 100)}%）`,
+        'gold',
+      )
+    }
+
+    const need = expNeeded(player.realm, player.layer)
+    log(
+      `闭关归来：离线约 ${formatOfflineDuration(pending.elapsedMs)}，修为 +${gain}（${player.exp + gain}/${need}）。`,
+      'good',
+    )
+    const meta = get().meta
+    set({
+      offlinePending: null,
+      stones,
+      inventory: inv,
+      player: { ...player, exp: player.exp + gain },
+      meta: {
+        ...meta,
+        lastOnlineAt: Date.now(),
+        stats: {
+          ...meta.stats,
+          offlineSettled: meta.stats.offlineSettled + 1,
+          stonesPeak: Math.max(meta.stats.stonesPeak, stones),
+        },
+      },
+    })
+    afterProgressSnapshot(get, set)
+  },
   startCreate: () => {
     const { player, companion, legacy } = get()
-    // 若此世已终结，先结算道痕再开新身
-    if (player && (!player.alive || player.ascended)) {
+    // 若此世已终结（飞升优先于道消），先结算道痕再开新身
+    if (player && (!player.alive || isAscended(player))) {
       const gain = reincarnateGain(player, Boolean(companion.spouseId))
+      const endedYear = get().time.year
       const nextLegacy: LegacyState = {
         daoMarks: legacy.daoMarks + gain.daoMarks,
         reincarnations: legacy.reincarnations + 1,
         bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
+        totalYears: (legacy.totalYears ?? 0) + player.age,
+        lastLifeEndYear: endedYear,
       }
       log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
+      log(
+        `转生次数 ${nextLegacy.reincarnations}，累计道痕 ${nextLegacy.daoMarks}。` +
+          `上一世止于第${endedYear}年（寿龄 ${player.age}）；新一世年号将从第 1 年重新起算。`,
+        'gold',
+      )
       set({
         legacy: nextLegacy,
         phase: 'create',
@@ -783,14 +1255,17 @@ export const useGameStore = create<GameState>((set, get) => ({
         tower: null,
         sect: freshSect(),
         companion: freshCompanion(),
-      gongfa: freshGongfa(),
+        gongfa: freshGongfa(),
         treasures: [],
         abode: freshAbode(),
         activePanel: 'cultivate',
         activeCombat: null,
         exploring: false,
         autoCombat: false,
+        offlinePending: null,
+        // meta.collection / achievements 跨周目保留
       })
+      afterProgressSnapshot(get, set)
       return
     }
     useLogStore.getState().clear()
@@ -814,7 +1289,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       treasures: [],
       towerBest: {},
       abode: freshAbode(),
-      // 保留道痕与转生次数，跨周目继承
+      offlinePending: null,
+      // 保留道痕与转生次数；图鉴成就同样跨周目保留
     })
   },
 
@@ -828,9 +1304,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
     log(`初始寿元 ${player.lifespanLeft} 年。${dayKey(get().time)}，天朗气清。`, 'dim')
-    if (legacy.daoMarks > 0) {
+    if (legacy.reincarnations > 0) {
+      log(
+        `此为第 ${legacy.reincarnations} 次转生后的新一世：年号从第 1 年重新起算` +
+          `（上一世结束于第${legacy.lastLifeEndYear || '?'}年；历代累计寿龄 ${legacy.totalYears}）。道痕 ${legacy.daoMarks} 继承。`,
+        'gold',
+      )
+    } else if (legacy.daoMarks > 0) {
       log(`道痕 ${legacy.daoMarks}：修炼加速、突破略易，起始灵石更丰。`, 'dim')
     }
+    const prevMeta = get().meta
     set({
       phase: 'play',
       player,
@@ -850,12 +1333,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeCombat: null,
       exploring: false,
       autoCombat: false,
+      offlinePending: null,
+      meta: {
+        ...prevMeta,
+        collection: mergeCollection(prevMeta.collection, { realm: ['qi'] }),
+        stats: {
+          ...prevMeta.stats,
+          stonesPeak: Math.max(prevMeta.stats.stonesPeak, dao.startStones),
+        },
+        lastOnlineAt: Date.now(),
+      },
     })
+    unlockCodex(get, set, 'realm', 'qi')
+    processMetaProgress(get, set)
   },
 
   meditate: () => {
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
     const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
@@ -886,6 +1381,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         time: advanced.time,
         player: { ...player, exp: player.exp + gain, age: aged, lifespanLeft: 0, alive: false },
       })
+      touchOnline(get, set)
       return
     }
 
@@ -900,15 +1396,17 @@ export const useGameStore = create<GameState>((set, get) => ({
         lifespanLeft,
       },
     })
+    touchOnline(get, set)
 
     const evt = pickEvent(player.realm)
     if (evt) set({ pendingEvent: { event: evt, kind: 'meditate' } })
   },
 
   seclude: (days) => {
-    const n = clamp(days, 1, 3650)
+    // 与游戏日历对齐：1 年 = 360 日；上限约百年 + 余量
+    const n = clamp(days, 1, GAME_DAYS_PER_YEAR * 120)
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
     const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
@@ -935,6 +1433,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         time: advanced.time,
         player: { ...player, exp: player.exp + gain, age: aged, lifespanLeft: 0, alive: false },
       })
+      touchOnline(get, set)
       return
     }
 
@@ -950,6 +1449,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         lifespanLeft: life,
       },
     })
+    touchOnline(get, set)
 
     const evt = pickEvent(player.realm)
     if (evt) set({ pendingEvent: { event: evt, kind: 'seclude' } })
@@ -957,7 +1457,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   breakthrough: () => {
     const { player, inventory, sect, companion, treasures } = get()
-    if (!player || !player.alive || player.ascended || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
     if (!canBreakthrough(player.realm, player.layer, player.exp)) {
       log('修为不足，无法冲击壁垒。', 'bad')
       return
@@ -1006,6 +1506,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (success) {
       const next = applyLayerUp(player.realm, player.layer)
+      const justAscended = next.realm === 'ascended'
       if (isMajor && matId) {
         inv[matId] = (inv[matId] ?? 1) - 1
         if (inv[matId] <= 0) delete inv[matId]
@@ -1017,6 +1518,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         get().legacy.daoMarks,
       )
       log(result.message, 'gold')
+      if (justAscended) {
+        log('霞举飞升，超脱此界。此世修行已圆满，可在修炼页选择转生。', 'gold')
+      }
       if (spouse) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
       if (breakPill) log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
       if (treasureBt > 0) log(`认主法宝加持：突破成功率 +${treasureBt}%`, 'dim')
@@ -1028,15 +1532,22 @@ export const useGameStore = create<GameState>((set, get) => ({
           ...vitals,
           realm: next.realm,
           layer: next.layer,
-          exp: Math.max(0, player.exp - need),
+          exp: justAscended ? 0 : Math.max(0, player.exp - need),
           hp: vitals.maxHp,
           energy: vitals.maxEnergy,
-          lifespanLeft: Math.max(
-            player.lifespanLeft,
-            Math.floor(REALMS[next.realm].lifespan * currentRules().lifespanMul),
-          ),
+          // 飞升写入终局标志，避免继续老化/战斗后被误判为道消
+          ascended: justAscended ? true : vitals.ascended,
+          alive: justAscended ? true : vitals.alive,
+          lifespanLeft: justAscended
+            ? Math.floor(REALMS.ascended.lifespan * currentRules().lifespanMul)
+            : Math.max(
+                player.lifespanLeft,
+                Math.floor(REALMS[next.realm].lifespan * currentRules().lifespanMul),
+              ),
         },
       })
+      unlockCodex(get, set, 'realm', next.realm)
+      afterProgressSnapshot(get, set)
       return
     }
 
@@ -1082,7 +1593,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   explore: () => {
     const { player, time } = get()
-    if (!player || !player.alive || player.ascended || get().exploring || get().pendingEvent || get().tower || get().activeCombat)
+    if (!player || !player.alive || isAscended(player) || get().exploring || get().pendingEvent || get().tower || get().activeCombat)
       return
     const ri = realmIndex(player.realm)
     const enemy = pickEnemy(ri < 0 ? 0 : ri, player.layer)
@@ -1098,6 +1609,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       hpScale: 1,
       exploring: true,
     })
+    // 设置开启时：同步打完并结算，不进入交互战斗面板
+    if (get().skipExploreCombat) {
+      get().runCombatAutoToEnd()
+    }
   },
 
   clearCombat: () => set({ lastCombat: null }),
@@ -1184,7 +1699,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   plantSeed: (plotIndex, seedId) => {
     const { abode, inventory, player, time } = get()
-    if (!player || !player.alive || player.ascended) return
+    if (!player || !player.alive || isAscended(player)) return
     const plot = abode.plots[plotIndex]
     if (!plot || plot.seedId) return
     const seed = SEEDS[seedId]
@@ -1223,7 +1738,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   plantAll: (seedId) => {
     const { abode, inventory, player, time } = get()
-    if (!player || !player.alive || player.ascended) return
+    if (!player || !player.alive || isAscended(player)) return
     const seed = SEEDS[seedId]
     if (!seed) return
     if ((inventory[seedId] ?? 0) <= 0) {
@@ -1294,7 +1809,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   craftItem: (recipeId) => {
     const { player, inventory, time } = get()
-    if (!player || !player.alive || player.ascended) return
+    if (!player || !player.alive || isAscended(player)) return
     const recipe = RECIPES[recipeId]
     if (!recipe) return
     if (!canCraft(recipe, inventory)) {
@@ -1326,6 +1841,19 @@ export const useGameStore = create<GameState>((set, get) => ({
         `丹成！「${ITEMS[recipe.outputItemId]?.name ?? recipe.outputItemId}」×${recipe.outputCount}`,
         'gold',
       )
+      const metaCraft = get().meta
+      set({
+        time: advanced.time,
+        inventory: inv,
+        player: { ...player, age: aged, lifespanLeft: life },
+        meta: {
+          ...metaCraft,
+          stats: { ...metaCraft.stats, pillsCrafted: metaCraft.stats.pillsCrafted + 1 },
+        },
+      })
+      unlockCodex(get, set, 'item', recipe.outputItemId)
+      afterProgressSnapshot(get, set)
+      return
     } else {
       log('炉火失控，药材尽废……', 'bad')
     }
@@ -1338,18 +1866,25 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   reincarnate: (input) => {
     const { player, companion, legacy } = get()
-    if (!player || (player.alive && !player.ascended)) {
-      log('此身尚在修行，无需转生。', 'dim')
+    if (!player || (player.alive && !isAscended(player))) {
+      log('此身尚在修行，无需转生。（需先飞升或道消）', 'dim')
       return
     }
     const gain = reincarnateGain(player, Boolean(companion.spouseId))
+    const endedYear = get().time.year
     const nextLegacy: LegacyState = {
       daoMarks: legacy.daoMarks + gain.daoMarks,
       reincarnations: legacy.reincarnations + 1,
       bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
+      totalYears: (legacy.totalYears ?? 0) + player.age,
+      lastLifeEndYear: endedYear,
     }
     log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
-    log(`转生次数 ${nextLegacy.reincarnations}，累计道痕 ${nextLegacy.daoMarks}。择新身再修。`, 'gold')
+    log(
+      `转生次数 ${nextLegacy.reincarnations}，累计道痕 ${nextLegacy.daoMarks}。` +
+        `上一世止于第${endedYear}年（寿龄 ${player.age}）；新一世年号从第 1 年起算，不沿用前世。`,
+      'gold',
+    )
     set({ legacy: nextLegacy })
     get().createCharacter(input)
   },
@@ -1396,6 +1931,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             ),
           })
         }
+        unlockCodex(get, set, 'item', evt.payload.itemId)
+        afterProgressSnapshot(get, set)
         return
       }
       log(
@@ -1447,6 +1984,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         const rep = repDeltaOnKill(enemy)
         log(`${label}获胜：${enemy.name}`, 'gold')
         log(`修为 +${result.expGain}，灵石 +${result.stoneGain}`, 'good')
+        const metaEvt = get().meta
         set({
           pendingEvent: null,
           inventory: inv,
@@ -1461,7 +1999,14 @@ export const useGameStore = create<GameState>((set, get) => ({
             repRight: player.repRight + rep.right,
             repDemonic: player.repDemonic + rep.demonic,
           },
+          meta: {
+            ...metaEvt,
+            stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
+          },
         })
+        unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
+        if (dropId) unlockCodex(get, set, 'item', dropId)
+        afterProgressSnapshot(get, set)
       } else {
         log(`${label}失败：${enemy.name}`, 'bad')
         set({
@@ -1508,6 +2053,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       log(`使用 ${item.name}。`, 'good')
     }
     set({ player: p, inventory: inv })
+    unlockCodex(get, set, 'item', id)
+    afterProgressSnapshot(get, set)
   },
 
   comprehendGongfa: (scrollItemId) => {
@@ -1534,6 +2081,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const p = recomputeVitals({ ...player }, treasures, learned, legacy.daoMarks)
     log(`你翻开《${g.name}》，朝夕参诵，功法入门。`, 'gold')
     set({ inventory: inv, gongfa: { learned }, player: p })
+    unlockCodex(get, set, 'gongfa', g.id)
+    afterProgressSnapshot(get, set)
   },
 
   advanceGongfaStage: (id) => {
@@ -1610,6 +2159,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       treasures: newTreasures,
       player: p,
     })
+    unlockCodex(get, set, 'item', id)
+    afterProgressSnapshot(get, set)
   },
 
   joinSect: (sectId) => {
@@ -1671,6 +2222,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     inv[itemId] = (inv[itemId] ?? 0) + 1
     log(`以贡献兑换「${ITEMS[itemId]?.name ?? itemId}」。`, 'gold')
     set({ inventory: inv, sect: { ...sect, contribution: sect.contribution - cost } })
+    unlockCodex(get, set, 'item', itemId)
+    afterProgressSnapshot(get, set)
   },
 
   sectLearn: (libId, cost) => {
@@ -1697,11 +2250,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       gongfa: { learned },
       sect: { ...sect, contribution: sect.contribution - cost },
     })
+    unlockCodex(get, set, 'gongfa', libId)
+    afterProgressSnapshot(get, set)
   },
 
   sectGrandCompetition: () => {
     const { player, sect, treasures } = get()
-    if (!player || !player.alive || player.ascended || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
     if (!sect.sectId) return
     const nextId = nextSectRank(sect.rank)
     const next = nextId ? SECT_RANKS[nextId] : null
@@ -1782,11 +2337,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (next.entry === 'optional') {
       log('你自宗主之位退居太上，不问俗务，逍遥自在。', 'gold')
     }
+    afterProgressSnapshot(get, set)
   },
 
   enterTower: (realmId) => {
     const { player, tower } = get()
-    if (!player || !player.alive || player.ascended || tower) return
+    if (!player || !player.alive || isAscended(player) || tower) return
     const realm = SECRET_REALMS.find((r) => r.id === realmId)
     if (!realm) return
     if (!canEnterRealm(realm, player.realm, player.layer)) {
@@ -1800,6 +2356,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       tower: { realmId, floor: startFloor, inCombat: false, log: [], left: false },
       lastCombat: null,
     })
+    unlockCodex(get, set, 'secret', realmId)
+    afterProgressSnapshot(get, set)
   },
 
   towerFight: () => {
@@ -1829,6 +2387,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         energy: Math.min(player.maxEnergy, actor.energy),
       },
     })
+    // 设置开启时：本层直接自动结算，不进入交互战斗面板
+    if (get().skipExploreCombat) {
+      get().runCombatAutoToEnd()
+    }
   },
 
   towerRest: () => {
@@ -1880,6 +2442,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         heartsSeen: { ...companion.heartsSeen, [id]: seen },
       },
     })
+    if (next >= 1) unlockCodex(get, set, 'companion', id)
+    if (heartTexts.length > 0) afterProgressSnapshot(get, set)
   },
 
   giftCompanion: (id, itemId) => {
@@ -1920,11 +2484,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         heartsSeen: { ...companion.heartsSeen, [id]: seen },
       },
     })
+    if (next >= 1) unlockCodex(get, set, 'companion', id)
+    if (heartTexts.length > 0) afterProgressSnapshot(get, set)
   },
 
   dualCultivate: (id) => {
     const { companion, player, time } = get()
-    if (!player || !player.alive || player.ascended) return
+    if (!player || !player.alive || isAscended(player)) return
     const c = companionById(id)
     if (!c) return
     const aff = companion.affinity[id] ?? 0
@@ -2008,6 +2574,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       stones: stones - 200,
       companion: { ...companion, spouseId: id },
     })
+    unlockCodex(get, set, 'companion', id)
+    afterProgressSnapshot(get, set)
   },
 
   advanceDays: (n) => {
@@ -2079,35 +2647,78 @@ export const useGameStore = create<GameState>((set, get) => ({
         snap.player.maxEnergy,
         realmMaxEnergy(snap.player.realm, snap.player.classId === 'demon', snap.player.layer),
       )
-      const lifespanFloor = REALMS[snap.player.realm].lifespan
+      const lifespanFloor = REALMS[snap.player.realm]?.lifespan ?? REALMS.qi.lifespan
       const wasFullHp = snap.player.hp >= snap.player.maxHp - 1
       const wasFullEn = snap.player.energy >= snap.player.maxEnergy - 1
+      const legacy = migrateLegacy(snap.legacy)
+      const companion = snap.companion ?? freshCompanion()
+      const inventory = sanitizeInventory(snap.inventory)
+      const treasures = snap.treasures ?? []
+      const towerBest = snap.towerBest ?? {}
+      // 旧档：境界已是飞升则补写 ascended，避免「已飞升却走道消」
+      const rawPlayer = snap.player
+      const playerFixed: PlayerState = isAscended(rawPlayer)
+        ? {
+            ...rawPlayer,
+            ascended: true,
+            alive: true,
+            lifespanLeft: Math.max(
+              rawPlayer.lifespanLeft,
+              Math.floor(REALMS.ascended.lifespan * 1),
+            ),
+          }
+        : rawPlayer
+      const derived = deriveCollectionFromState({
+        player: playerFixed,
+        gongfa: migratedGongfa,
+        treasures,
+        inventory,
+        companion,
+        towerBest,
+        legacy,
+      })
+      const migratedMeta = migrateMeta(snap.meta)
+      const meta: MetaState = {
+        ...migratedMeta,
+        collection: mergeCollection(migratedMeta.collection, derived),
+        // 旧档首次带入 meta：不倒扣离线收益，锚点重置为现在
+        lastOnlineAt: snap.meta?.lastOnlineAt && snap.meta.lastOnlineAt <= Date.now()
+          ? snap.meta.lastOnlineAt
+          : Date.now(),
+      }
       set({
         phase: 'play',
         time: snap.time,
         player: {
-          ...snap.player,
+          ...playerFixed,
           maxHp,
           maxEnergy,
           // 曲线调整后：原先满血/满灵的角色读档即按新上限回满
-          hp: wasFullHp ? maxHp : Math.min(maxHp, snap.player.hp),
-          energy: wasFullEn ? maxEnergy : Math.min(maxEnergy, snap.player.energy),
-          lifespanLeft: Math.max(snap.player.lifespanLeft, Math.floor(lifespanFloor * 0.3)),
+          hp: wasFullHp ? maxHp : Math.min(maxHp, playerFixed.hp),
+          energy: wasFullEn ? maxEnergy : Math.min(maxEnergy, playerFixed.energy),
+          lifespanLeft: isAscended(playerFixed)
+            ? playerFixed.lifespanLeft
+            : Math.max(playerFixed.lifespanLeft, Math.floor(lifespanFloor * 0.3)),
         },
         stones: snap.stones,
-        inventory: sanitizeInventory(snap.inventory),
+        inventory,
         sect: migratedSect,
-        treasures: snap.treasures ?? [],
-        companion: snap.companion ?? freshCompanion(),
+        treasures,
+        companion,
         gongfa: migratedGongfa,
-        towerBest: snap.towerBest ?? {},
+        towerBest,
         abode: snap.abode ?? freshAbode(),
-        legacy: snap.legacy ?? freshLegacy(),
+        legacy,
+        meta,
+        offlinePending: null,
         tower: null,
         lastCombat: null,
         pendingEvent: null,
+        activeCombat: null,
         activePanel: 'cultivate',
       })
+      processMetaProgress(get, set)
+      trySettleOffline(get, set)
       return true
     } catch {
       return false
@@ -2166,23 +2777,62 @@ export const useGameStore = create<GameState>((set, get) => ({
       const migratedSect = migrateSect(snap.sect)
       const migratedGongfa = migrateGongfa(snap.gongfa, migratedSect.learned)
       migratedSect.learned = []
+      const companion = snap.companion ?? freshCompanion()
+      const inventory = sanitizeInventory(snap.inventory ?? {})
+      const treasures = snap.treasures ?? []
+      const towerBest = snap.towerBest ?? {}
+      const legacy = migrateLegacy(snap.legacy)
+      const playerFixed: PlayerState = isAscended(snap.player)
+        ? {
+            ...snap.player,
+            ascended: true,
+            alive: true,
+            lifespanLeft: Math.max(
+              snap.player.lifespanLeft,
+              Math.floor(REALMS.ascended.lifespan),
+            ),
+          }
+        : snap.player
+      const derived = deriveCollectionFromState({
+        player: playerFixed,
+        gongfa: migratedGongfa,
+        treasures,
+        inventory,
+        companion,
+        towerBest,
+        legacy,
+      })
+      const migratedMeta = migrateMeta(snap.meta)
+      const meta: MetaState = {
+        ...migratedMeta,
+        collection: mergeCollection(migratedMeta.collection, derived),
+        lastOnlineAt:
+          snap.meta?.lastOnlineAt && snap.meta.lastOnlineAt <= Date.now()
+            ? snap.meta.lastOnlineAt
+            : Date.now(),
+      }
       set({
         phase: 'play',
         time: snap.time,
-        player: snap.player,
+        player: playerFixed,
         stones: snap.stones ?? 0,
-        inventory: sanitizeInventory(snap.inventory ?? {}),
+        inventory,
         sect: migratedSect,
-        treasures: snap.treasures ?? [],
-        companion: snap.companion ?? freshCompanion(),
+        treasures,
+        companion,
         gongfa: migratedGongfa,
-        towerBest: snap.towerBest ?? {},
+        towerBest,
         abode: snap.abode ?? freshAbode(),
-        legacy: snap.legacy ?? freshLegacy(),
+        legacy,
+        meta,
+        offlinePending: null,
         tower: null,
         lastCombat: null,
         pendingEvent: null,
+        activeCombat: null,
       })
+      processMetaProgress(get, set)
+      trySettleOffline(get, set)
       log('存档导入成功。', 'gold')
       return true
     } catch {

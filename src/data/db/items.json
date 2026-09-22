@@ -227,7 +227,14 @@
       "pill_break_heaven",
       "pill_break_trib"
     ],
-    "herb": ["herb_qi", "herb_moon", "herb_blood", "mat_foundation", "mat_core"],
+    "herb": [
+      "herb_qi",
+      "herb_moon",
+      "herb_blood",
+      "mat_foundation",
+      "mat_core",
+      "mat_tribulation"
+    ],
     "treasure": [
       "treasure_sword",
       "treasure_mirror",

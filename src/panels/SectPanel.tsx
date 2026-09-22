@@ -42,6 +42,16 @@ export function SectPanel() {
   const contribOk = nextDef ? freePromote || sect.contribution >= nextDef.entryCost : true
   const examNeeded = nextDef?.entry === 'exam'
   const examOk = examNeeded ? sect.examPassed : true
+  const shopRows = (current?.shop ?? []).filter((row) => {
+    if (row.minRank && curIdx < sectRankIndex(row.minRank)) return false
+    if (row.minRealm && realmIndex(player.realm) < realmIndex(row.minRealm)) return false
+    return true
+  })
+  const shopLockedHint = (current?.shop ?? []).some(
+    (row) =>
+      (row.minRank && curIdx < sectRankIndex(row.minRank)) ||
+      (row.minRealm && realmIndex(player.realm) < realmIndex(row.minRealm)),
+  )
   const realmOk = (() => {
     const req = nextDef?.realmReq
     if (!req || freePromote) return true
@@ -179,14 +189,32 @@ export function SectPanel() {
                 杂役弟子不可兑换宗门物资，晋升外门弟子后开放。
               </p>
             )}
+            {shopLockedHint && (
+              <p className="text-xs text-text-dim mb-2">
+                部分高阶物资需更高职位或境界（如渡劫令：真传及以上 · 大乘）。
+              </p>
+            )}
             <div className="space-y-2">
-              {current.shop.map((row) => (
+              {shopRows.map((row) => (
                 <div
                   key={row.itemId}
                   className="border border-border px-3 py-2 flex justify-between items-center text-sm"
                 >
                   <div>
-                    <div>{ITEMS[row.itemId]?.name ?? row.itemId}</div>
+                    <div>
+                      {ITEMS[row.itemId]?.name ?? row.itemId}
+                      {row.minRealm && (
+                        <span className="text-xs text-text-dim ml-2">
+                          需{realmLabel(row.minRealm, 1)}
+                          {row.minRank ? ` · ${SECT_RANKS[row.minRank].name}` : ''}
+                        </span>
+                      )}
+                      {row.minRank && !row.minRealm && (
+                        <span className="text-xs text-text-dim ml-2">
+                          需{SECT_RANKS[row.minRank].name}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-text-dim">{ITEMS[row.itemId]?.desc}</div>
                   </div>
                   <button

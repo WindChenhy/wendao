@@ -78,7 +78,7 @@ export function AbodePanel() {
   const legacy = useGameStore((s) => s.legacy)
 
   if (!player) return null
-  const dead = !player.alive || player.ascended
+  const dead = !player.alive || player.realm === 'ascended' || player.ascended
   const cost = expandPlotCost(abode.plots.length)
   const canExpand = abode.plots.length < MAX_PLOTS && stones >= cost
   const readyCount = abode.plots.filter((p) => p.seedId && plotProgress(p, time).ready).length

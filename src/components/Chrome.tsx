@@ -2,6 +2,7 @@ import { CLASSES } from '../data/classes'
 import { REALM_ORDER, realmLabel } from '../data/realms'
 import { formatNum } from '../game/format'
 import { weatherOf } from '../game/day'
+import { isAscended } from '../game/reincarnate'
 import { useGameStore } from '../stores/useGameStore'
 import type { PanelId } from '../types'
 
@@ -41,7 +42,7 @@ export function StatusBar() {
       <span className="text-text-dim">{c.name}</span>
       <span className="text-gold">
         {realmLabel(player.realm, player.layer)}
-        {player.ascended && ' · 已飞升'}
+        {isAscended(player) && ' · 已飞升'}
       </span>
       <span>
         修为 <span className="text-jade">{formatNum(player.exp)}</span>
@@ -59,7 +60,9 @@ export function StatusBar() {
       {player.classId === 'demon' && <span className="text-vermilion">煞气 {player.shaqi}</span>}
       <span className="text-gold">灵石 {formatNum(stones)}</span>
       <span className="text-text-dim">
-        第{time.year}年{time.month}月{time.day}日 · {weatherOf(time)}
+        {legacy.reincarnations > 0
+          ? `转生${legacy.reincarnations}次 · 本世第${time.year}年${time.month}月${time.day}日 · ${weatherOf(time)}`
+          : `第${time.year}年${time.month}月${time.day}日 · ${weatherOf(time)}`}
       </span>
       <span className="text-text-dim">
         寿元 {player.lifespanLeft} 年 · 寿龄 {player.age}
@@ -67,7 +70,7 @@ export function StatusBar() {
       <span className="text-text-dim">正道 {player.repRight} · 魔道 {player.repDemonic}</span>
       <span className="text-text-dim">道痕 {legacy.daoMarks}</span>
       <span className="text-text-dim hidden sm:inline">境阶 {ri + 1}/10</span>
-      {!player.alive && <span className="text-vermilion font-display">道消</span>}
+      {!player.alive && !isAscended(player) && <span className="text-vermilion font-display">道消</span>}
     </header>
   )
 }

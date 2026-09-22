@@ -1,0 +1,186 @@
+{
+  "achievements": [
+    {
+      "id": "first_steps",
+      "name": "初入道途",
+      "desc": "创建角色，踏上修行之路。",
+      "category": "milestone",
+      "reward": { "stones": 50 }
+    },
+    {
+      "id": "offline_return",
+      "name": "闭关归来",
+      "desc": "完成一次离线修炼结算。",
+      "category": "milestone",
+      "reward": { "stones": 30 }
+    },
+    {
+      "id": "rich",
+      "name": "腰缠万贯",
+      "desc": "灵石曾达到一万。",
+      "category": "milestone",
+      "reward": { "daoMarks": 3 }
+    },
+    {
+      "id": "realm_foundation",
+      "name": "筑基有成",
+      "desc": "境界突破至筑基。",
+      "category": "milestone",
+      "reward": { "daoMarks": 5 }
+    },
+    {
+      "id": "realm_core",
+      "name": "金丹初成",
+      "desc": "境界突破至金丹。",
+      "category": "milestone",
+      "reward": { "daoMarks": 8 }
+    },
+    {
+      "id": "realm_soul",
+      "name": "元婴出窍",
+      "desc": "境界突破至元婴。",
+      "category": "milestone",
+      "reward": { "daoMarks": 12 }
+    },
+    {
+      "id": "realm_spirit",
+      "name": "化神问道",
+      "desc": "境界突破至化神。",
+      "category": "milestone",
+      "reward": { "daoMarks": 16 }
+    },
+    {
+      "id": "realm_void",
+      "name": "炼虚合道",
+      "desc": "境界突破至炼虚。",
+      "category": "milestone",
+      "reward": { "daoMarks": 20 }
+    },
+    {
+      "id": "realm_ascend",
+      "name": "举霞飞升",
+      "desc": "首次飞升。",
+      "category": "milestone",
+      "reward": { "daoMarks": 40, "title": "飞升者" }
+    },
+    {
+      "id": "enemy_5",
+      "name": "斩妖初试",
+      "desc": "敌人图鉴解锁 5 种。",
+      "category": "collect",
+      "reward": { "stones": 100 }
+    },
+    {
+      "id": "enemy_10",
+      "name": "除魔卫道",
+      "desc": "敌人图鉴解锁 10 种。",
+      "category": "collect",
+      "reward": { "daoMarks": 4 }
+    },
+    {
+      "id": "gongfa_3",
+      "name": "博览群书",
+      "desc": "参悟 3 部功法。",
+      "category": "collect",
+      "reward": { "stones": 200 }
+    },
+    {
+      "id": "gongfa_10",
+      "name": "道藏渊深",
+      "desc": "参悟 10 部功法。",
+      "category": "collect",
+      "reward": { "stones": 800, "daoMarks": 5 }
+    },
+    {
+      "id": "treasure_3",
+      "name": "法宝有主",
+      "desc": "认主 3 件法宝。",
+      "category": "collect",
+      "reward": { "stones": 300 }
+    },
+    {
+      "id": "treasure_5",
+      "name": "百宝缠身",
+      "desc": "认主 5 件法宝。",
+      "category": "collect",
+      "reward": { "daoMarks": 6 }
+    },
+    {
+      "id": "codex_realms_5",
+      "name": "境界见证",
+      "desc": "境界图鉴解锁 5 个大境界。",
+      "category": "collect",
+      "reward": { "stones": 200 }
+    },
+    {
+      "id": "alchemist",
+      "name": "丹道初成",
+      "desc": "炼制成功 5 次丹药。",
+      "category": "collect",
+      "reward": { "stones": 200 }
+    },
+    {
+      "id": "tower_30",
+      "name": "秘境常客",
+      "desc": "任一秘境达到 30 层。",
+      "category": "challenge",
+      "reward": { "stones": 250 }
+    },
+    {
+      "id": "clear_qingyun",
+      "name": "青云贯通",
+      "desc": "通关青云小境。",
+      "category": "challenge",
+      "reward": { "stones": 400 }
+    },
+    {
+      "id": "clear_ice",
+      "name": "玄冰破关",
+      "desc": "通关玄冰地窟。",
+      "category": "challenge",
+      "reward": { "daoMarks": 10 }
+    },
+    {
+      "id": "heart",
+      "name": "心心相印",
+      "desc": "触发任一道侣心事件。",
+      "category": "story",
+      "reward": { "stones": 150 }
+    },
+    {
+      "id": "marry",
+      "name": "结为道侣",
+      "desc": "与任一道侣结缘。",
+      "category": "story",
+      "reward": { "daoMarks": 8 }
+    },
+    {
+      "id": "sect_elder",
+      "name": "宗门砥柱",
+      "desc": "晋升宗门长老。",
+      "category": "story",
+      "reward": { "daoMarks": 6 }
+    },
+    {
+      "id": "sect_master",
+      "name": "一宗之主",
+      "desc": "成为宗主。",
+      "category": "story",
+      "reward": { "daoMarks": 12 }
+    },
+    {
+      "id": "reincarnate_1",
+      "name": "再入轮回",
+      "desc": "转生 1 次。",
+      "category": "cycle",
+      "reward": { "stones": 100 }
+    },
+    {
+      "id": "reincarnate_3",
+      "name": "三世修行",
+      "desc": "转生 3 次。",
+      "category": "cycle",
+      "reward": { "daoMarks": 15, "title": "轮回旅人" }
+    }
+  ]
+}

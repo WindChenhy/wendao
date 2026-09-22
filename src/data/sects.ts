@@ -204,8 +204,13 @@ export interface SectDef {
     cultivateMul: number
     breakthroughBonus: number
   }
-  /** 贡献商店 */
-  shop: { itemId: string; cost: number }[]
+  /** 贡献商店；minRank/minRealm 满足后才展示可兑换 */
+  shop: {
+    itemId: string
+    cost: number
+    minRank?: SectRank
+    minRealm?: RealmId
+  }[]
   /** 藏经阁 */
   library: { id: string; name: string; cost: number; desc: string; effect: 'atk' | 'def' | 'hp' | 'cultivate' }[]
 }
@@ -248,6 +253,12 @@ export const SECTS: SectDef[] = [
       { itemId: 'pill_break_adv', cost: 120 },
       { itemId: 'mat_foundation', cost: 70 },
       { itemId: 'mat_core', cost: 250 },
+      {
+        itemId: 'mat_tribulation',
+        cost: 2800,
+        minRank: 'true',
+        minRealm: 'mahayana',
+      },
     ],
     library: [
       { id: 'ty_dan', name: '太一丹解', cost: 80, desc: '修炼速度 +12%', effect: 'cultivate' },
@@ -308,6 +319,12 @@ export const SECTS: SectDef[] = [
     shop: [
       { itemId: 'mat_core', cost: 200 },
       { itemId: 'mat_soul', cost: 800 },
+      {
+        itemId: 'mat_tribulation',
+        cost: 2600,
+        minRank: 'true',
+        minRealm: 'mahayana',
+      },
     ],
     library: [
       { id: 'ym_gui', name: '幽冥引魂经', cost: 180, desc: '修炼速度 +20%', effect: 'cultivate' },

@@ -72,10 +72,17 @@ export function weatherOf(t: GameTime): string {
   return list[seed]
 }
 
-/** 高境界可选闭关年数 */
+/** 游戏内一年 = 12 月 × 30 日；闭关「N 年」必须按此换算，避免 365 日被多算寿元 */
+export const GAME_DAYS_PER_YEAR = 360
+
+/** 高境界可选闭关时长（游戏日） */
 export function seclusionYearOptions(realm: RealmId): number[] {
   const ri = realmIndex(realm)
-  if (ri >= 5) return [7, 30, 180, 365]
+  const y = GAME_DAYS_PER_YEAR
+  // 大乘及以上：百年闭关
+  if (ri >= realmIndex('mahayana')) return [180, y, y * 10, y * 100]
+  // 炼虚及以上：隐藏 7 日 / 30 日，开放十年闭关
+  if (ri >= realmIndex('void')) return [90, 180, y, y * 10]
   if (ri >= 2) return [7, 30, 90]
   return [7, 30]
 }

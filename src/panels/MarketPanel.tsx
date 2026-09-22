@@ -7,6 +7,7 @@ import {
   canLearnGongfa,
   gongfaRealmText,
 } from '../data/gongfa'
+import { realmIndex } from '../data/realms'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
@@ -20,6 +21,11 @@ const TAB_HINT: Record<Tab, string> = {
   pill: '丹药一份，对症服用。',
 }
 
+/** 大乘后坊市才上架渡劫令 */
+const REALM_GATED_ITEMS: { id: string; minRealm: Parameters<typeof realmIndex>[0] }[] = [
+  { id: 'mat_tribulation', minRealm: 'mahayana' },
+]
+
 export function MarketPanel() {
   const [tab, setTab] = useState<Tab>('all')
   const [pendingBuyId, setPendingBuyId] = useState<string | null>(null)
@@ -32,6 +38,12 @@ export function MarketPanel() {
   const ids = TABS.filter((t) => t !== 'all')
     .flatMap((t) => MARKET_STOCK[t])
     .filter((id) => tab === 'all' || itemCategory(id) === tab)
+    .filter((id) => {
+      const gate = REALM_GATED_ITEMS.find((g) => g.id === id)
+      if (!gate) return true
+      if (!player) return false
+      return realmIndex(player.realm) >= realmIndex(gate.minRealm)
+    })
 
   const requestBuy = (id: string) => {
     const item = ITEMS[id]
