@@ -171,6 +171,8 @@ export interface PlotState {
 
 export interface AbodeState {
   plots: PlotState[]
+  /** 器阁等级（0=未建） */
+  forgeLevel: number
 }
 
 export interface LegacyState {

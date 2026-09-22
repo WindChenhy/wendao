@@ -1,7 +1,6 @@
 import { canEnterRealm, isBossFloor, SECRET_REALMS } from '../data/secretRealms'
 import { ITEMS } from '../data/items'
 import { realmLabel } from '../data/realms'
-import { CombatPanel } from '../components/CombatPanel'
 import { useGameStore } from '../stores/useGameStore'
 
 export function SecretRealmPanel() {
@@ -21,11 +20,10 @@ export function SecretRealmPanel() {
   if (!player) return null
   const dead = !player.alive
   const inCombat = Boolean(activeCombat && !activeCombat.finished)
-  const active = tower ? SECRET_REALMS.find((r) => r.id === tower.realmId) : null
+  const active = tower && !tower.left ? SECRET_REALMS.find((r) => r.id === tower.realmId) : null
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
-      {inCombat && <CombatPanel />}
       {tower && active ? (
         <>
           <div className="panel-box p-4 border-gold-dim">

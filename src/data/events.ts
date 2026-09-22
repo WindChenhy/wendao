@@ -152,6 +152,7 @@ export function pickWorldEvent(realm: RealmId, extra: WorldEvent[] = []): WorldE
     return realmIndex(realm) >= realmIndex(min)
   })
   if (pool.length === 0) return null
-  if (Math.random() > 0.22) return null
+  // 奇遇触发率：原 22% 偏密，降至 12%（约减 45%，不超过一半）
+  if (Math.random() > 0.12) return null
   return pool[Math.floor(Math.random() * pool.length)]
 }
