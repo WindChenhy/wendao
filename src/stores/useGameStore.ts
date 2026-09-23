@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { expandPlotCost, MAX_PLOTS, RECIPES, SEEDS } from '../data/abode'
+import { expandColCost, expandRowCost, canExpandFarmCols, canExpandFarmRows, RECIPES, SEEDS, SEED_LIST } from '../data/abode'
 import {
   ACHIEVEMENT_MAP,
   describeReward as describeAchieveReward,
@@ -13,9 +13,29 @@ import {
   pendingCodexRewards,
   describeCodexReward,
 } from '../data/codex'
-import { companionById, giftAffinity, type CompanionDef } from '../data/companions'
+import {
+  companionById,
+  giftAffinity,
+  nextStoryBeat,
+  storyEndingKey,
+  type CompanionDef,
+  type StoryBeat,
+  type StoryChoice,
+} from '../data/companions'
 import { ENEMIES, ENEMY_TEMPLATES, enemyTemplateId, pickEnemy } from '../data/enemies'
-import { pickWorldEvent, type WorldEvent } from '../data/events'
+import {
+  pickWorldEvent,
+  type EventGateContext,
+  type EventOutcome,
+  type WorldEvent,
+  type WorldEventAction,
+} from '../data/events'
+import {
+  questChainById,
+  questStepMatchesDeliver,
+  availableQuestChains,
+  type SectQuestState,
+} from '../data/sectQuests'
 import {
   GONGFA_STAGE_LABELS,
   GONGFA_STAGE_MUL,
@@ -23,10 +43,12 @@ import {
   gongfaAdvanceCost,
   gongfaByScrollId,
   isMarketGongfa,
-  canLearnGongfa,
+  canLearnGongfaFull,
+  gongfaInScope,
+  gongfaScopeText,
   gongfaRealmText,
 } from '../data/gongfa'
-import { ITEMS, TREASURE_BONUS, bestBreakthroughPill, pillExp, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
+import { ITEMS, TREASURE_BONUS, bestBreakthroughPill, itemEffectWithMarks, itemMinRealmOk, itemOverScope, itemScopeText, itemTierText, pillExp, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
 import {
   REALMS,
   REALM_ORDER,
@@ -93,7 +115,7 @@ import {
   formatOfflineDuration,
   type OfflineSettlement,
 } from '../game/offline'
-import { canCraft, craftRate, freshAbode, harvestYield, migrateAbode, plotProgress } from '../game/farm'
+import { canCraft, craftRate, freshAbode, harvestYield, migrateAbode, plotProgress, remapFarmPlots } from '../game/farm'
 import {
   type ArtifactInstance,
   type ArtifactQuality,
@@ -120,7 +142,21 @@ function ARTIFACT_CRAFT_DAYS(recipeId: string): number {
   return ARTIFACT_RECIPES.find((r) => r.id === recipeId)?.craftDays ?? 2
 }
 import { clamp } from '../game/format'
-import { applyDaoToMaxHp, daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
+import {
+  applyDaoToMaxHp,
+  daoBonuses,
+  isAscended,
+  reincarnateGain,
+} from '../game/reincarnate'
+import { sealDaoCost, sealSlots, type SealedItem } from '../game/seal'
+import { activeSynergies, synergyBonus } from '../data/gongfaSynergy'
+import {
+  isTribulationMoment,
+  softenSeverity,
+  tribulationPlan,
+  type TribulationPlanId,
+} from '../data/tribulation'
+import { makeArtifactUid } from '../data/artifacts'
 import { decryptSave, encryptSave } from '../game/saveCrypto'
 import { loadGameSettings, saveGameSettings } from '../game/settings'
 import type {
@@ -139,7 +175,7 @@ import type {
 import { useLogStore } from './useLogStore'
 
 const SAVE_PREFIX = 'wendao-slot-'
-const SAVE_VERSION = 9
+const SAVE_VERSION = 12
 
 export interface OfflinePending extends OfflineSettlement {
   stones: number
@@ -167,6 +203,16 @@ export interface SectState {
   taskDoneOn: string
   /** 宗门大比考核通过（考核型晋升必需，晋升后消耗） */
   examPassed: boolean
+  /** v0.9 进行中的任务链（可中断续做） */
+  quest: SectQuestState | null
+  /** 宗主建设：藏经阁扩容 0～3 */
+  libraryLv: number
+  /** 宗主建设：坊市折扣 0～3 */
+  marketLv: number
+  /** 已完成任务链条数 */
+  questsDone: number
+  /** 已用残页参悟次数 */
+  fragmentsUsed: number
 }
 
 export interface CompanionState {
@@ -178,6 +224,25 @@ export interface CompanionState {
   spouseId: string | null
   /** 双修冷却日 key */
   dualDoneOn: string
+  /** v0.9 结缘后剧情进度 */
+  postStage: Record<string, number>
+  /** 已达成结局 key: `${companionId}_${he|be}` */
+  endings: Record<string, 'he' | 'be'>
+  /** 全局剧情 flag */
+  flags: string[]
+  /** 已解锁隐藏道侣 */
+  hiddenUnlocked: string[]
+  /** 道侣代劳灵田日 key */
+  farmHelpOn: string
+  /** 道侣代炼丹药日 key */
+  pillHelpOn: string
+  /** v1.0 道侣重伤：恢复日序（dayNumber） */
+  spouseHurtUntilDay?: number
+}
+
+export interface PendingStory {
+  companionId: string
+  beat: StoryBeat
 }
 
 export interface SlotSnapshot {
@@ -213,6 +278,11 @@ function freshSect(): SectState {
     learned: [],
     taskDoneOn: '',
     examPassed: false,
+    quest: null,
+    libraryLv: 0,
+    marketLv: 0,
+    questsDone: 0,
+    fragmentsUsed: 0,
   }
 }
 
@@ -263,17 +333,90 @@ function migrateGongfa(raw: unknown, sectLearned?: string[]): GongfaState {  con
 function migrateSect(raw: unknown): SectState {
   const base = freshSect()
   if (!raw || typeof raw !== 'object') return base
-  const r = raw as Partial<SectState> & { rank?: string }
+  const r = raw as Partial<SectState> & { rank?: string; quest?: Partial<SectQuestState> | null }
+  const questRaw = r.quest
+  const quest: SectQuestState | null =
+    questRaw && typeof questRaw === 'object' && questRaw.chainId
+      ? {
+          chainId: String(questRaw.chainId),
+          stepIndex: Math.max(0, Number(questRaw.stepIndex) || 0),
+          progress: Math.max(0, Number(questRaw.progress) || 0),
+          completedSteps: Math.max(0, Number(questRaw.completedSteps) || 0),
+        }
+      : null
   return {
     ...base,
-    ...r,
+    sectId: r.sectId ?? null,
     rank: LEGACY_RANK_MAP[r.rank ?? ''] ?? (r.sectId ? 'outer' : 'menial'),
+    contribution: Number(r.contribution) || 0,
+    learned: Array.isArray(r.learned) ? r.learned.filter((x) => typeof x === 'string') : [],
+    taskDoneOn: typeof r.taskDoneOn === 'string' ? r.taskDoneOn : '',
     examPassed: Boolean(r.examPassed),
+    quest: quest && questChainById(quest.chainId) ? quest : null,
+    libraryLv: Math.max(0, Math.min(3, Number(r.libraryLv) || 0)),
+    marketLv: Math.max(0, Math.min(3, Number(r.marketLv) || 0)),
+    questsDone: Math.max(0, Number(r.questsDone) || 0),
+    fragmentsUsed: Math.max(0, Number(r.fragmentsUsed) || 0),
   }
 }
 
 function freshCompanion(): CompanionState {
-  return { affinity: {}, heartsSeen: {}, spouseId: null, dualDoneOn: '' }
+  return {
+    affinity: {},
+    heartsSeen: {},
+    spouseId: null,
+    dualDoneOn: '',
+    postStage: {},
+    endings: {},
+    flags: [],
+    hiddenUnlocked: [],
+    farmHelpOn: '',
+    pillHelpOn: '',
+    spouseHurtUntilDay: 0,
+  }
+}
+
+function migrateCompanion(raw: unknown): CompanionState {
+  const base = freshCompanion()
+  if (!raw || typeof raw !== 'object') return base
+  const r = raw as Partial<CompanionState>
+  const affinity: Record<string, number> = {}
+  if (r.affinity && typeof r.affinity === 'object') {
+    for (const [k, v] of Object.entries(r.affinity)) {
+      if (typeof v === 'number') affinity[k] = v
+    }
+  }
+  const heartsSeen: Record<string, number> = {}
+  if (r.heartsSeen && typeof r.heartsSeen === 'object') {
+    for (const [k, v] of Object.entries(r.heartsSeen)) {
+      if (typeof v === 'number') heartsSeen[k] = v
+    }
+  }
+  const postStage: Record<string, number> = {}
+  if (r.postStage && typeof r.postStage === 'object') {
+    for (const [k, v] of Object.entries(r.postStage)) {
+      if (typeof v === 'number') postStage[k] = v
+    }
+  }
+  const endings: Record<string, 'he' | 'be'> = {}
+  if (r.endings && typeof r.endings === 'object') {
+    for (const [k, v] of Object.entries(r.endings)) {
+      if (v === 'he' || v === 'be') endings[k] = v
+    }
+  }
+  return {
+    affinity,
+    heartsSeen,
+    spouseId: typeof r.spouseId === 'string' && r.spouseId ? r.spouseId : null,
+    dualDoneOn: typeof r.dualDoneOn === 'string' ? r.dualDoneOn : '',
+    postStage,
+    endings,
+    flags: Array.isArray(r.flags) ? uniqIds(r.flags.map(String)) : [],
+    hiddenUnlocked: Array.isArray(r.hiddenUnlocked) ? uniqIds(r.hiddenUnlocked.map(String)) : [],
+    farmHelpOn: typeof r.farmHelpOn === 'string' ? r.farmHelpOn : '',
+    pillHelpOn: typeof r.pillHelpOn === 'string' ? r.pillHelpOn : '',
+    spouseHurtUntilDay: typeof r.spouseHurtUntilDay === 'number' ? r.spouseHurtUntilDay : 0,
+  }
 }
 
 function freshGongfa(): GongfaState {
@@ -281,19 +424,40 @@ function freshGongfa(): GongfaState {
 }
 
 function freshLegacy(): LegacyState {
-  return { daoMarks: 0, reincarnations: 0, bestRealmIndex: 0, totalYears: 0, lastLifeEndYear: 0 }
+  return {
+    daoMarks: 0,
+    reincarnations: 0,
+    bestRealmIndex: 0,
+    totalYears: 0,
+    lastLifeEndYear: 0,
+    sealed: [],
+  }
 }
 
 function migrateLegacy(raw: unknown): LegacyState {
   const base = freshLegacy()
   if (!raw || typeof raw !== 'object') return base
   const r = raw as Partial<LegacyState>
+  const sealed: SealedItem[] = Array.isArray(r.sealed)
+    ? r.sealed
+        .filter((x) => x && typeof x === 'object' && x.id)
+        .map((x) => ({
+          kind: x.kind === 'artifact' ? ('artifact' as const) : ('gongfa' as const),
+          id: String(x.id),
+          name: String(x.name ?? x.id),
+          stage: typeof x.stage === 'number' ? x.stage : undefined,
+          quality: x.quality,
+          affixes: Array.isArray(x.affixes) ? x.affixes : undefined,
+          daoCost: typeof x.daoCost === 'number' ? x.daoCost : undefined,
+        }))
+    : []
   return {
     daoMarks: Number(r.daoMarks) || 0,
     reincarnations: Number(r.reincarnations) || 0,
     bestRealmIndex: Number(r.bestRealmIndex) || 0,
     totalYears: Number(r.totalYears) || 0,
     lastLifeEndYear: Number(r.lastLifeEndYear) || 0,
+    sealed,
   }
 }
 
@@ -381,6 +545,8 @@ function deriveCollectionFromState(s: {
   for (const [id, n] of Object.entries(s.companion.heartsSeen)) {
     if ((n ?? 0) > 0) companionIds.push(id)
   }
+  companionIds.push(...(s.companion.hiddenUnlocked ?? []))
+  companionIds.push(...Object.keys(s.companion.endings ?? {}))
 
   return {
     realm: realmIds,
@@ -441,8 +607,78 @@ function log(text: string, level: 'info' | 'good' | 'bad' | 'gold' | 'dim' = 'in
   useLogStore.getState().push(text, level)
 }
 
-function pickEvent(realm: PlayerState['realm']): WorldEvent | null {
-  return pickWorldEvent(realm, currentRules().extraEvents)
+function buildEventContext(s: {
+  player: PlayerState | null
+  time: GameTime
+  sect: SectState
+  companion: CompanionState
+}): EventGateContext | null {
+  const p = s.player
+  if (!p) return null
+  return {
+    realm: p.realm,
+    layer: p.layer,
+    classId: p.classId,
+    year: s.time.year,
+    repRight: p.repRight,
+    repDemonic: p.repDemonic,
+    sectId: s.sect.sectId,
+    sectRank: s.sect.rank,
+    spouseId: s.companion.spouseId,
+    affinity: s.companion.affinity,
+    flags: s.companion.flags,
+  }
+}
+
+function pickEvent(): WorldEvent | null {
+  const s = useGameStore.getState()
+  const ctx = buildEventContext(s)
+  if (!ctx) return null
+  return pickWorldEvent(ctx, currentRules().extraEvents)
+}
+
+/** 任务链：历练/秘境获胜推进 explore_win 步骤 */
+function bumpQuestExploreWin(set: MetaSet) {
+  const { sect } = useGameStore.getState()
+  if (!sect.sectId || !sect.quest) return
+  const chain = questChainById(sect.quest.chainId)
+  if (!chain) return
+  const step = chain.steps[sect.quest.stepIndex]
+  if (!step || step.type !== 'explore_win') return
+  const need = step.count ?? 1
+  const progress = sect.quest.progress + 1
+  if (progress >= need) {
+    set({
+      sect: {
+        ...sect,
+        quest: {
+          ...sect.quest,
+          stepIndex: sect.quest.stepIndex + 1,
+          progress: 0,
+          completedSteps: sect.quest.completedSteps + 1,
+        },
+      },
+    })
+    log(`任务链「${chain.name}」：${step.desc} —— 已完成。`, 'good')
+  } else {
+    set({ sect: { ...sect, quest: { ...sect.quest, progress } } })
+    log(`任务链「${chain.name}」：${step.desc}（${progress}/${need}）`, 'dim')
+  }
+}
+
+/** 结缘后剧情：有可触发段则弹出 */
+function maybeTriggerSpouseStory(get: MetaGet, set: MetaSet) {
+  const s = get()
+  if (!s.player || s.pendingEvent || s.pendingStory || s.activeCombat) return
+  const spouseId = s.companion.spouseId
+  if (!spouseId) return
+  const c = companionById(spouseId)
+  if (!c?.postStory?.length) return
+  const stage = s.companion.postStage[spouseId] ?? 0
+  if (stage >= c.postStory.length) return
+  const beat = nextStoryBeat(c, stage)
+  if (!beat) return
+  set({ pendingStory: { companionId: spouseId, beat } })
 }
 
 function gainCultivate(classId: PlayerState['classId'], realm: PlayerState['realm'], layer: number): number {
@@ -469,7 +705,7 @@ function cultivateMultipliers(
   if (!player) return 1
   const sdef = sectDef(sect.sectId)
   const rankBonus = SECT_RANKS[sect.rank]?.cultivateMul ?? 1
-  const gongfaMul = gongfaBonuses(gongfaLearned).cultivate
+  const gongfaMul = gongfaBonuses(gongfaLearned, useGameStore.getState().player?.realm).cultivate
   const spouse = spouseDef(companion)
   const dao = daoBonuses(daoMarks)
   return (
@@ -696,16 +932,19 @@ export function treasureBreakthroughWithAffix(treasures: string[], artifacts?: A
   )
 }
 
-/** 已参悟功法的加成（按阶段系数缩放，圆满 1.5 倍）；dodge 为受伤降低（加算） */
-export function gongfaBonuses(learned: Record<string, GongfaLearned>) {
+/** 已参悟功法的加成（按阶段系数缩放，圆满 1.5 倍）；dodge 为受伤降低（加算）；含 v1.0 羁绊；超适用范围失效 */
+export function gongfaBonuses(learned: Record<string, GongfaLearned>, realm?: string) {
   let atk = 1
   let def = 1
   let hp = 1
   let cultivate = 1
   let dodge = 0
+  const activeIds: string[] = []
   for (const [id, st] of Object.entries(learned)) {
     const g = GONGFAS[id]
     if (!g) continue
+    if (realm && !gongfaInScope(g, realm as never)) continue
+    activeIds.push(id)
     const mul = GONGFA_STAGE_MUL[Math.min(GONGFA_STAGE_MUL.length - 1, st.stage)]
     if (g.effect.atk) atk *= 1 + g.effect.atk * mul
     if (g.effect.def) def *= 1 + g.effect.def * mul
@@ -713,7 +952,21 @@ export function gongfaBonuses(learned: Record<string, GongfaLearned>) {
     if (g.effect.cultivate) cultivate *= 1 + g.effect.cultivate * mul
     if (g.effect.dodge) dodge += g.effect.dodge * mul
   }
-  return { atk, def, hp, cultivate, dodge }
+  const syn = synergyBonus(activeIds)
+  atk *= 1 + syn.atk
+  def *= 1 + syn.def
+  hp *= 1 + syn.hp
+  cultivate *= 1 + syn.cultivate
+  dodge += syn.dodge
+  return {
+    atk,
+    def,
+    hp,
+    cultivate,
+    dodge,
+    breakthrough: syn.breakthrough,
+    synergies: activeSynergies(activeIds),
+  }
 }
 
 function spouseDef(companion: CompanionState): CompanionDef | null {
@@ -729,7 +982,7 @@ function sectDef(id: string | null): SectDef | null {
 function makePlayerCombatant(player: PlayerState, treasures: string[], hpScale = 1): CombatActor {
   const st = useGameStore.getState()
   const artifacts = st.artifacts
-  const gb = gongfaBonuses(st.gongfa.learned)
+  const gb = gongfaBonuses(st.gongfa.learned, st.player?.realm)
   const tb = treasureBonus(treasures, artifacts)
   const extras = artifactBattleExtras(artifacts)
   const base = realmCombatBase(player.realm, player.layer)
@@ -882,6 +1135,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
       })
       unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
       if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+      bumpQuestExploreWin(set)
       afterProgressSnapshot(get, set)
     } else {
       log(`历练遭遇 ${enemy.name}，不敌败退。`, 'bad')
@@ -897,8 +1151,9 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
         },
       })
     }
-    const evt = pickEvent(player.realm)
+    const evt = pickEvent()
     if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+    maybeTriggerSpouseStory(get, set)
     return
   }
 
@@ -946,6 +1201,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
         unlockCodex(get, set, 'enemy', templateId)
       }
       if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+      bumpQuestExploreWin(set)
       afterProgressSnapshot(get, set)
       if (clearedAll) {
         log(`你贯通了「${realm.name}」全部 ${realm.floors} 层！已退出秘境。`, 'gold')
@@ -1030,7 +1286,7 @@ function recomputeVitals(
   daoMarks: number,
 ): PlayerState {
   const c = CLASSES[p.classId]
-  const gb = gongfaBonuses(gongfaLearned)
+  const gb = gongfaBonuses(gongfaLearned, useGameStore.getState().player?.realm)
   const tb = treasureBonus(treasures, useGameStore.getState().artifacts)
   const baseHp = realmMaxHp(p.realm, c.hpMul, p.layer)
   const maxHp = applyDaoToMaxHp(Math.floor(baseHp * gb.hp * tb.hp), daoMarks)
@@ -1052,7 +1308,7 @@ function playerMaxHpCap(
   daoMarks: number,
 ): number {
   const c = CLASSES[p.classId]
-  const gb = gongfaBonuses(gongfaLearned)
+  const gb = gongfaBonuses(gongfaLearned, useGameStore.getState().player?.realm)
   const tb = treasureBonus(treasures, useGameStore.getState().artifacts)
   const baseHp = realmMaxHp(p.realm, c.hpMul, p.layer)
   return applyDaoToMaxHp(Math.floor(baseHp * gb.hp * tb.hp), daoMarks)
@@ -1083,6 +1339,8 @@ interface GameState {
   exploring: boolean
   lastCombat: { enemy: EnemyDef; win: boolean; log: string[] } | null
   pendingEvent: PendingEvent | null
+  /** v0.9 结缘后剧情待确认 */
+  pendingStory: PendingStory | null
   /** 进行中的回合制战斗（v0.6 技能战） */
   activeCombat: (CombatEngineState & { pendingEventAction?: string }) | null
   autoCombat: boolean
@@ -1103,10 +1361,29 @@ interface GameState {
 
   meditate: () => void
   seclude: (days: number) => void
-  breakthrough: () => void
+  /** 冲击壁垒；plan 仅大境界/渡劫时可选（默认常规） */
+  breakthrough: (plan?: TribulationPlanId) => void
   explore: () => void
   clearCombat: () => void
   resolveEvent: (actionId: string) => void
+  /** v0.9 结缘后剧情抉择 */
+  resolveStory: (choiceId: string | null) => void
+  /** 手动触发道侣长线剧情（若可） */
+  triggerSpouseStory: () => void
+  /** 道侣代劳：打理灵田（每日一次） */
+  spouseFarmHelp: () => void
+  /** 道侣代劳：代炼低阶丹（每日一次） */
+  spousePillHelp: () => void
+  /** 接取宗门任务链 */
+  acceptQuestChain: (chainId: string) => void
+  /** 推进当前任务链（交付/回报/花灵石） */
+  advanceQuestStep: () => void
+  /** 放弃任务链（进度清空） */
+  abandonQuestChain: () => void
+  /** 宗主建设升级 */
+  upgradeSectBuilding: (which: 'library' | 'market') => void
+  /** 以 3 张藏经残页参悟一部未习宗门秘法 */
+  redeemSectFragment: () => void
   combatAct: (action: PlayerAction) => void
   toggleCombatAuto: () => void
   runCombatAutoToEnd: () => void
@@ -1127,6 +1404,10 @@ interface GameState {
   /** 一键收获：收下所有已成熟的灵田 */
   harvestAll: () => void
   expandPlot: () => void
+  /** 开拓灵田一列（右侧） */
+  expandFarmCol: () => void
+  /** 开拓灵田一行（下方） */
+  expandFarmRow: () => void
   craftItem: (recipeId: string) => void
   /** v0.8 器阁升级 */
   upgradeForge: () => void
@@ -1138,7 +1419,8 @@ interface GameState {
   equipArtifact: (uid: string) => void
   /** 分解法宝胚/法宝，返还材料 */
   decomposeArtifact: (uid: string) => void
-  reincarnate: (input: CharacterCreateInput) => void
+  /** 转生；sealed 为可选封印的传承物 */
+  reincarnate: (input: CharacterCreateInput, sealed?: SealedItem | null) => void
 
   joinSect: (sectId: string) => void
   leaveSect: () => void
@@ -1225,6 +1507,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   exploring: false,
   lastCombat: null,
   pendingEvent: null,
+  pendingStory: null,
   activeCombat: null,
   /** 默认手动，保证战斗面板能先显示；勾选自动后再托管 */
   autoCombat: false,
@@ -1311,6 +1594,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
         totalYears: (legacy.totalYears ?? 0) + player.age,
         lastLifeEndYear: endedYear,
+        sealed: legacy.sealed ?? [],
       }
       log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
       log(
@@ -1324,6 +1608,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         player: null,
         lastCombat: null,
         pendingEvent: null,
+        pendingStory: null,
         tower: null,
         sect: freshSect(),
         companion: freshCompanion(),
@@ -1351,6 +1636,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       player: null,
       lastCombat: null,
       pendingEvent: null,
+      pendingStory: null,
       tower: null,
       activeCombat: null,
       exploring: false,
@@ -1371,8 +1657,37 @@ export const useGameStore = create<GameState>((set, get) => ({
     const player = freshPlayer(input, legacy)
     const dao = daoBonuses(legacy.daoMarks)
     const abode = freshAbode()
-    while (abode.plots.length < Math.min(MAX_PLOTS, abode.plots.length + dao.startPlotsBonus)) {
-      abode.plots.push({ seedId: null, plantedDay: 0 })
+    // 初始 6×6=36 格；道痕不再额外送地（开拓另计）
+    log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
+    // v1.0 封印传承物：功法残卷入门带入 / 法宝实例带入
+    const learned: Record<string, GongfaLearned> = {}
+    const sealedArts: ArtifactInstance[] = []
+    const sealedTreasures: string[] = []
+    for (const s of legacy.sealed ?? []) {
+      if (s.kind === 'gongfa' && GONGFAS[s.id]) {
+        if (!learned[s.id]) {
+          learned[s.id] = { stage: 0 }
+          log(`前世残卷苏醒：《${GONGFAS[s.id].name}》入门（进阶消耗降低）。`, 'gold')
+        }
+      } else if (s.kind === 'artifact' && s.id) {
+        const inst: ArtifactInstance = {
+          uid: makeArtifactUid(),
+          itemId: s.id,
+          name: artifactDisplayName(s.id, s.name),
+          quality: s.quality ?? 'mortal',
+          affixes: s.affixes ?? [],
+          equipped: true,
+        }
+        sealedArts.push(inst)
+        if (s.id.startsWith('treasure_')) sealedTreasures.push(s.id)
+        log(`前世法宝渡来：「${inst.name}」。`, 'gold')
+      }
+    }
+    // 同类只出战一件
+    const seenArt = new Set<string>()
+    for (const a of sealedArts) {
+      if (seenArt.has(a.itemId)) a.equipped = false
+      else seenArt.add(a.itemId)
     }
     log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
     log(`初始寿元 ${player.lifespanLeft} 年。${dayKey(get().time)}，天朗气清。`, 'dim')
@@ -1394,14 +1709,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       inventory: defaultInventory(),
       sect: freshSect(),
       companion: freshCompanion(),
-      gongfa: freshGongfa(),
-      treasures: [],
+      gongfa: { learned },
+      treasures: sealedTreasures,
+      artifacts: sealedArts,
       towerBest: {},
       tower: null,
       abode,
       activePanel: 'cultivate',
       lastCombat: null,
       pendingEvent: null,
+      pendingStory: null,
       activeCombat: null,
       exploring: false,
       autoCombat: false,
@@ -1416,16 +1733,25 @@ export const useGameStore = create<GameState>((set, get) => ({
         lastOnlineAt: Date.now(),
       },
     })
+    if (Object.keys(learned).length > 0) {
+      const p2 = recomputeVitals(
+        get().player!,
+        sealedTreasures,
+        learned,
+        legacy.daoMarks,
+      )
+      set({ player: p2 })
+    }
     unlockCodex(get, set, 'realm', 'qi')
     processMetaProgress(get, set)
   },
 
   meditate: () => {
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
-    const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
+    const gongfaMul = gongfaBonuses(get().gongfa.learned, get().player?.realm).cultivate
     const spouse = spouseDef(companion)
     const dao = daoBonuses(get().legacy.daoMarks)
     let gain = gainCultivate(player.classId, player.realm, player.layer)
@@ -1470,18 +1796,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
     touchOnline(get, set)
 
-    const evt = pickEvent(player.realm)
+    const evt = pickEvent()
     if (evt) set({ pendingEvent: { event: evt, kind: 'meditate' } })
+    maybeTriggerSpouseStory(get, set)
   },
 
   seclude: (days) => {
     // 与游戏日历对齐：1 年 = 360 日；上限约百年 + 余量
     const n = clamp(days, 1, GAME_DAYS_PER_YEAR * 120)
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
-    const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
+    const gongfaMul = gongfaBonuses(get().gongfa.learned, get().player?.realm).cultivate
     const spouse = spouseDef(companion)
     const dao = daoBonuses(get().legacy.daoMarks)
     let gain = gainSeclusion(player.classId, player.realm, player.layer, n)
@@ -1523,13 +1850,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
     touchOnline(get, set)
 
-    const evt = pickEvent(player.realm)
+    const evt = pickEvent()
     if (evt) set({ pendingEvent: { event: evt, kind: 'seclude' } })
+    maybeTriggerSpouseStory(get, set)
   },
 
-  breakthrough: () => {
+  breakthrough: (planId = 'normal') => {
     const { player, inventory, sect, companion, treasures } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     if (!canBreakthrough(player.realm, player.layer, player.exp)) {
       log('修为不足，无法冲击壁垒。', 'bad')
       return
@@ -1543,35 +1871,71 @@ export const useGameStore = create<GameState>((set, get) => ({
       return
     }
 
+    const plan = tribulationPlan(planId)
+    const planOpen = isTribulationMoment(player.realm, player.layer, def.layers)
+    const usedPlan = planOpen ? plan : tribulationPlan('normal')
+    let inv = { ...inventory }
+
+    // 方案代价
+    if (usedPlan.costItemId) {
+      const need = usedPlan.costCount ?? 1
+      if ((inv[usedPlan.costItemId] ?? 0) < need) {
+        log(`方案「${usedPlan.name}」需「${ITEMS[usedPlan.costItemId]?.name}」×${need}，不足。`, 'bad')
+        return
+      }
+      inv[usedPlan.costItemId] = (inv[usedPlan.costItemId] ?? 0) - need
+      if (inv[usedPlan.costItemId] <= 0) delete inv[usedPlan.costItemId]
+    }
+    if (usedPlan.spouseRisk) {
+      const hurtUntil = companion.spouseHurtUntilDay ?? 0
+      if (companion.spouseId && hurtUntil > dayNumber(get().time)) {
+        log('道侣重伤未愈，无法护法。', 'bad')
+        return
+      }
+      if (!companion.spouseId) {
+        log('并无道侣在侧，无法选此方案。', 'bad')
+        return
+      }
+    }
+
     const sdef = sectDef(sect.sectId)
     const spouse = spouseDef(companion)
-    const spouseBonus = spouse?.breakthroughBonus ?? 0
+    const spouseHurt =
+      companion.spouseId && (companion.spouseHurtUntilDay ?? 0) > dayNumber(get().time)
+    const spouseBonus = spouse && !spouseHurt ? (spouse.breakthroughBonus ?? 0) : 0
     const dao = daoBonuses(get().legacy.daoMarks)
+    const synBt = gongfaBonuses(get().gongfa.learned, get().player?.realm).breakthrough ?? 0
     // 突破法宝（认主常驻，同类不叠加）+ 最佳突破丹药（本次消耗）+ 渡劫令持有
     const treasureBt = treasureBreakthroughBonus(treasures)
-    const breakPill = bestBreakthroughPill(inventory)
-    const pillBt = breakPill?.rate ?? 0
-    const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? 5 : 0
+    const breakPill = bestBreakthroughPill(inv)
+    // 金丹护道已扣渡劫金丹，不再从自动突破丹里重复扣
+    const pillBt =
+      usedPlan.id === 'golden_pill' ? 0 : breakPill?.rate ?? 0
+    const tribTokenBt = (inv.mat_tribulation ?? 0) > 0 ? 5 : 0
     const rate = Math.min(
       95,
-      breakthroughRate(player.classId, player.realm) +
-        (sdef?.bonus.breakthroughBonus ?? 0) +
-        spouseBonus +
-        dao.breakthroughBonus +
-        treasureBt +
-        pillBt +
-        tribTokenBt +
-        currentRules().breakthroughRateDelta,
+      Math.max(
+        5,
+        breakthroughRate(player.classId, player.realm) +
+          (sdef?.bonus.breakthroughBonus ?? 0) +
+          spouseBonus +
+          dao.breakthroughBonus +
+          treasureBt +
+          pillBt +
+          tribTokenBt +
+          synBt +
+          usedPlan.rateDelta +
+          currentRules().breakthroughRateDelta,
+      ),
     )
     const roll = Math.random() * 100
-    // 用含宗门/道侣/法宝/丹药加成后的 rate 重判，保证 severity 与展示一致
+    // 用含宗门/道侣/法宝/丹药/方案加成后的 rate 重判，保证 severity 与展示一致
     const result = attemptBreakthrough(player.classId, player.realm, player.layer, roll)
     const success = roll < rate
     const need = expNeeded(player.realm, player.layer)
 
-    // 冲击壁垒自动消耗一枚突破丹（无论成败）
-    const inv = { ...inventory }
-    if (breakPill) {
+    // 冲击壁垒自动消耗一枚突破丹（无论成败；金丹护道方案除外）
+    if (usedPlan.id !== 'golden_pill' && breakPill) {
       inv[breakPill.id] = (inv[breakPill.id] ?? 1) - 1
       if (inv[breakPill.id] <= 0) delete inv[breakPill.id]
     }
@@ -1590,16 +1954,27 @@ export const useGameStore = create<GameState>((set, get) => ({
         get().legacy.daoMarks,
       )
       log(result.message, 'gold')
+      if (usedPlan.id !== 'normal') log(`天劫方案：${usedPlan.name}`, 'gold')
       if (justAscended) {
         log('霞举飞升，超脱此界。此世修行已圆满，可在修炼页选择转生。', 'gold')
       }
-      if (spouse) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
-      if (breakPill) log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
+      if (spouse && !spouseHurt) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
+      if (breakPill && usedPlan.id !== 'golden_pill')
+        log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
+      if (usedPlan.id === 'golden_pill') log('渡劫金丹化开，雷劫声势为之一缓。', 'dim')
       if (treasureBt > 0) log(`认主法宝加持：突破成功率 +${treasureBt}%`, 'dim')
       if (tribTokenBt > 0) log('渡劫令微光流转，稳住道基。', 'dim')
+      if (synBt !== 0) log(`功法羁绊：突破 ${synBt > 0 ? '+' : ''}${synBt}%`, 'dim')
       log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
+      let extraDao = usedPlan.extraDao ?? 0
+      let legacyNext = get().legacy
+      if (extraDao > 0) {
+        legacyNext = { ...legacyNext, daoMarks: legacyNext.daoMarks + extraDao }
+        log(`强冲天机，额外道痕 +${extraDao}。`, 'gold')
+      }
       set({
         inventory: inv,
+        legacy: legacyNext,
         player: {
           ...vitals,
           realm: next.realm,
@@ -1629,6 +2004,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (isTribulation && roll > rate + 35) severity = 'critical'
     else if (isMajor && roll >= rate) severity = 'major'
     else severity = 'minor'
+    if (usedPlan.softenFail) severity = softenSeverity(severity)
+
+    if (usedPlan.spouseRisk && spouse) {
+      const until = dayNumber(get().time) + 7
+      set({
+        companion: { ...get().companion, spouseHurtUntilDay: until },
+      })
+      log(`${spouse.name}护法被雷劫余波所伤，七日内无法助战/代劳。`, 'bad')
+    }
 
     const failMsg =
       severity === 'critical'
@@ -1637,7 +2021,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? `突破${def.name}圆满失败，气血逆冲，境界跌落一层。`
           : '冲击壁垒失败，经脉受损，损失部分修为与气血。'
     log(failMsg, 'bad')
-    if (breakPill) log(`服用「${breakPill.name}」，药力仍未能扭转乾坤。`, 'dim')
+    if (usedPlan.id !== 'normal') log(`天劫方案：${usedPlan.name}`, 'dim')
+    if (breakPill && usedPlan.id !== 'golden_pill')
+      log(`服用「${breakPill.name}」，药力仍未能扭转乾坤。`, 'dim')
     log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
     let next = { realm: player.realm, layer: player.layer }
     let exp = Math.floor(player.exp * 0.55)
@@ -1678,7 +2064,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('你已飞升，不再入世历练。', 'dim')
       return
     }
-    if (get().pendingEvent) {
+    if (get().pendingEvent || get().pendingStory) {
       log('尚有奇遇未了结，请先处理当前事件。', 'bad')
       return
     }
@@ -1891,19 +2277,65 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ inventory: inv, abode: { ...abode, plots } })
   },
 
-  expandPlot: () => {
+  expandPlot: () => {},
+
+  expandFarmCol: () => {
     const { abode, stones, player } = get()
     if (!player || !player.alive) return
-    if (abode.plots.length >= MAX_PLOTS) return
-    const cost = expandPlotCost(abode.plots.length)
-    if (stones < cost) {
-      log('灵石不足，无法扩建。', 'bad')
+    if (!canExpandFarmCols(abode.farmCols)) {
+      log('灵田横向已开拓至极限。', 'dim')
       return
     }
-    log(`开垦新灵田，花费灵石 ${cost}。`, 'gold')
+    const cost = expandColCost(abode.farmCols)
+    if (stones < cost) {
+      log(`开拓一列灵田需灵石 ${cost}。`, 'bad')
+      return
+    }
+    const newCols = abode.farmCols + 1
+    const plots = remapFarmPlots(
+      abode.plots,
+      abode.farmCols,
+      abode.farmRows,
+      newCols,
+      abode.farmRows,
+    )
+    log(
+      `向右开拓荒地，灵田扩为 ${newCols}×${abode.farmRows}（${plots.length} 格），花费灵石 ${cost}。`,
+      'gold',
+    )
     set({
       stones: stones - cost,
-      abode: { ...abode, plots: [...abode.plots, { seedId: null, plantedDay: 0 }] },
+      abode: { ...abode, farmCols: newCols, plots },
+    })
+  },
+
+  expandFarmRow: () => {
+    const { abode, stones, player } = get()
+    if (!player || !player.alive) return
+    if (!canExpandFarmRows(abode.farmRows)) {
+      log('灵田纵向已开拓至极限。', 'dim')
+      return
+    }
+    const cost = expandRowCost(abode.farmRows)
+    if (stones < cost) {
+      log(`开拓一行灵田需灵石 ${cost}。`, 'bad')
+      return
+    }
+    const newRows = abode.farmRows + 1
+    const plots = remapFarmPlots(
+      abode.plots,
+      abode.farmCols,
+      abode.farmRows,
+      abode.farmCols,
+      newRows,
+    )
+    log(
+      `向前开拓荒地，灵田扩为 ${abode.farmCols}×${newRows}（${plots.length} 格），花费灵石 ${cost}。`,
+      'gold',
+    )
+    set({
+      stones: stones - cost,
+      abode: { ...abode, farmRows: newRows, plots },
     })
   },
 
@@ -2181,22 +2613,45 @@ export const useGameStore = create<GameState>((set, get) => ({
     log(`分解「${artifactDisplayName(art.itemId, art.name)}」，获得 ${yieldText}。`, 'dim')
   },
 
-  reincarnate: (input) => {
+  reincarnate: (input, sealed = null) => {
     const { player, companion, legacy } = get()
     if (!player || (player.alive && !isAscended(player))) {
       log('此身尚在修行，无需转生。（需先飞升或道消）', 'dim')
       return
     }
     const gain = reincarnateGain(player, Boolean(companion.spouseId))
+    let extraDaoCost = 0
+    const nextSealed: SealedItem[] = [...(legacy.sealed ?? [])]
+    const slots = sealSlots(legacy.daoMarks + gain.daoMarks)
+    if (sealed) {
+      if (nextSealed.length >= slots) {
+        log('封印槽不足，无法带走传承物。', 'bad')
+        return
+      }
+      extraDaoCost = sealed.daoCost ?? (sealed.kind === 'artifact' ? sealDaoCost(sealed.quality) : 0)
+      if (gain.daoMarks + legacy.daoMarks < extraDaoCost) {
+        log(`封印此物需额外道痕 ${extraDaoCost}，此世道痕不足。`, 'bad')
+        return
+      }
+      nextSealed.push({
+        ...sealed,
+        daoCost: extraDaoCost,
+      })
+    }
+    const netDao = Math.max(0, gain.daoMarks - extraDaoCost)
     const endedYear = get().time.year
     const nextLegacy: LegacyState = {
-      daoMarks: legacy.daoMarks + gain.daoMarks,
+      daoMarks: legacy.daoMarks + netDao,
       reincarnations: legacy.reincarnations + 1,
       bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
       totalYears: (legacy.totalYears ?? 0) + player.age,
       lastLifeEndYear: endedYear,
+      sealed: nextSealed,
     }
-    log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
+    log(`此世终结。结算道痕 +${netDao}（${gain.desc}${extraDaoCost ? ` · 封印代价 -${extraDaoCost}` : ''}）。`, 'gold')
+    if (sealed) {
+      log(`封印传承物：「${sealed.name}」，将于下一世苏醒。`, 'gold')
+    }
     log(
       `转生次数 ${nextLegacy.reincarnations}，累计道痕 ${nextLegacy.daoMarks}。` +
         `上一世止于第${endedYear}年（寿龄 ${player.age}）；新一世年号从第 1 年起算，不沿用前世。`,
@@ -2207,13 +2662,224 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   resolveEvent: (actionId) => {
-    const { pendingEvent, player, inventory, stones, treasures } = get()
+    const { pendingEvent, player, inventory, stones, treasures, sect, companion, legacy } = get()
     if (!pendingEvent || !player || !player.alive) {
       set({ pendingEvent: null })
       return
     }
     const evt = pendingEvent.event
     let inv = { ...inventory }
+    const action: WorldEventAction | undefined = evt.actions.find((a) => a.id === actionId)
+
+    // 支付行动代价
+    if (action?.cost) {
+      const c = action.cost
+      if (c.stones && stones < c.stones) {
+        log('灵石不足，无法如此行事。', 'bad')
+        return
+      }
+      if (c.contribution && sect.contribution < c.contribution) {
+        log('宗门贡献不足。', 'bad')
+        return
+      }
+      if (c.items) {
+        for (const [id, n] of Object.entries(c.items)) {
+          if ((inv[id] ?? 0) < n) {
+            log(`「${ITEMS[id]?.name ?? id}」不足。`, 'bad')
+            return
+          }
+        }
+        for (const [id, n] of Object.entries(c.items)) {
+          inv[id] = (inv[id] ?? 0) - n
+          if (inv[id] <= 0) delete inv[id]
+        }
+      }
+    }
+
+    const applySettleOutcome = (oc: EventOutcome | undefined, fallbackText: string) => {
+      let p = { ...player }
+      let st = stones - (action?.cost?.stones ?? 0) + (oc?.stones ?? 0)
+      let contrib = sect.contribution - (action?.cost?.contribution ?? 0) + (oc?.contribution ?? 0)
+      let flags = [...companion.flags]
+      let hidden = [...companion.hiddenUnlocked]
+      let nextInv = { ...inv }
+      if (oc?.itemId) {
+        nextInv[oc.itemId] = (nextInv[oc.itemId] ?? 0) + 1
+      }
+      if (oc?.exp) p.exp += oc.exp
+      if (oc?.repRight) p.repRight += oc.repRight
+      if (oc?.repDemonic) p.repDemonic += oc.repDemonic
+      if (oc?.lifespan) p.lifespanLeft = Math.max(1, p.lifespanLeft - oc.lifespan)
+      if (oc?.hpPct) p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * oc.hpPct))
+      let legacyNext = legacy
+      if (oc?.daoMarks) {
+        legacyNext = { ...legacy, daoMarks: legacy.daoMarks + oc.daoMarks }
+      }
+      if (oc?.flag && !flags.includes(oc.flag)) flags.push(oc.flag)
+      if (oc?.kind === 'unlock_companion' && oc.companionId) {
+        if (!hidden.includes(oc.companionId)) hidden.push(oc.companionId)
+        // 初见好感
+        companion.affinity[oc.companionId] = Math.max(companion.affinity[oc.companionId] ?? 0, 30)
+      }
+      log(oc?.text ?? fallbackText, oc?.kind === 'unlock_companion' ? 'gold' : 'info')
+      set({
+        pendingEvent: null,
+        inventory: nextInv,
+        stones: Math.max(0, st),
+        legacy: legacyNext,
+        sect: { ...sect, contribution: Math.max(0, contrib) },
+        companion: {
+          ...companion,
+          flags: uniqIds(flags),
+          hiddenUnlocked: uniqIds(hidden),
+          affinity: { ...companion.affinity },
+        },
+        player: p,
+      })
+      if (oc?.itemId) unlockCodex(get, set, 'item', oc.itemId)
+      if (oc?.kind === 'unlock_companion' && oc.companionId) {
+        unlockCodex(get, set, 'companion', oc.companionId)
+      }
+      afterProgressSnapshot(get, set)
+    }
+
+    const runEventCombat = (bossId: string, win?: EventOutcome, lose?: EventOutcome) => {
+      const enemy = ENEMIES.find((e) => e.id === bossId) ?? ENEMIES[0]
+      const actor = makePlayerCombatant(player, treasures, 1)
+      const label = '奇遇战斗'
+      const result = runCombatAuto(
+        actor,
+        enemy,
+        {
+          kind: 'event',
+          title: `${label}：${evt.title}`,
+          enemy,
+          hpScale: 1,
+        },
+        inv,
+        player.realm,
+        player.layer,
+        (st) => defaultAutoAction(st, inv, player.realm, player.layer),
+      )
+      inv = applyCombatConsumables(
+        {
+          potionsUsed: result.potionsUsed,
+          blastPillsUsed: result.blastPillsUsed,
+        } as CombatEngineState,
+        inv,
+      )
+      const lines = result.log.map((l) => l.text)
+      // 先扣行动代价中的灵石/贡献
+      const costStones = action?.cost?.stones ?? 0
+      const costContrib = action?.cost?.contribution ?? 0
+      if (result.win) {
+        const dropId = enemy.loot.itemId
+        if (dropId && Math.random() < (enemy.loot.dropRate ?? 0.6)) {
+          inv[dropId] = (inv[dropId] ?? 0) + 1
+        }
+        const rep = repDeltaOnKill(enemy)
+        log(`${label}获胜：${enemy.name}`, 'gold')
+        const extra = win
+        if (extra?.text) log(extra.text, 'gold')
+        const metaEvt = get().meta
+        let flags = [...get().companion.flags]
+        if (extra?.flag && !flags.includes(extra.flag)) flags.push(extra.flag)
+        const nextInv = { ...inv }
+        if (extra?.itemId) nextInv[extra.itemId] = (nextInv[extra.itemId] ?? 0) + 1
+        const stonesGain =
+          result.stoneGain - costStones + (extra?.stones ?? 0)
+        const contribGain =
+          sect.contribution - costContrib + (extra?.contribution ?? 0) + 0
+        let legacyNext = legacy
+        if (extra?.daoMarks) {
+          legacyNext = { ...legacy, daoMarks: legacy.daoMarks + extra.daoMarks }
+        }
+        set({
+          pendingEvent: null,
+          inventory: nextInv,
+          stones: Math.max(0, get().stones + stonesGain),
+          legacy: legacyNext,
+          sect: { ...sect, contribution: Math.max(0, contribGain) },
+          companion: { ...get().companion, flags: uniqIds(flags) },
+          lastCombat: { enemy, win: true, log: lines },
+          player: {
+            ...player,
+            exp: player.exp + result.expGain + (extra?.exp ?? 0),
+            hp: Math.max(1, result.playerHpLeft),
+            energy: result.playerEnergyLeft,
+            lifespanLeft: Math.max(
+              1,
+              player.lifespanLeft - result.lifespanCost - (extra?.lifespan ?? 0),
+            ),
+            repRight: player.repRight + rep.right + (extra?.repRight ?? 0),
+            repDemonic: player.repDemonic + rep.demonic + (extra?.repDemonic ?? 0),
+          },
+          meta: {
+            ...metaEvt,
+            stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
+          },
+        })
+        unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
+        if (dropId) unlockCodex(get, set, 'item', dropId)
+        if (extra?.itemId) unlockCodex(get, set, 'item', extra.itemId)
+        afterProgressSnapshot(get, set)
+      } else {
+        log(`${label}失败：${enemy.name}`, 'bad')
+        const extra = lose
+        if (extra?.text) log(extra.text, 'bad')
+        let flags = [...get().companion.flags]
+        if (extra?.flag && !flags.includes(extra.flag)) flags.push(extra.flag)
+        const nextInv = { ...inv }
+        if (extra?.itemId) nextInv[extra.itemId] = (nextInv[extra.itemId] ?? 0) + 1
+        let legacyNext = legacy
+        if (extra?.daoMarks) {
+          legacyNext = { ...legacy, daoMarks: legacy.daoMarks + extra.daoMarks }
+        }
+        const hpFloor = extra?.hpPct
+          ? Math.max(1, player.hp - Math.floor(player.maxHp * extra.hpPct))
+          : Math.max(1, Math.floor(player.maxHp * 0.15))
+        set({
+          pendingEvent: null,
+          inventory: nextInv,
+          lastCombat: { enemy, win: false, log: lines },
+          legacy: legacyNext,
+          stones: Math.max(0, get().stones - 20 - costStones + (extra?.stones ?? 0)),
+          sect: {
+            ...sect,
+            contribution: Math.max(0, sect.contribution - costContrib + (extra?.contribution ?? 0)),
+          },
+          companion: { ...get().companion, flags: uniqIds(flags) },
+          player: {
+            ...player,
+            exp: player.exp + (extra?.exp ?? 0),
+            hp: hpFloor,
+            energy: result.playerEnergyLeft,
+            lifespanLeft: Math.max(
+              1,
+              player.lifespanLeft - result.lifespanCost - (extra?.lifespan ?? 0),
+            ),
+            repRight: player.repRight + (extra?.repRight ?? 0),
+            repDemonic: player.repDemonic + (extra?.repDemonic ?? 0),
+          },
+        })
+        if (extra?.itemId) unlockCodex(get, set, 'item', extra.itemId)
+      }
+    }
+
+    // v0.9：带 outcome 的新动作
+    if (action?.outcome) {
+      const oc = action.outcome
+      if (oc.kind === 'combat') {
+        runEventCombat(oc.bossId ?? evt.payload?.bossId ?? 'boss_tiger', oc.win, oc.lose)
+        return
+      }
+      if (oc.kind === 'unlock_companion') {
+        applySettleOutcome(oc, '缘分已至。')
+        return
+      }
+      applySettleOutcome(oc, `你选择：${action.label}`)
+      return
+    }
 
     if (actionId === 'ignore' || actionId === 'flee') {
       log(`你选择避开：${evt.title}`, 'dim')
@@ -2265,84 +2931,391 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     if (actionId === 'enter' || actionId === 'fight') {
-      const bossId =
+      runEventCombat(
         evt.payload?.bossId ??
-        (evt.id.includes('ice') ? 'boss_ape' : evt.id.includes('demon') ? 'boss_demon_lord' : 'boss_tiger')
-      const enemy = ENEMIES.find((e) => e.id === bossId) ?? ENEMIES[0]
-      const actor = makePlayerCombatant(player, treasures, 1)
-      const label = actionId === 'enter' ? '秘境探索' : '奇遇战斗'
-      const result = runCombatAuto(
-        actor,
-        enemy,
-        {
-          kind: 'event',
-          title: `${label}：${evt.title}`,
-          enemy,
-          hpScale: 1,
-        },
-        inv,
-        player.realm,
-        player.layer,
-        (st) => defaultAutoAction(st, inv, player.realm, player.layer),
+          (evt.id.includes('ice') ? 'boss_ape' : evt.id.includes('demon') ? 'boss_demon_lord' : 'boss_tiger'),
       )
-      inv = applyCombatConsumables(
-        {
-          potionsUsed: result.potionsUsed,
-          blastPillsUsed: result.blastPillsUsed,
-        } as CombatEngineState,
-        inv,
-      )
-      const lines = result.log.map((l) => l.text)
-      if (result.win) {
-        const dropId = enemy.loot.itemId
-        if (dropId && Math.random() < (enemy.loot.dropRate ?? 0.6)) {
-          inv[dropId] = (inv[dropId] ?? 0) + 1
-        }
-        const rep = repDeltaOnKill(enemy)
-        log(`${label}获胜：${enemy.name}`, 'gold')
-        log(`修为 +${result.expGain}，灵石 +${result.stoneGain}`, 'good')
-        const metaEvt = get().meta
-        set({
-          pendingEvent: null,
-          inventory: inv,
-          stones: get().stones + result.stoneGain,
-          lastCombat: { enemy, win: true, log: lines },
-          player: {
-            ...player,
-            exp: player.exp + result.expGain,
-            hp: Math.max(1, result.playerHpLeft),
-            energy: result.playerEnergyLeft,
-            lifespanLeft: Math.max(1, player.lifespanLeft - result.lifespanCost),
-            repRight: player.repRight + rep.right,
-            repDemonic: player.repDemonic + rep.demonic,
-          },
-          meta: {
-            ...metaEvt,
-            stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
-          },
-        })
-        unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
-        if (dropId) unlockCodex(get, set, 'item', dropId)
-        afterProgressSnapshot(get, set)
-      } else {
-        log(`${label}失败：${enemy.name}`, 'bad')
-        set({
-          pendingEvent: null,
-          inventory: inv,
-          lastCombat: { enemy, win: false, log: lines },
-          stones: Math.max(0, get().stones - 20),
-          player: {
-            ...player,
-            hp: Math.max(1, Math.floor(player.maxHp * 0.15)),
-            energy: result.playerEnergyLeft,
-            lifespanLeft: Math.max(1, player.lifespanLeft - result.lifespanCost),
-          },
-        })
-      }
       return
     }
 
     set({ pendingEvent: null })
+  },
+
+  resolveStory: (choiceId) => {
+    const { pendingStory, companion, player, stones, legacy, inventory } = get()
+    if (!pendingStory || !player) {
+      set({ pendingStory: null })
+      return
+    }
+    const { companionId, beat } = pendingStory
+    const choice: StoryChoice | undefined = beat.choices?.find((c) => c.id === choiceId)
+    const stage = companion.postStage[companionId] ?? 0
+    const nextStage = stage + 1
+    const aff = companion.affinity[companionId] ?? 0
+
+    log(`【${beat.title}】${beat.text}`, 'gold')
+    if (choice) {
+      log(choice.text, choice.ending === 'be' ? 'bad' : choice.ending === 'he' ? 'gold' : 'info')
+    } else if (beat.postText) {
+      log(beat.postText, 'info')
+    }
+
+    let nextAff = aff + (choice?.affinity ?? 0)
+    let nextStones = stones + (choice?.stones ?? 0)
+    let nextInv = { ...inventory }
+    if (choice?.itemId) nextInv[choice.itemId] = (nextInv[choice.itemId] ?? 0) + 1
+    let p = { ...player }
+    if (choice?.exp) p.exp += choice.exp
+    if (choice?.repRight) p.repRight += choice.repRight
+    if (choice?.repDemonic) p.repDemonic += choice.repDemonic
+    if (choice?.hpPct) p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * choice.hpPct))
+    let legacyNext = legacy
+    if (choice?.daoMarksCost) {
+      if (legacy.daoMarks < choice.daoMarksCost) {
+        log('道痕不足，无法强改天机。请另作抉择。', 'bad')
+        return
+      }
+      legacyNext = { ...legacy, daoMarks: legacy.daoMarks - choice.daoMarksCost }
+    }
+
+    const endings = { ...companion.endings }
+    const flags = [...companion.flags]
+    const ending = choice?.ending ?? beat.ending ?? null
+    if (ending) {
+      endings[storyEndingKey(companionId, ending)] = ending
+    }
+    if (choice?.flag && !flags.includes(choice.flag)) flags.push(choice.flag)
+
+    // BE 结局后不再推进后续段
+    const storyLen = companionById(companionId)?.postStory?.length ?? nextStage
+    const advancedStage = ending === 'be' ? storyLen : nextStage
+
+    set({
+      pendingStory: null,
+      stones: Math.max(0, nextStones),
+      inventory: nextInv,
+      legacy: legacyNext,
+      companion: {
+        ...companion,
+        affinity: { ...companion.affinity, [companionId]: Math.max(0, nextAff) },
+        postStage: { ...companion.postStage, [companionId]: advancedStage },
+        endings,
+        flags: uniqIds(flags),
+      },
+      player: p,
+    })
+    if (ending) {
+      unlockCodex(get, set, 'companion', storyEndingKey(companionId, ending))
+    }
+    afterProgressSnapshot(get, set)
+  },
+
+  triggerSpouseStory: () => {
+    maybeTriggerSpouseStory(get, set)
+    if (!get().pendingStory) {
+      log('眼下无新的缘法可续。', 'dim')
+    }
+  },
+
+  spouseFarmHelp: () => {
+    const { companion, player, time, abode, inventory } = get()
+    if (!player || !player.alive || !companion.spouseId) return
+    if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
+      log('道侣重伤未愈，无法代劳。', 'bad')
+      return
+    }
+    const key = `${time.year}-${time.month}-${time.day}`
+    if (companion.farmHelpOn === key) {
+      log('今日道侣已代为打理过灵田。', 'dim')
+      return
+    }
+    const c = companionById(companion.spouseId)
+    if (!c) return
+    let inv = { ...inventory }
+    let harvested = 0
+    const plots = abode.plots.map((plot) => {
+      const prog = plotProgress(plot, time)
+      if (!plot.seedId || !prog.ready) return plot
+      const seed = SEEDS[plot.seedId]
+      if (!seed) return { seedId: null, plantedDay: 0 }
+      const n = harvestYield(plot.seedId) + 1 + Math.floor(Math.random() * 2)
+      inv[seed.yieldItemId] = (inv[seed.yieldItemId] ?? 0) + n
+      harvested += n
+      return { seedId: null, plantedDay: 0 }
+    })
+    // 自动补种
+    let replanted = 0
+    const finalPlots = plots.map((plot) => {
+      if (plot.seedId) return plot
+      for (const s of SEED_LIST) {
+        if ((inv[s.id] ?? 0) > 0) {
+          inv[s.id] -= 1
+          if (inv[s.id] <= 0) delete inv[s.id]
+          replanted += 1
+          return { seedId: s.id, plantedDay: dayNumber(time) }
+        }
+      }
+      return plot
+    })
+    log(
+      `${c.name}代你打理灵田：收获 ${harvested} 份${replanted ? `，补种 ${replanted} 块` : ''}。`,
+      'good',
+    )
+    set({
+      inventory: inv,
+      abode: { ...abode, plots: finalPlots },
+      companion: { ...companion, farmHelpOn: key },
+    })
+  },
+
+  spousePillHelp: () => {
+    const { companion, player, time, inventory } = get()
+    if (!player || !player.alive || !companion.spouseId) return
+    if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
+      log('道侣重伤未愈，无法代炼。', 'bad')
+      return
+    }
+    const key = `${time.year}-${time.month}-${time.day}`
+    if (companion.pillHelpOn === key) {
+      log('今日道侣已代炼过丹药。', 'dim')
+      return
+    }
+    const c = companionById(companion.spouseId)
+    if (!c) return
+    const inv = { ...inventory }
+    // 苏青/玄灵炼丹更佳
+    const skilled = c.id === 'su_qing' || c.id === 'xuan_ling'
+    const healN = skilled ? 2 : 1
+    const qiN = skilled ? 1 : 0
+    inv.pill_heal = (inv.pill_heal ?? 0) + healN
+    if (qiN) inv.pill_qi = (inv.pill_qi ?? 0) + qiN
+    log(
+      `${c.name}代炼低阶丹药：回春散 ×${healN}${qiN ? `，聚气丹 ×${qiN}` : ''}。`,
+      'good',
+    )
+    set({
+      inventory: inv,
+      companion: { ...companion, pillHelpOn: key },
+    })
+    unlockCodex(get, set, 'item', 'pill_heal')
+    afterProgressSnapshot(get, set)
+  },
+
+  acceptQuestChain: (chainId) => {
+    const { sect, player } = get()
+    if (!player || !sect.sectId) return
+    if (sect.quest) {
+      log('已有任务在身，可先完成或放弃。', 'dim')
+      return
+    }
+    const chain = questChainById(chainId)
+    if (!chain) return
+    const cur = SECTS.find((s) => s.id === sect.sectId)
+    const align = cur?.alignment ?? 'righteous'
+    const open = availableQuestChains(sect.rank, player.realm, align)
+    if (!open.some((c) => c.id === chainId)) {
+      log('当前职位/境界尚不可接取此任务链。', 'bad')
+      return
+    }
+    log(`接取宗门任务链「${chain.name}」：${chain.brief}`, 'gold')
+    set({
+      sect: {
+        ...sect,
+        quest: { chainId, stepIndex: 0, progress: 0, completedSteps: 0 },
+      },
+    })
+  },
+
+  advanceQuestStep: () => {
+    const { sect, player, time, inventory, stones } = get()
+    if (!player || !sect.sectId || !sect.quest) return
+    if (get().activeCombat && !get().activeCombat!.finished) {
+      log('战斗进行中，无法处理任务链。', 'bad')
+      return
+    }
+    const chain = questChainById(sect.quest.chainId)
+    if (!chain) return
+    const step = chain.steps[sect.quest.stepIndex]
+    if (!step) {
+      // 全部完成，结算
+      const r = chain.reward
+      const rankMul = SECT_RANKS[sect.rank].taskMul
+      const gain = Math.floor(r.contribution * rankMul)
+      let inv = { ...inventory }
+      let gotFragment = false
+      if (r.fragmentChance && Math.random() < r.fragmentChance) {
+        inv.sect_fragment = (inv.sect_fragment ?? 0) + 1
+        gotFragment = true
+      }
+      log(`任务链「${chain.name}」完成！贡献 +${gain}，灵石 +${r.stone ?? 0}`, 'gold')
+      if (gotFragment) log('宗门额外赐下「藏经残页」×1。', 'gold')
+      if (r.exp) log(`修为 +${r.exp}`, 'good')
+      set({
+        inventory: inv,
+        stones: stones + (r.stone ?? 0),
+        sect: {
+          ...sect,
+          contribution: sect.contribution + gain,
+          quest: null,
+          questsDone: sect.questsDone + 1,
+        },
+        player: { ...player, exp: player.exp + (r.exp ?? 0) },
+      })
+      if (gotFragment) unlockCodex(get, set, 'item', 'sect_fragment')
+      afterProgressSnapshot(get, set)
+      return
+    }
+
+    if (step.type === 'explore_win') {
+      log('此步需在历练/秘境中获胜，外出时自动计入进度。', 'dim')
+      return
+    }
+
+    if (step.type === 'deliver') {
+      const need = step.count ?? 1
+      const match = questStepMatchesDeliver(step, inventory)
+      if (!match.ok || !match.itemId) {
+        log(`材料不足：${step.desc}`, 'bad')
+        return
+      }
+      const inv = { ...inventory }
+      inv[match.itemId] = (inv[match.itemId] ?? 0) - need
+      if (inv[match.itemId] <= 0) delete inv[match.itemId]
+      log(`任务链「${chain.name}」：交付完成（${step.desc}）。`, 'good')
+      set({
+        inventory: inv,
+        sect: {
+          ...sect,
+          quest: {
+            ...sect.quest,
+            stepIndex: sect.quest.stepIndex + 1,
+            progress: 0,
+            completedSteps: sect.quest.completedSteps + 1,
+          },
+        },
+      })
+      return
+    }
+
+    if (step.type === 'stones') {
+      const cost = step.stones ?? 0
+      if (stones < cost) {
+        log(`灵石不足 ${cost}。`, 'bad')
+        return
+      }
+      log(`任务链「${chain.name}」：拨付灵石 ${cost}。`, 'good')
+      set({
+        stones: stones - cost,
+        sect: {
+          ...sect,
+          quest: {
+            ...sect.quest,
+            stepIndex: sect.quest.stepIndex + 1,
+            progress: 0,
+            completedSteps: sect.quest.completedSteps + 1,
+          },
+        },
+      })
+      return
+    }
+
+    if (step.type === 'report') {
+      const advanced = advanceTime(time, 1)
+      log(`任务链「${chain.name}」：${step.desc}`, 'good')
+      set({
+        time: advanced.time,
+        sect: {
+          ...sect,
+          quest: {
+            ...sect.quest,
+            stepIndex: sect.quest.stepIndex + 1,
+            progress: 0,
+            completedSteps: sect.quest.completedSteps + 1,
+          },
+        },
+        player: {
+          ...player,
+          age: player.age + advanced.agedYears,
+          lifespanLeft: player.lifespanLeft - advanced.agedYears,
+        },
+      })
+      // 若已是最后一步，下一次 advance 会结算
+      const nextStep = chain.steps[sect.quest.stepIndex + 1]
+      if (!nextStep) {
+        get().advanceQuestStep()
+      }
+      return
+    }
+  },
+
+  abandonQuestChain: () => {
+    const { sect } = get()
+    if (!sect.quest) return
+    const chain = questChainById(sect.quest.chainId)
+    log(`放弃任务链「${chain?.name ?? '未知委托'}」，进度不保留。`, 'dim')
+    set({ sect: { ...sect, quest: null } })
+  },
+
+  upgradeSectBuilding: (which) => {
+    const { sect, player } = get()
+    if (!player || !sect.sectId) return
+    if (sect.rank !== 'master' && sect.rank !== 'supreme') {
+      log('宗门建设须宗主（或太上长老）推行。', 'bad')
+      return
+    }
+    const lv = which === 'library' ? sect.libraryLv : sect.marketLv
+    if (lv >= 3) {
+      log('此建筑已至当前上限。', 'dim')
+      return
+    }
+    const cost = 300 * (lv + 1) + 100 * lv * lv
+    if (sect.contribution < cost) {
+      log(`建设需自贡献池支取 ${cost} 贡献，当前不足。`, 'bad')
+      return
+    }
+    const name = which === 'library' ? '藏经阁扩容' : '坊市让利'
+    log(`宗门建设「${name}」升至 ${lv + 1} 级（消耗贡献 ${cost}）。`, 'gold')
+    set({
+      sect: {
+        ...sect,
+        contribution: sect.contribution - cost,
+        libraryLv: which === 'library' ? lv + 1 : sect.libraryLv,
+        marketLv: which === 'market' ? lv + 1 : sect.marketLv,
+      },
+    })
+    afterProgressSnapshot(get, set)
+  },
+
+  redeemSectFragment: () => {
+    const { sect, player, inventory, gongfa, treasures, legacy } = get()
+    if (!player || !sect.sectId) return
+    if ((inventory.sect_fragment ?? 0) < 3) {
+      log('集齐 3 张藏经残页方可参悟。', 'bad')
+      return
+    }
+    const cur = SECTS.find((s) => s.id === sect.sectId)
+    if (!cur) return
+    const candidates = cur.library.filter((l) => !gongfa.learned[l.id])
+    if (candidates.length === 0) {
+      log('本宗藏经阁秘法已尽数参悟。', 'dim')
+      return
+    }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)]
+    const inv = { ...inventory }
+    inv.sect_fragment = (inv.sect_fragment ?? 0) - 3
+    if (inv.sect_fragment <= 0) delete inv.sect_fragment
+    const learned = { ...gongfa.learned, [pick.id]: { stage: 0 } }
+    const p = recomputeVitals({ ...player }, treasures, learned, legacy.daoMarks)
+    log(`残页合一，灵光乍现：《${pick.name}》参悟入门。`, 'gold')
+    set({
+      player: p,
+      inventory: inv,
+      gongfa: { learned },
+      sect: { ...sect, fragmentsUsed: sect.fragmentsUsed + 1 },
+    })
+    unlockCodex(get, set, 'gongfa', pick.id)
+    unlockCodex(get, set, 'item', 'sect_fragment')
+    afterProgressSnapshot(get, set)
   },
 
   useItem: (id) => {
@@ -2352,22 +3325,67 @@ export const useGameStore = create<GameState>((set, get) => ({
     const item = ITEMS[id]
     if (count <= 0 || !item?.effect) return
     // 突破辅助丹药：冲击壁垒时自动选用并消耗，不可提前服用
-    if (item.effect.breakthroughRate && !item.effect.hp && !item.effect.exp) {
+    if (item.effect.breakthroughRate && !item.effect.hp && !item.effect.exp && !item.effect.energy) {
       log(`「${item.name}」将在冲击壁垒时自动服用（成功率 +${item.effect.breakthroughRate}%）。`, 'dim')
       return
     }
+    // 起步境界门槛
+    if (!itemMinRealmOk(item, player.realm)) {
+      const lo = item.minRealm ? REALMS[item.minRealm]?.name ?? item.minRealm : ''
+      log(`境界不足：「${item.name}」需${lo}以上方可服用。`, 'bad')
+      return
+    }
+    const over = itemOverScope(item, player.realm)
+    const eff = itemEffectWithMarks(item)
     const inv = { ...inventory, [id]: count - 1 }
     if (inv[id] <= 0) delete inv[id]
     const p = { ...player }
-    if (item.effect.hp) p.hp = Math.min(p.maxHp, p.hp + item.effect.hp)
-    if (item.effect.exp) {
-      const gain = id === 'pill_qi' ? pillExp(player.realm) : item.effect.exp
+    const markNote = (item.danMarks ?? 0) > 0 ? `（${item.danMarks}纹药力）` : ''
+    const scopeNote = over ? '（已超适用范围，药效大减）' : ''
+    const scopeMul = over ? 0.25 : 1
+    // 特殊功效
+    if (eff.special === 'full_heal') {
+      p.hp = p.maxHp
+      p.energy = p.maxEnergy
+    }
+    if (eff.special === 'cleanse') {
+      if (p.classId === 'demon' && p.shaqi > 0) {
+        p.shaqi = Math.max(0, p.shaqi - 15)
+      }
+    }
+    if (eff.hp) {
+      const h = Math.floor(eff.hp * scopeMul)
+      p.hp = Math.min(p.maxHp, p.hp + h)
+    }
+    if (eff.energy) {
+      p.energy = Math.min(p.maxEnergy, p.energy + Math.floor(eff.energy * scopeMul))
+    }
+    if (eff.stone) {
+      // 由 useItem 外层 stones 更新
+    }
+    if (eff.exp) {
+      const raw = id.startsWith('pill_qi')
+        ? pillExp(player.realm, item.pillGrade, item.danMarks)
+        : eff.exp
+      const gain = Math.floor(raw * scopeMul)
       p.exp += gain
-      log(`服用 ${item.name}，修为 +${gain}`, 'good')
-    } else if (item.effect.hp) {
-      log(`服用 ${item.name}，气血恢复。`, 'good')
+      log(`服用 ${item.name}${markNote}，修为 +${gain}${scopeNote}`, 'good')
+    } else if (eff.special === 'full_heal') {
+      log(`服用 ${item.name}${markNote}，伤势尽复、灵力回满。`, 'gold')
+    } else if (eff.special === 'cleanse') {
+      log(`服用 ${item.name}${markNote}，心魔杂念为之一清${scopeNote}。`, 'good')
+    } else if (eff.hp || eff.energy) {
+      log(`服用 ${item.name}${markNote}，气血/灵力有所恢复${scopeNote}。`, 'good')
     } else {
-      log(`使用 ${item.name}。`, 'good')
+      log(`使用 ${item.name}${markNote}。`, 'good')
+    }
+    if (eff.stone) {
+      const s = Math.floor(eff.stone * scopeMul)
+      useGameStore.setState({ stones: useGameStore.getState().stones + s })
+      log(`灵石 +${s}`, 'good')
+    }
+    if (item.pillGrade || item.herbTier) {
+      log(`${itemTierText(item)}${itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}`, 'dim')
     }
     set({ player: p, inventory: inv })
     unlockCodex(get, set, 'item', id)
@@ -2387,8 +3405,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已在修习之中。', 'dim')
       return
     }
-    if (!canLearnGongfa(g, player.realm)) {
-      log(`参悟《${g.name}》需先达${gongfaRealmText(g)}，你现为${REALMS[player.realm]?.name}。`, 'bad')
+    if (!canLearnGongfaFull(g, player.realm)) {
+      log(
+        `参悟《${g.name}》需达${gongfaRealmText(g)}且品阶相称（${g.grade} · ${gongfaScopeText(g)}）。`,
+        'bad',
+      )
       return
     }
     const inv = { ...inventory }
@@ -2416,14 +3437,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已臻圆满，进境无可复加。', 'dim')
       return
     }
-    const cost = gongfaAdvanceCost(g, st.stage)
+    // 残卷功法进阶更省
+    const fromSeal = (legacy.sealed ?? []).some((s) => s.kind === 'gongfa' && s.id === id)
+    const cost = Math.floor(gongfaAdvanceCost(g, st.stage) * (fromSeal ? 0.7 : 1))
     if (player.exp < cost) {
       log(`进阶「${GONGFA_STAGE_LABELS[st.stage + 1]}」需消耗修为 ${cost}，当前修为不足。`, 'bad')
       return
     }
     const learned = { ...gongfa.learned, [id]: { stage: st.stage + 1 } }
     const p = recomputeVitals({ ...player, exp: player.exp - cost }, treasures, learned, legacy.daoMarks)
-    log(`修为灌顶，《${g.name}》修至「${GONGFA_STAGE_LABELS[st.stage + 1]}」！`, 'gold')
+    log(
+      `修为灌顶，《${g.name}》修至「${GONGFA_STAGE_LABELS[st.stage + 1]}」！${fromSeal ? '（残卷余韵，消耗降低）' : ''}`,
+      'gold',
+    )
     set({ player: p, gongfa: { learned } })
   },
 
@@ -2551,22 +3577,37 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('战斗进行中，无法兑换物资。', 'bad')
       return
     }
-    if (!sect.sectId || sect.contribution < cost) {
+    if (!sect.sectId) {
+      log('未入宗门。', 'bad')
+      return
+    }
+    // 坊市让利：宗主建设折扣
+    const actual = Math.max(1, Math.floor(cost * (1 - 0.04 * sect.marketLv)))
+    if (sect.contribution < actual) {
       log('贡献不足。', 'bad')
       return
     }
     const inv = { ...inventory }
     inv[itemId] = (inv[itemId] ?? 0) + 1
-    log(`以贡献兑换「${ITEMS[itemId]?.name ?? itemId}」。`, 'gold')
-    set({ inventory: inv, sect: { ...sect, contribution: sect.contribution - cost } })
+    log(
+      `以贡献兑换「${ITEMS[itemId]?.name ?? itemId}」${actual < cost ? `（建设让利，实付 ${actual}）` : ''}。`,
+      'gold',
+    )
+    set({ inventory: inv, sect: { ...sect, contribution: sect.contribution - actual } })
     unlockCodex(get, set, 'item', itemId)
     afterProgressSnapshot(get, set)
   },
 
   sectLearn: (libId, cost) => {
     const { sect, player, gongfa, treasures, legacy } = get()
-    if (!sect.sectId || sect.contribution < cost || !player) {
+    if (!sect.sectId || !player) {
       log('贡献不足或未入门。', 'bad')
+      return
+    }
+    // 藏经阁扩容折扣
+    const actual = Math.max(1, Math.floor(cost * (1 - 0.05 * sect.libraryLv)))
+    if (sect.contribution < actual) {
+      log('贡献不足。', 'bad')
       return
     }
     const g = GONGFAS[libId]
@@ -2575,17 +3616,23 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已在修习之中。', 'dim')
       return
     }
-    if (!canLearnGongfa(g, player.realm)) {
-      log(`参悟《${g.name}》需先达${gongfaRealmText(g)}，你现为${REALMS[player.realm]?.name}。`, 'bad')
+    if (!canLearnGongfaFull(g, player.realm)) {
+      log(
+        `参悟《${g.name}》需达${gongfaRealmText(g)}且品阶相称（${g.grade} · ${gongfaScopeText(g)}）。`,
+        'bad',
+      )
       return
     }
     const learned = { ...gongfa.learned, [libId]: { stage: 0 } }
     const p = recomputeVitals({ ...player }, treasures, learned, legacy.daoMarks)
-    log(`藏经阁中灵光乍现，《${g.name}》参悟入门。`, 'gold')
+    log(
+      `藏经阁中灵光乍现，《${g.name}》参悟入门。${actual < cost ? `（扩容折扣，实付 ${actual}）` : ''}`,
+      'gold',
+    )
     set({
       player: p,
       gongfa: { learned },
-      sect: { ...sect, contribution: sect.contribution - cost },
+      sect: { ...sect, contribution: sect.contribution - actual },
     })
     unlockCodex(get, set, 'gongfa', libId)
     afterProgressSnapshot(get, set)
@@ -2593,7 +3640,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   sectGrandCompetition: () => {
     const { player, sect, treasures } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     if (!sect.sectId) return
     const nextId = nextSectRank(sect.rank)
     const next = nextId ? SECT_RANKS[nextId] : null
@@ -2619,6 +3666,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       autoCombat: false,
       lastCombat: null,
       pendingEvent: null,
+      pendingStory: null,
       player: {
         ...player,
         energy: Math.min(player.maxEnergy, actor.energy),
@@ -2707,7 +3755,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const hpScale = realm.env.playerHpMul ?? 1
     const actor = makePlayerCombatant(player, treasures, hpScale)
     const spouse = spouseDef(companion)
-    if (spouse) actor.atk = Math.floor(actor.atk * 1.08)
+    const spouseHurt = (companion.spouseHurtUntilDay ?? 0) > dayNumber(get().time)
+    if (spouse && !spouseHurt) actor.atk = Math.floor(actor.atk * 1.08)
     const state = createCombatState(actor, enemy, {
       kind: 'tower',
       title: `秘境 ${realm.name} · 第${tower.floor}层${boss ? '（镇守）' : ''}`,
@@ -2839,6 +3888,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('你已有道侣，不宜与他人双修。', 'bad')
       return
     }
+    if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
+      log(`${c.name}重伤未愈，无法双修。`, 'bad')
+      return
+    }
     const key = `${time.year}-${time.month}-${time.day}`
     if (companion.dualDoneOn === key) {
       log('今日双修已毕，灵力需沉淀。', 'dim')
@@ -2878,6 +3931,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         lifespanLeft: life,
       },
     })
+    if (companion.spouseId === id) maybeTriggerSpouseStory(get, set)
   },
 
   propose: (id) => {
@@ -2909,10 +3963,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     log(`${c.name}应允了。自此结为道侣，祸福与共。`, 'gold')
     set({
       stones: stones - 200,
-      companion: { ...companion, spouseId: id },
+      companion: { ...companion, spouseId: id, postStage: { ...companion.postStage, [id]: companion.postStage[id] ?? 0 } },
     })
     unlockCodex(get, set, 'companion', id)
     afterProgressSnapshot(get, set)
+    maybeTriggerSpouseStory(get, set)
   },
 
   advanceDays: (n) => {
@@ -2988,7 +4043,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const wasFullHp = snap.player.hp >= snap.player.maxHp - 1
       const wasFullEn = snap.player.energy >= snap.player.maxEnergy - 1
       const legacy = migrateLegacy(snap.legacy)
-      const companion = snap.companion ?? freshCompanion()
+      const companion = migrateCompanion(snap.companion)
       const inventory = sanitizeInventory(snap.inventory)
       const treasures = snap.treasures ?? []
       const towerBest = snap.towerBest ?? {}
@@ -3084,6 +4139,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         tower: null,
         lastCombat: null,
         pendingEvent: null,
+        pendingStory: null,
         activeCombat: null,
         activePanel: 'cultivate',
       })
@@ -3147,7 +4203,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const migratedSect = migrateSect(snap.sect)
       const migratedGongfa = migrateGongfa(snap.gongfa, migratedSect.learned)
       migratedSect.learned = []
-      const companion = snap.companion ?? freshCompanion()
+      const companion = migrateCompanion(snap.companion)
       const inventory = sanitizeInventory(snap.inventory ?? {})
       const treasures = snap.treasures ?? []
       const towerBest = snap.towerBest ?? {}
@@ -3232,6 +4288,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         tower: null,
         lastCombat: null,
         pendingEvent: null,
+        pendingStory: null,
         activeCombat: null,
       })
       processMetaProgress(get, set)

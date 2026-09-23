@@ -138,13 +138,38 @@ export function codexEntries(page: CodexPageId): CodexEntry[] {
               ? '法宝'
               : '材料',
         }))
-    case 'companion':
-      return COMPANIONS.map((c) => ({
+    case 'companion': {
+      const base = COMPANIONS.map((c) => ({
         id: c.id,
         name: c.name,
-        desc: c.desc,
-        meta: c.title,
+        desc: c.hidden ? (c.unlockHint ?? c.desc) : c.desc,
+        meta: c.hidden ? '隐藏道侣' : c.title,
       }))
+      const endings: CodexEntry[] = COMPANIONS.flatMap((c) => {
+        const beats = c.postStory ?? []
+        const hasHe = beats.some((b) => (b.choices ?? []).some((ch) => ch.ending === 'he') || b.ending === 'he')
+        const hasBe = beats.some((b) => (b.choices ?? []).some((ch) => ch.ending === 'be') || b.ending === 'be')
+        const out: CodexEntry[] = []
+        if (hasHe) {
+          out.push({
+            id: `${c.id}_he`,
+            name: `${c.name}·良缘`,
+            desc: `${c.name}结缘线圆满结局。`,
+            meta: '结局',
+          })
+        }
+        if (hasBe) {
+          out.push({
+            id: `${c.id}_be`,
+            name: `${c.name}·遗恨`,
+            desc: `${c.name}结缘线遗憾结局。`,
+            meta: '结局',
+          })
+        }
+        return out
+      })
+      return [...base, ...endings]
+    }
     case 'secret':
       return SECRET_REALMS.map((r) => ({
         id: r.id,

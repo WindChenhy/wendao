@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { CATEGORY_LABELS, ITEMS, itemCategory, MARKET_STOCK, treasureEffectText } from '../data/items'
+import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, MARKET_STOCK, treasureEffectText } from '../data/items'
 import {
   GONGFA_GRADE_CLASS,
   GONGFA_STAGE_LABELS,
   GONGFAS,
-  canLearnGongfa,
+  canLearnGongfaFull as canLearnGongfa,
+  gongfaScopeText,
   gongfaRealmText,
 } from '../data/gongfa'
 import { realmIndex } from '../data/realms'
@@ -124,6 +125,13 @@ export function MarketPanel() {
                     {owned > 0 && <span className="text-xs text-jade ml-2">已有 ×{owned}</span>}
                   </div>
                   <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
+                  {(item.pillGrade || item.herbTier || item.treasureTier) && (
+                    <div className="text-[11px] text-jade mt-0.5">
+                      {itemTierText(item)}
+                      {itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}
+                    </div>
+                  )}
+                  {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
                   {st && g && (
                     <div className="text-xs text-bamboo mt-0.5">
                       此功法已参悟，再次购买秘籍无法重复参悟。

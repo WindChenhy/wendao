@@ -3,24 +3,359 @@
     "id": "herb_qi",
     "name": "聚气草",
     "type": "material",
-    "desc": "灵田所出灵植，可入药。",
+    "desc": "一阶灵植。田间常见，可入药炼低品丹。",
     "price": 18,
-    "effect": { "exp": 25 }
+    "herbTier": 1,
+    "minRealm": "qi",
+    "effect": {
+      "exp": 25
+    }
   },
   {
     "id": "herb_moon",
     "name": "月华花",
     "type": "material",
-    "desc": "月下凝露的灵花。",
+    "desc": "一阶灵花。月下凝露，药性温润，可续气血。",
     "price": 50,
-    "effect": { "hp": 40 }
+    "herbTier": 1,
+    "minRealm": "qi",
+    "effect": {
+      "hp": 40
+    }
   },
   {
     "id": "herb_blood",
     "name": "血参",
     "type": "material",
-    "desc": "药力雄浑的血色参根。",
+    "desc": "二阶灵参。药力雄浑，气血大补。",
     "price": 150,
-    "effect": { "hp": 120, "exp": 60 }
+    "herbTier": 2,
+    "minRealm": "qi",
+    "effect": {
+      "hp": 120,
+      "exp": 60
+    }
+  },
+  {
+    "id": "herb_jade",
+    "name": "玉骨花",
+    "type": "material",
+    "desc": "二阶灵花。淬骨生肌，常作筑基辅药。",
+    "price": 220,
+    "herbTier": 2,
+    "minRealm": "foundation",
+    "effect": {
+      "hp": 180,
+      "exp": 90
+    }
+  },
+  {
+    "id": "herb_goldmark",
+    "name": "金纹芝",
+    "type": "material",
+    "desc": "三阶灵芝。菌盖隐现金纹，凝丹之要。",
+    "price": 800,
+    "herbTier": 3,
+    "minRealm": "foundation",
+    "effect": {
+      "exp": 280,
+      "hp": 200
+    }
+  },
+  {
+    "id": "herb_inklotus",
+    "name": "墨心莲",
+    "type": "material",
+    "desc": "三阶灵莲。清心镇念，可入安神丹。",
+    "price": 960,
+    "herbTier": 3,
+    "minRealm": "golden_core",
+    "effect": {
+      "energy": 80,
+      "exp": 200
+    }
+  },
+  {
+    "id": "herb_soulorchid",
+    "name": "元婴兰",
+    "type": "material",
+    "desc": "四阶奇兰。香气养魂，元婴修士趋之若鹜。",
+    "price": 3200,
+    "herbTier": 4,
+    "minRealm": "golden_core",
+    "effect": {
+      "exp": 800,
+      "hp": 400
+    }
+  },
+  {
+    "id": "herb_nightjade",
+    "name": "夜光玉髓草",
+    "type": "material",
+    "desc": "四阶灵草。夜放微光，可炼明目清神之丹。",
+    "price": 3800,
+    "herbTier": 4,
+    "minRealm": "nascent_soul",
+    "effect": {
+      "energy": 160,
+      "exp": 600
+    }
+  },
+  {
+    "id": "herb_godpetal",
+    "name": "化神莲瓣",
+    "type": "material",
+    "desc": "五阶神莲残瓣。一丝化神道韵藏于瓣脉。",
+    "price": 12000,
+    "herbTier": 5,
+    "minRealm": "nascent_soul",
+    "effect": {
+      "exp": 2200,
+      "hp": 800
+    }
+  },
+  {
+    "id": "herb_starfern",
+    "name": "星霜蕨",
+    "type": "material",
+    "desc": "五阶灵蕨。叶覆星霜，炼虚丹道常用。",
+    "price": 15000,
+    "herbTier": 5,
+    "minRealm": "spirit_sea",
+    "effect": {
+      "exp": 2800,
+      "energy": 320
+    }
+  },
+  {
+    "id": "herb_voidgrass",
+    "name": "虚空草",
+    "type": "material",
+    "desc": "六阶异草。叶脉若空间裂纹，采撷极险。",
+    "price": 42000,
+    "herbTier": 6,
+    "minRealm": "spirit_sea",
+    "effect": {
+      "exp": 7000,
+      "hp": 2000
+    }
+  },
+  {
+    "id": "herb_yinyang",
+    "name": "阴阳藤",
+    "type": "material",
+    "desc": "六阶灵藤。双色缠生，调和阴阳二气。",
+    "price": 48000,
+    "herbTier": 6,
+    "minRealm": "void",
+    "effect": {
+      "exp": 9000,
+      "energy": 800
+    }
+  },
+  {
+    "id": "herb_sealroot",
+    "name": "封灵根",
+    "type": "material",
+    "desc": "七阶灵根。锁灵不泄，合体丹道至宝。",
+    "price": 140000,
+    "herbTier": 7,
+    "minRealm": "void",
+    "effect": {
+      "exp": 22000,
+      "hp": 5000
+    }
+  },
+  {
+    "id": "herb_aurora",
+    "name": "极光兰",
+    "type": "material",
+    "desc": "七阶仙兰。花期一瞬，光华可鉴神魂。",
+    "price": 160000,
+    "herbTier": 7,
+    "minRealm": "integration",
+    "effect": {
+      "exp": 28000,
+      "energy": 2000
+    }
+  },
+  {
+    "id": "herb_daofruit",
+    "name": "道果",
+    "type": "material",
+    "desc": "八阶灵果。果皮镌刻细密道纹，咬一口如听道三日。",
+    "price": 420000,
+    "herbTier": 8,
+    "minRealm": "integration",
+    "effect": {
+      "exp": 80000,
+      "hp": 15000
+    }
+  },
+  {
+    "id": "herb_taowu",
+    "name": "桃悟枝",
+    "type": "material",
+    "desc": "八阶悟道木枝。据传生于上古道场，可开悟性。",
+    "price": 480000,
+    "herbTier": 8,
+    "minRealm": "mahayana",
+    "effect": {
+      "exp": 100000,
+      "energy": 5000
+    }
+  },
+  {
+    "id": "herb_tribflower",
+    "name": "渡劫花",
+    "type": "material",
+    "desc": "九阶神花。只在雷云将散时绽放，是渡劫丹的君药。",
+    "price": 1200000,
+    "herbTier": 9,
+    "minRealm": "mahayana",
+    "effect": {
+      "exp": 250000,
+      "hp": 40000
+    }
+  },
+  {
+    "id": "herb_xiantai",
+    "name": "仙胎草",
+    "type": "material",
+    "desc": "九阶传世灵草。草心如婴，隐隐有霞光。",
+    "price": 1500000,
+    "herbTier": 9,
+    "minRealm": "tribulation",
+    "effect": {
+      "exp": 320000,
+      "energy": 12000
+    }
+  },
+  {
+    "id": "herb_spiritgrass",
+    "name": "养神草",
+    "type": "material",
+    "desc": "一阶灵草。安神定志，可炼清心丹。",
+    "price": 35,
+    "herbTier": 1,
+    "minRealm": "qi",
+    "effect": {
+      "energy": 20
+    }
+  },
+  {
+    "id": "herb_frost",
+    "name": "寒霜叶",
+    "type": "material",
+    "desc": "二阶灵叶。性寒清热，解毒良材。",
+    "price": 130,
+    "herbTier": 2,
+    "minRealm": "qi",
+    "effect": {
+      "hp": 60,
+      "energy": 30
+    }
+  },
+  {
+    "id": "herb_flame",
+    "name": "赤焰花",
+    "type": "material",
+    "desc": "二阶灵花。性烈如火，可炼回灵之丹。",
+    "price": 160,
+    "herbTier": 2,
+    "minRealm": "foundation",
+    "effect": {
+      "energy": 50
+    }
+  },
+  {
+    "id": "herb_cloud",
+    "name": "云母芝",
+    "type": "material",
+    "desc": "三阶灵芝。云气缠绕，养气第一。",
+    "price": 900,
+    "herbTier": 3,
+    "minRealm": "golden_core",
+    "effect": {
+      "exp": 350,
+      "energy": 80
+    }
+  },
+  {
+    "id": "herb_ghoul",
+    "name": "阴魂草",
+    "type": "material",
+    "desc": "三阶阴草。鬼修所喜，亦可炼魂丹。",
+    "price": 750,
+    "herbTier": 3,
+    "minRealm": "golden_core",
+    "effect": {
+      "exp": 280
+    }
+  },
+  {
+    "id": "herb_auroraleaf",
+    "name": "极光叶",
+    "type": "material",
+    "desc": "四阶灵叶。叶脉流光，明目清神。",
+    "price": 4000,
+    "herbTier": 4,
+    "minRealm": "nascent_soul",
+    "effect": {
+      "energy": 220,
+      "exp": 700
+    }
+  },
+  {
+    "id": "herb_thunder",
+    "name": "雷纹木心",
+    "type": "material",
+    "desc": "五阶雷木之心。内蕴一丝劫雷。",
+    "price": 16000,
+    "herbTier": 5,
+    "minRealm": "spirit_sea",
+    "effect": {
+      "exp": 3500,
+      "hp": 900
+    }
+  },
+  {
+    "id": "herb_iceheart",
+    "name": "冰心玉髓",
+    "type": "material",
+    "desc": "六阶玉髓。寒玉之心，镇火安神。",
+    "price": 55000,
+    "herbTier": 6,
+    "minRealm": "void",
+    "effect": {
+      "energy": 1200,
+      "exp": 12000
+    }
+  },
+  {
+    "id": "herb_goldlotus",
+    "name": "金莲子",
+    "type": "material",
+    "desc": "七阶金莲所结。佛道双修皆重。",
+    "price": 180000,
+    "herbTier": 7,
+    "minRealm": "integration",
+    "effect": {
+      "exp": 35000,
+      "hp": 8000
+    }
+  },
+  {
+    "id": "herb_starcore",
+    "name": "星核",
+    "type": "material",
+    "desc": "八阶星骸精华。一点星光可开山。",
+    "price": 550000,
+    "herbTier": 8,
+    "minRealm": "mahayana",
+    "effect": {
+      "exp": 120000,
+      "energy": 8000
+    }
   }
 ]

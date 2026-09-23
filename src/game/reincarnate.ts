@@ -43,7 +43,7 @@ export function daoBonuses(daoMarks: number) {
     cultivateMul: 1 + Math.min(0.5, daoMarks * 0.004),
     breakthroughBonus: Math.min(15, Math.floor(daoMarks * 0.15)),
     startStones: Math.min(500, 20 + Math.floor(daoMarks * 2)),
-    startPlotsBonus: Math.min(2, Math.floor(daoMarks / 40)),
+    startPlotsBonus: 0,
   }
 }
 

@@ -1,6 +1,33 @@
 import type { Gender, RealmId } from '../types'
+import storiesDb from './db/companion_stories.json'
 
 export type CompanionId = string
+
+export interface StoryChoice {
+  id: string
+  label: string
+  text: string
+  ending?: 'he' | 'be'
+  affinity?: number
+  stones?: number
+  exp?: number
+  hpPct?: number
+  repRight?: number
+  repDemonic?: number
+  daoMarksCost?: number
+  itemId?: string
+  flag?: string
+}
+
+export interface StoryBeat {
+  id: string
+  title: string
+  text: string
+  choices?: StoryChoice[]
+  /** 无选项时的单结文案（点「继续」推进） */
+  postText?: string
+  ending?: 'he' | 'be'
+}
 
 export interface CompanionDef {
   id: string
@@ -29,9 +56,25 @@ export interface CompanionDef {
   minRealm: RealmId
   /** 玩家性别兼容：any 或异性 */
   prefer: 'any' | 'opposite'
+  /** 隐藏道侣：需特殊事件解锁 */
+  hidden?: boolean
+  unlockHint?: string
+  /** 结缘后长线剧情（v0.9） */
+  postStory?: StoryBeat[]
 }
 
-export const COMPANIONS: CompanionDef[] = [
+interface HiddenCompanionJson extends Omit<CompanionDef, 'postStory'> {
+  postStory?: StoryBeat[]
+}
+
+interface StoriesDb {
+  stories: { companionId: string; beats: StoryBeat[] }[]
+  hidden: HiddenCompanionJson
+}
+
+const stories = storiesDb as StoriesDb
+
+const BASE_COMPANIONS: CompanionDef[] = [
   {
     id: 'lin_wan',
     name: '林婉',
@@ -51,6 +94,7 @@ export const COMPANIONS: CompanionDef[] = [
     breakthroughBonus: 3,
     minRealm: 'qi',
     prefer: 'any',
+    postStory: stories.stories.find((s) => s.companionId === 'lin_wan')?.beats ?? [],
   },
   {
     id: 'su_qing',
@@ -71,6 +115,7 @@ export const COMPANIONS: CompanionDef[] = [
     breakthroughBonus: 4,
     minRealm: 'qi',
     prefer: 'any',
+    postStory: stories.stories.find((s) => s.companionId === 'su_qing')?.beats ?? [],
   },
   {
     id: 'yan_luo',
@@ -111,6 +156,7 @@ export const COMPANIONS: CompanionDef[] = [
     breakthroughBonus: -2,
     minRealm: 'qi',
     prefer: 'any',
+    postStory: stories.stories.find((s) => s.companionId === 'xue_mei')?.beats ?? [],
   },
   {
     id: 'gu_chen',
@@ -154,10 +200,36 @@ export const COMPANIONS: CompanionDef[] = [
   },
 ]
 
+/** 隐藏道侣：高境界 + 特殊事件解锁 */
+export const HIDDEN_COMPANION: CompanionDef = {
+  ...(stories.hidden as HiddenCompanionJson),
+  postStory: stories.hidden.postStory ?? [],
+}
+
+export const COMPANIONS: CompanionDef[] = [...BASE_COMPANIONS, HIDDEN_COMPANION]
+
+/** 非隐藏（默认展示） */
+export const VISIBLE_COMPANIONS: CompanionDef[] = BASE_COMPANIONS
+
 export function companionById(id: string): CompanionDef | undefined {
   return COMPANIONS.find((c) => c.id === id)
 }
 
 export function giftAffinity(c: CompanionDef, itemId: string): number {
   return c.giftPrefs[itemId] ?? c.giftDefault
+}
+
+/** 结缘后待触发的剧情段（按 postStage 推进） */
+export function nextStoryBeat(c: CompanionDef, postStage: number): StoryBeat | null {
+  if (!c.postStory || c.postStory.length === 0) return null
+  if (postStage < 0 || postStage >= c.postStory.length) return null
+  return c.postStory[postStage]
+}
+
+export function storyEndingKey(companionId: string, ending: 'he' | 'be'): string {
+  return `${companionId}_${ending}`
+}
+
+export function storyEndingLabel(ending: 'he' | 'be'): string {
+  return ending === 'he' ? '良缘' : '遗恨'
 }

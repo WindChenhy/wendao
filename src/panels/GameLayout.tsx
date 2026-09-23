@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { CombatPanel } from '../components/CombatPanel'
-import { EventModal } from '../components/EventModal'
+import { EventModal, StoryModal } from '../components/EventModal'
 import { LogPanel } from '../components/LogPanel'
 import { OfflineReturnModal } from '../components/OfflineReturnModal'
 import { SideNav, StatusBar } from '../components/Chrome'
@@ -69,6 +69,7 @@ export function GameLayout() {
       </div>
       <LogPanel />
       <EventModal />
+      <StoryModal />
       <OfflineReturnModal />
 
       {/* 战斗全屏接管：进行中不可做委托/历练/切页等其他操作 */}

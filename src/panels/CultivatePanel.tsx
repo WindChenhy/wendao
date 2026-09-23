@@ -6,25 +6,85 @@ import {
   GONGFA_GRADE_ORDER,
   GONGFA_STAGE_LABELS,
   GONGFAS,
-  canLearnGongfa,
+  canLearnGongfaFull as canLearnGongfa,
+  gongfaScopeText,
   gongfaAdvanceCost,
   gongfaByScrollId,
   gongfaEffectText,
   gongfaRealmText,
 } from '../data/gongfa'
+import { activeSynergies, describeSynergyEffects } from '../data/gongfaSynergy'
 import { REALMS, expNeeded } from '../data/realms'
 import { ITEMS, bestBreakthroughPill, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
 import { canBreakthrough, breakthroughRate } from '../game/breakthrough'
 import { seclusionYearOptions, GAME_DAYS_PER_YEAR } from '../game/day'
 import { formatNum } from '../game/format'
 import { daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
+import { sealDaoCost, sealSlots, describeSealed, type SealedItem } from '../game/seal'
+import { TRIBULATION_PLANS, isTribulationMoment, type TribulationPlanId } from '../data/tribulation'
 import { useGameStore } from '../stores/useGameStore'
+import { useState } from 'react'
+
+function SealPicker({
+  candidates,
+  pick,
+  onPick,
+  canSealMore,
+  slots,
+  sealedCount,
+}: {
+  candidates: SealedItem[]
+  pick: SealedItem | null
+  onPick: (s: SealedItem | null) => void
+  canSealMore: boolean
+  slots: number
+  sealedCount: number
+}) {
+  return (
+    <div className="mt-3 border-t border-border/60 pt-2">
+      <div className="text-xs text-gold mb-1">
+        转生封印（{sealedCount}/{slots} 槽）
+      </div>
+      <p className="text-[11px] text-text-dim mb-2">
+        可选封印 1 件传承物带入下一世：功法成残卷（进阶更省）；法宝凡品/灵器直带，宝器以上额外扣道痕。
+      </p>
+      {!canSealMore ? (
+        <div className="text-xs text-vermilion">封印槽已满，本世无法再封。</div>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          <button
+            className={`text-[10px] border px-1.5 py-0.5 ${!pick ? 'border-gold text-gold' : 'border-border text-text-dim'}`}
+            onClick={() => onPick(null)}
+          >
+            不封印
+          </button>
+          {candidates.map((s) => {
+            const key = `${s.kind}:${s.id}`
+            const active = pick && `${pick.kind}:${pick.id}` === key
+            return (
+              <button
+                key={key}
+                className={`text-[10px] border px-1.5 py-0.5 ${active ? 'border-gold text-gold' : 'border-border text-text-dim'}`}
+                title={describeSealed(s)}
+                onClick={() => onPick(active ? null : s)}
+              >
+                {s.kind === 'gongfa' ? '残卷' : '法宝'}·{s.name}
+                {s.daoCost ? `（道痕-${s.daoCost}）` : ''}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function CultivatePanel() {
   const player = useGameStore((s) => s.player)
   const sect = useGameStore((s) => s.sect)
   const inventory = useGameStore((s) => s.inventory)
   const treasures = useGameStore((s) => s.treasures)
+  const artifacts = useGameStore((s) => s.artifacts)
   const gongfa = useGameStore((s) => s.gongfa)
   const legacy = useGameStore((s) => s.legacy)
   const companion = useGameStore((s) => s.companion)
@@ -37,6 +97,8 @@ export function CultivatePanel() {
   const startCreate = useGameStore((s) => s.startCreate)
   const comprehendGongfa = useGameStore((s) => s.comprehendGongfa)
   const advanceGongfaStage = useGameStore((s) => s.advanceGongfaStage)
+  const [planId, setPlanId] = useState<TribulationPlanId>('normal')
+  const [sealPick, setSealPick] = useState<SealedItem | null>(null)
 
   if (!player) return null
   const need = expNeeded(player.realm, player.layer)
@@ -48,16 +110,6 @@ export function CultivatePanel() {
   const breakPill = bestBreakthroughPill(inventory)
   const pillBt = breakPill?.rate ?? 0
   const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? 5 : 0
-  const rate = Math.min(
-    95,
-    breakthroughRate(player.classId, player.realm) +
-      (sdef?.bonus.breakthroughBonus ?? 0) +
-      spouseBonus +
-      dao.breakthroughBonus +
-      treasureBt +
-      pillBt +
-      tribTokenBt,
-  )
   const ready = canBreakthrough(player.realm, player.layer, player.exp)
   const c = CLASSES[player.classId]
   // 飞升与道消互斥：已飞升则不再显示道消
@@ -70,6 +122,51 @@ export function CultivatePanel() {
   const matOk = !matId || matCount > 0
   const options = seclusionYearOptions(player.realm)
   const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId)) : null
+  const synList = activeSynergies(Object.keys(gongfa.learned))
+  const synBt = synList.reduce((n, s) => n + (s.rule.effects.breakthrough ?? 0), 0)
+  const baseRate = Math.min(
+    95,
+    Math.max(
+      5,
+      breakthroughRate(player.classId, player.realm) +
+        (sdef?.bonus.breakthroughBonus ?? 0) +
+        spouseBonus +
+        dao.breakthroughBonus +
+        treasureBt +
+        pillBt +
+        tribTokenBt +
+        synBt,
+    ),
+  )
+  const planOpen = isTribulationMoment(player.realm, player.layer, def.layers)
+  const planDef = TRIBULATION_PLANS.find((p) => p.id === planId) ?? TRIBULATION_PLANS[0]
+  const rateWithPlan = Math.min(
+    95,
+    Math.max(5, baseRate + (planOpen ? planDef.rateDelta : 0)),
+  )
+  const spouseHurt = (companion.spouseHurtUntilDay ?? 0) > 0
+  const slots = sealSlots(legacy.daoMarks + (nextGain?.daoMarks ?? 0))
+  const sealedCount = (legacy.sealed ?? []).length
+  const canSealMore = sealedCount < slots
+  const sealCandidates: SealedItem[] = [
+    ...Object.entries(gongfa.learned).map(([id, st]) => ({
+      kind: 'gongfa' as const,
+      id,
+      name: GONGFAS[id]?.name ?? id,
+      stage: st.stage,
+      daoCost: 0,
+    })),
+    ...artifacts.map((a) => ({
+      kind: 'artifact' as const,
+      id: a.itemId,
+      name: a.name,
+      quality: a.quality,
+      affixes: a.affixes,
+      daoCost: sealDaoCost(a.quality),
+    })),
+  ]
+  const sealCost = sealPick ? (sealPick.daoCost ?? 0) : 0
+  const netDao = Math.max(0, (nextGain?.daoMarks ?? 0) - sealCost)
   const learnedList = Object.entries(gongfa.learned).sort((a, b) => {
     const ga = GONGFAS[a[0]]
     const gb2 = GONGFAS[b[0]]
@@ -137,13 +234,27 @@ export function CultivatePanel() {
           「闭关归来」自动结算修为（不自动突破）。时长上限随境界（练气 8 小时 → 大乘 48 小时）。
           下线前建议先在设置里存档。
         </div>
+        {synList.length > 0 && (
+          <div className="mt-3 border-t border-border/60 pt-2 text-xs">
+            <div className="text-gold font-display mb-1">功法羁绊</div>
+            <div className="space-y-1">
+              {synList.map(({ rule, note }) => (
+                <div key={rule.id} className="text-jade">
+                  【{rule.name}】{describeSynergyEffects(rule.effects)}
+                  <span className="text-text-dim ml-2">（{note}）</span>
+                  {rule.flavor && <div className="text-text-dim">{rule.flavor}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">冲击壁垒</div>
         <p className="text-xs text-text-dim mb-2">
-          成功率约 <span className="text-gold">{Math.round(rate)}%</span>
-          （含职业、宗门、道侣、道痕、法宝与丹药加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
+          成功率约 <span className="text-gold">{Math.round(rateWithPlan)}%</span>
+          （含职业、宗门、道侣、道痕、法宝、丹药与羁绊加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
         </p>
         <div className="text-xs text-text-dim mb-2 space-y-0.5">
           {treasureBt > 0 && <div className="text-bamboo">认主法宝：突破 +{treasureBt}%（同类不叠加）</div>}
@@ -156,6 +267,15 @@ export function CultivatePanel() {
             <div>暂无突破丹药。坊市可购破境丹系列，冲击时自动消耗。</div>
           )}
           {tribTokenBt > 0 && <div className="text-bamboo">持有渡劫令：+{tribTokenBt}%</div>}
+          {synBt !== 0 && (
+            <div className="text-bamboo">
+              功法羁绊：突破 {synBt > 0 ? '+' : ''}
+              {synBt}%
+            </div>
+          )}
+          {spouse && spouseHurt && (
+            <div className="text-vermilion">道侣重伤未愈，护法加成暂失效</div>
+          )}
         </div>
         {isMajor && matId && (
           <div className={`text-sm mb-3 ${matOk ? 'text-bamboo' : 'text-vermilion'}`}>
@@ -172,12 +292,63 @@ export function CultivatePanel() {
         <p className="text-xs text-text-dim mb-2">
           持有「渡劫令」可使冲击壁垒成功率 +5%（不消耗）；渡劫圆满→飞升则必须消耗一枚。
         </p>
+        {planOpen ? (
+          <div className="mb-3">
+            <div className="text-xs text-gold mb-1">天劫选择（大境界/渡劫）</div>
+            <div className="space-y-1">
+              {TRIBULATION_PLANS.map((p) => {
+                const can =
+                  (!p.costItemId || (inventory[p.costItemId] ?? 0) >= (p.costCount ?? 1)) &&
+                  (!p.spouseRisk || (Boolean(companion.spouseId) && !spouseHurt))
+                return (
+                  <label
+                    key={p.id}
+                    className={`flex items-start gap-2 border px-2 py-1.5 text-xs cursor-pointer ${
+                      planId === p.id ? 'border-gold text-gold' : 'border-border text-text-dim'
+                    } ${can ? '' : 'opacity-50'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="trib-plan"
+                      className="mt-0.5"
+                      checked={planId === p.id}
+                      disabled={!can}
+                      onChange={() => setPlanId(p.id)}
+                    />
+                    <span>
+                      <span className="text-text">{p.name}</span>
+                      {p.rateDelta !== 0 && (
+                        <span className="ml-2">
+                          成功 {p.rateDelta > 0 ? '+' : ''}
+                          {p.rateDelta}%
+                        </span>
+                      )}
+                      {p.costItemId && (
+                        <span className="ml-2">
+                          耗「{ITEMS[p.costItemId]?.name}」×{p.costCount ?? 1}
+                        </span>
+                      )}
+                      {p.extraDao ? <span className="ml-2">成则道痕+{p.extraDao}</span> : null}
+                      <div className="mt-0.5">{p.desc}</div>
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
         <button
           className="pixel-btn primary"
           disabled={!ready || !matOk || dead || win}
-          onClick={breakthrough}
+          onClick={() => breakthrough(planOpen ? planId : 'normal')}
         >
-          {!ready ? '修为不足' : !matOk ? '缺少突破材料' : '立即突破'}
+          {!ready
+            ? '修为不足'
+            : !matOk
+              ? '缺少突破材料'
+              : planOpen
+                ? `按「${planDef.name}」冲关`
+                : '立即突破'}
         </button>
         {ready && matOk && (
           <span className="text-xs text-bamboo ml-3">灵气充盈，可冲击下一层</span>
@@ -190,18 +361,30 @@ export function CultivatePanel() {
           <p className="text-sm text-text-dim">你已超脱此界。可转世重修，将此生修为化作道痕。</p>
           {nextGain && (
             <p className="text-xs text-text-dim mt-2">
-              转生可得道痕 <span className="text-gold">+{nextGain.daoMarks}</span>（{nextGain.desc}）
+              转生可得道痕 <span className="text-gold">+{netDao}</span>（{nextGain.desc}
+              {sealCost ? ` · 封印代价 -${sealCost}` : ''}）
             </p>
           )}
+          <SealPicker
+            candidates={sealCandidates}
+            pick={sealPick}
+            onPick={setSealPick}
+            canSealMore={canSealMore}
+            slots={slots}
+            sealedCount={sealedCount}
+          />
           <div className="flex flex-wrap gap-2 mt-3">
             <button
               className="pixel-btn primary"
               onClick={() =>
-                reincarnate({
-                  name: player.name,
-                  gender: player.gender,
-                  classId: player.classId,
-                })
+                reincarnate(
+                  {
+                    name: player.name,
+                    gender: player.gender,
+                    classId: player.classId,
+                  },
+                  sealPick,
+                )
               }
             >
               立即转生（沿用此身名号职业）
@@ -218,18 +401,30 @@ export function CultivatePanel() {
           <p className="text-sm text-text-dim">此世修行已终。可带着道痕转世重修。</p>
           {nextGain && (
             <p className="text-xs text-text-dim mt-2">
-              转生可得道痕 <span className="text-gold">+{nextGain.daoMarks}</span>（{nextGain.desc}）
+              转生可得道痕 <span className="text-gold">+{netDao}</span>（{nextGain.desc}
+              {sealCost ? ` · 封印代价 -${sealCost}` : ''}）
             </p>
           )}
+          <SealPicker
+            candidates={sealCandidates}
+            pick={sealPick}
+            onPick={setSealPick}
+            canSealMore={canSealMore}
+            slots={slots}
+            sealedCount={sealedCount}
+          />
           <div className="flex flex-wrap gap-2 mt-3">
             <button
               className="pixel-btn primary"
               onClick={() =>
-                reincarnate({
-                  name: player.name,
-                  gender: player.gender,
-                  classId: player.classId,
-                })
+                reincarnate(
+                  {
+                    name: player.name,
+                    gender: player.gender,
+                    classId: player.classId,
+                  },
+                  sealPick,
+                )
               }
             >
               立即转生（沿用此身名号职业）
@@ -265,7 +460,7 @@ export function CultivatePanel() {
               <span className="text-text">另择新身</span>。
             </div>
             <div>
-              转生收益以道痕结算（境界、寿龄、道侣、飞升等），下一世用于修炼加速、突破与起始资源；图鉴与成就跨周目保留。
+              转生收益以道痕结算（境界、寿龄、道侣、飞升等），下一世用于修炼加速、突破与起始资源；图鉴与成就跨周目保留。可封印 1 件传承物（功法残卷/法宝）。
             </div>
             <div>
               当前若此刻转生，预估道痕{' '}
@@ -371,6 +566,7 @@ export function CultivatePanel() {
                     </span>
                   </div>
                   <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
+                  {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
                 </div>
                 <button
                   className="pixel-btn text-xs primary shrink-0"

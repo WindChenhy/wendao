@@ -4,65 +4,423 @@
       "id": "pill_qi",
       "name": "聚气丹",
       "type": "consumable",
-      "desc": "服用后获得修为（随境界提升）。",
+      "desc": "一品丹·无纹。吐纳辅药，服之得修为。",
       "price": 50,
-      "effect": { "exp": 80 }
+      "pillGrade": 1,
+      "danMarks": 0,
+      "minRealm": "qi",
+      "maxRealm": "foundation",
+      "effect": {
+        "exp": 80
+      }
+    },
+    {
+      "id": "pill_qi_w3",
+      "name": "聚气丹·三纹",
+      "type": "consumable",
+      "desc": "一品丹·三纹。丹身三道灵纹，药力更纯。",
+      "price": 180,
+      "pillGrade": 1,
+      "danMarks": 3,
+      "minRealm": "qi",
+      "maxRealm": "golden_core",
+      "effect": {
+        "exp": 80
+      }
+    },
+    {
+      "id": "pill_qi_w5",
+      "name": "聚气丹·五纹",
+      "type": "consumable",
+      "desc": "一品丹·五纹。纹如车轮，同阶丹中极品。",
+      "price": 520,
+      "pillGrade": 1,
+      "danMarks": 5,
+      "minRealm": "qi",
+      "maxRealm": "golden_core",
+      "effect": {
+        "exp": 80
+      }
     },
     {
       "id": "pill_heal",
       "name": "回春散",
       "type": "consumable",
-      "desc": "恢复气血。",
+      "desc": "一品丹·无纹。恢复气血的常备药散。",
       "price": 30,
-      "effect": { "hp": 80 }
+      "pillGrade": 1,
+      "danMarks": 0,
+      "minRealm": "qi",
+      "effect": {
+        "hp": 80
+      }
+    },
+    {
+      "id": "pill_heal_w5",
+      "name": "回春散·五纹",
+      "type": "consumable",
+      "desc": "一品丹·五纹。五纹回春，可续将断之气。",
+      "price": 260,
+      "pillGrade": 1,
+      "danMarks": 5,
+      "minRealm": "qi",
+      "effect": {
+        "hp": 80
+      }
     },
     {
       "id": "pill_great",
       "name": "凝元丹",
       "type": "consumable",
-      "desc": "灵植炼成的上品丹药，服之修为大涨。",
+      "desc": "二品丹·无纹。药力远胜聚气，筑基前后首选。",
       "price": 200,
-      "effect": { "exp": 280 }
+      "pillGrade": 2,
+      "danMarks": 0,
+      "minRealm": "qi",
+      "maxRealm": "golden_core",
+      "effect": {
+        "exp": 280
+      }
+    },
+    {
+      "id": "pill_great_w3",
+      "name": "凝元丹·三纹",
+      "type": "consumable",
+      "desc": "二品丹·三纹。三纹凝元，冲击筑基更稳。",
+      "price": 680,
+      "pillGrade": 2,
+      "danMarks": 3,
+      "minRealm": "foundation",
+      "maxRealm": "nascent_soul",
+      "effect": {
+        "exp": 280
+      }
+    },
+    {
+      "id": "pill_bone",
+      "name": "淬骨丹",
+      "type": "consumable",
+      "desc": "二品丹·一纹。淬炼体魄，兼回气血。",
+      "price": 320,
+      "pillGrade": 2,
+      "danMarks": 1,
+      "minRealm": "foundation",
+      "effect": {
+        "hp": 260,
+        "exp": 80
+      }
     },
     {
       "id": "pill_break",
       "name": "破境丹",
       "type": "consumable",
-      "desc": "冲击壁垒时服下，成功率 +6%。坊市与宗门可购。",
+      "desc": "二品丹·无纹。冲击壁垒时自动服用，成功率 +6%。",
       "price": 900,
-      "effect": { "breakthroughRate": 6 }
+      "pillGrade": 2,
+      "danMarks": 0,
+      "minRealm": "qi",
+      "effect": {
+        "breakthroughRate": 6
+      }
+    },
+    {
+      "id": "pill_core",
+      "name": "金丹玉露丸",
+      "type": "consumable",
+      "desc": "三品丹·无纹。凝丹修士日常修行所用。",
+      "price": 1200,
+      "pillGrade": 3,
+      "danMarks": 0,
+      "minRealm": "foundation",
+      "maxRealm": "nascent_soul",
+      "effect": {
+        "exp": 1200
+      }
+    },
+    {
+      "id": "pill_core_w5",
+      "name": "金丹玉露丸·五纹",
+      "type": "consumable",
+      "desc": "三品丹·五纹。五纹金丹露，金丹期梦寐以求。",
+      "price": 6800,
+      "pillGrade": 3,
+      "danMarks": 5,
+      "minRealm": "golden_core",
+      "maxRealm": "spirit_sea",
+      "effect": {
+        "exp": 1200
+      }
+    },
+    {
+      "id": "pill_mind",
+      "name": "澄神丹",
+      "type": "consumable",
+      "desc": "三品丹·二纹。安神定念，兼复灵力。",
+      "price": 1500,
+      "pillGrade": 3,
+      "danMarks": 2,
+      "minRealm": "golden_core",
+      "effect": {
+        "energy": 200,
+        "hp": 300
+      }
     },
     {
       "id": "pill_break_adv",
       "name": "凝神破境丹",
       "type": "consumable",
-      "desc": "药力凝练，冲击壁垒成功率 +10%。",
+      "desc": "三品丹·二纹。冲击壁垒成功率 +10%。",
       "price": 4500,
-      "effect": { "breakthroughRate": 10 }
+      "pillGrade": 3,
+      "danMarks": 2,
+      "minRealm": "golden_core",
+      "effect": {
+        "breakthroughRate": 10
+      }
+    },
+    {
+      "id": "pill_soul",
+      "name": "养婴丹",
+      "type": "consumable",
+      "desc": "四品丹·无纹。温养元婴，修为大进。",
+      "price": 5200,
+      "pillGrade": 4,
+      "danMarks": 0,
+      "minRealm": "golden_core",
+      "maxRealm": "spirit_sea",
+      "effect": {
+        "exp": 5200
+      }
+    },
+    {
+      "id": "pill_soul_w5",
+      "name": "养婴丹·五纹",
+      "type": "consumable",
+      "desc": "四品丹·五纹。五纹养婴，元婴如沐春风。",
+      "price": 28000,
+      "pillGrade": 4,
+      "danMarks": 5,
+      "minRealm": "nascent_soul",
+      "maxRealm": "void",
+      "effect": {
+        "exp": 5200
+      }
+    },
+    {
+      "id": "pill_soul_heal",
+      "name": "续魂散",
+      "type": "consumable",
+      "desc": "四品丹·三纹。重伤将死时可吊住一口生气。",
+      "price": 9000,
+      "pillGrade": 4,
+      "danMarks": 3,
+      "minRealm": "nascent_soul",
+      "effect": {
+        "hp": 2200
+      }
+    },
+    {
+      "id": "pill_god",
+      "name": "化神丹",
+      "type": "consumable",
+      "desc": "五品丹·无纹。蕴一丝化神道韵。",
+      "price": 18000,
+      "pillGrade": 5,
+      "danMarks": 0,
+      "minRealm": "nascent_soul",
+      "maxRealm": "void",
+      "effect": {
+        "exp": 18000
+      }
+    },
+    {
+      "id": "pill_god_w5",
+      "name": "化神丹·五纹",
+      "type": "consumable",
+      "desc": "五品丹·五纹。五纹化神，直指分神妙境。",
+      "price": 98000,
+      "pillGrade": 5,
+      "danMarks": 5,
+      "minRealm": "spirit_sea",
+      "maxRealm": "integration",
+      "effect": {
+        "exp": 18000
+      }
+    },
+    {
+      "id": "pill_god_heal",
+      "name": "莲身丹",
+      "type": "consumable",
+      "desc": "五品丹·二纹。重塑法体，气血如潮。",
+      "price": 22000,
+      "pillGrade": 5,
+      "danMarks": 2,
+      "minRealm": "spirit_sea",
+      "effect": {
+        "hp": 6000,
+        "energy": 800
+      }
+    },
+    {
+      "id": "pill_void",
+      "name": "虚空丹",
+      "type": "consumable",
+      "desc": "六品丹·无纹。炼虚修士破境常备。",
+      "price": 55000,
+      "pillGrade": 6,
+      "danMarks": 0,
+      "minRealm": "spirit_sea",
+      "maxRealm": "integration",
+      "effect": {
+        "exp": 55000
+      }
+    },
+    {
+      "id": "pill_void_w5",
+      "name": "虚空丹·五纹",
+      "type": "consumable",
+      "desc": "六品丹·五纹。丹纹自成小虚空，药力绵长。",
+      "price": 320000,
+      "pillGrade": 6,
+      "danMarks": 5,
+      "minRealm": "void",
+      "maxRealm": "mahayana",
+      "effect": {
+        "exp": 55000
+      }
     },
     {
       "id": "pill_break_heaven",
       "name": "通天造化丹",
       "type": "consumable",
-      "desc": "夺天地造化，冲击壁垒成功率 +15%。高境界破关至宝。",
+      "desc": "六品丹·三纹。冲击壁垒成功率 +15%。",
       "price": 28000,
-      "effect": { "breakthroughRate": 15 }
+      "pillGrade": 6,
+      "danMarks": 3,
+      "minRealm": "void",
+      "effect": {
+        "breakthroughRate": 15
+      }
+    },
+    {
+      "id": "pill_join",
+      "name": "合体丹",
+      "type": "consumable",
+      "desc": "七品丹·无纹。调和二气，合体期修行圣品。",
+      "price": 160000,
+      "pillGrade": 7,
+      "danMarks": 0,
+      "minRealm": "void",
+      "maxRealm": "mahayana",
+      "effect": {
+        "exp": 160000
+      }
+    },
+    {
+      "id": "pill_join_w5",
+      "name": "合体丹·五纹",
+      "type": "consumable",
+      "desc": "七品丹·五纹。五纹合体，阴阳无漏。",
+      "price": 920000,
+      "pillGrade": 7,
+      "danMarks": 5,
+      "minRealm": "integration",
+      "maxRealm": "ascended",
+      "effect": {
+        "exp": 160000
+      }
+    },
+    {
+      "id": "pill_join_heal",
+      "name": "两仪护心丹",
+      "type": "consumable",
+      "desc": "七品丹·三纹。护住心脉道基。",
+      "price": 200000,
+      "pillGrade": 7,
+      "danMarks": 3,
+      "minRealm": "integration",
+      "effect": {
+        "hp": 45000,
+        "energy": 5000
+      }
+    },
+    {
+      "id": "pill_maha",
+      "name": "大乘道丹",
+      "type": "consumable",
+      "desc": "八品丹·无纹。蕴含大乘道种气机。",
+      "price": 480000,
+      "pillGrade": 8,
+      "danMarks": 0,
+      "minRealm": "integration",
+      "maxRealm": "ascended",
+      "effect": {
+        "exp": 480000
+      }
+    },
+    {
+      "id": "pill_maha_w5",
+      "name": "大乘道丹·五纹",
+      "type": "consumable",
+      "desc": "八品丹·五纹。五纹如道环，服之若听大道。",
+      "price": 2800000,
+      "pillGrade": 8,
+      "danMarks": 5,
+      "minRealm": "mahayana",
+      "effect": {
+        "exp": 480000
+      }
     },
     {
       "id": "pill_break_trib",
       "name": "渡劫金丹",
       "type": "consumable",
-      "desc": "专克天劫反噬，冲击壁垒成功率 +20%。大乘以上破关首选。",
+      "desc": "九品丹·四纹。专克天劫反噬，冲击壁垒成功率 +20%。",
       "price": 180000,
-      "effect": { "breakthroughRate": 20 }
+      "pillGrade": 9,
+      "danMarks": 4,
+      "minRealm": "mahayana",
+      "effect": {
+        "breakthroughRate": 20
+      }
+    },
+    {
+      "id": "pill_trib_w5",
+      "name": "渡劫金丹·五纹",
+      "type": "consumable",
+      "desc": "九品丹·五纹。五纹圆满，雷劫亦要让三分。",
+      "price": 1200000,
+      "pillGrade": 9,
+      "danMarks": 5,
+      "minRealm": "tribulation",
+      "effect": {
+        "breakthroughRate": 25
+      }
+    },
+    {
+      "id": "pill_xian",
+      "name": "飞升仙露",
+      "type": "consumable",
+      "desc": "九品丹·五纹传世。霞光内蕴，只在大能洞府偶现。",
+      "price": 5000000,
+      "pillGrade": 9,
+      "danMarks": 5,
+      "minRealm": "tribulation",
+      "effect": {
+        "exp": 1200000,
+        "hp": 200000
+      }
     },
     {
       "id": "snake_gall",
       "name": "碧鳞蛇胆",
       "type": "material",
-      "desc": "炼丹材料，可直接服用。",
+      "desc": "妖材。炼丹材料，可直接服用。",
       "price": 25,
-      "effect": { "exp": 40 }
+      "herbTier": 1,
+      "effect": {
+        "exp": 40
+      }
     },
     {
       "id": "fox_core",
@@ -70,142 +428,895 @@
       "type": "material",
       "desc": "妖核，蕴含幻力。",
       "price": 55,
-      "effect": { "exp": 90 }
+      "herbTier": 1,
+      "effect": {
+        "exp": 90
+      }
     },
     {
       "id": "demon_shard",
       "name": "煞气结晶",
       "type": "material",
       "desc": "魔道之物，可出售或供魔修炼化。",
-      "price": 40
+      "price": 40,
+      "herbTier": 2,
+      "effect": {
+        "exp": 70
+      }
     },
     {
       "id": "tiger_bone",
       "name": "虎王骨",
       "type": "material",
       "desc": "炼器上材。",
-      "price": 90
+      "price": 90,
+      "herbTier": 2
+    },
+    {
+      "id": "sect_fragment",
+      "name": "藏经残页",
+      "type": "quest",
+      "desc": "宗门传承残页。集齐 3 页可在藏经阁参悟一部未习秘法。",
+      "price": 200
     },
     {
       "id": "mat_foundation",
       "name": "筑基丹",
       "type": "material",
       "desc": "冲击筑基大境界必备。历练妖兽、秘境机缘可得。",
-      "price": 300
+      "price": 300,
+      "herbTier": 2,
+      "minRealm": "qi"
     },
     {
       "id": "mat_core",
       "name": "金丹玉液",
       "type": "material",
       "desc": "凝丹关键灵液，需在秘境或高阶妖兽处寻得。",
-      "price": 1200
+      "price": 1200,
+      "herbTier": 3,
+      "minRealm": "foundation"
     },
     {
       "id": "mat_soul",
       "name": "元婴果",
       "type": "material",
       "desc": "温养元婴的天地灵果，极为罕见。",
-      "price": 5000
+      "price": 5000,
+      "herbTier": 4,
+      "minRealm": "golden_core"
     },
     {
       "id": "mat_spirit",
       "name": "化神莲",
       "type": "material",
       "desc": "化神悟道之莲，多生于上古秘境。",
-      "price": 20000
+      "price": 20000,
+      "herbTier": 5,
+      "minRealm": "nascent_soul"
     },
     {
       "id": "mat_void",
       "name": "虚空晶",
       "type": "material",
       "desc": "蕴含空间法则的晶体。",
-      "price": 80000
+      "price": 80000,
+      "herbTier": 6,
+      "minRealm": "spirit_sea"
     },
     {
       "id": "mat_integration",
       "name": "合体石",
       "type": "material",
       "desc": "调和阴阳二气的神石。",
-      "price": 300000
+      "price": 300000,
+      "herbTier": 7,
+      "minRealm": "void"
     },
     {
       "id": "mat_mahayana",
       "name": "大乘道种",
       "type": "material",
-      "desc": "种下道果，方证大乘。",
-      "price": 1200000
+      "desc": "一丝大乘道韵凝成的种子。",
+      "price": 900000,
+      "herbTier": 8,
+      "minRealm": "integration"
     },
     {
       "id": "mat_tribulation",
       "name": "渡劫令",
       "type": "material",
-      "desc": "引动天劫的令牌，持有可小幅提升突破把握。",
-      "price": 5000000
+      "desc": "天劫绝域所出。持之冲击壁垒 +5%；渡劫圆满→飞升必须消耗一枚。",
+      "price": 280000,
+      "herbTier": 9,
+      "minRealm": "mahayana"
     },
     {
       "id": "treasure_sword",
       "name": "青冥剑胚",
       "type": "material",
-      "desc": "出世法宝，认主后剑意加持。",
-      "price": 5000
+      "desc": "三阶法宝·攻。青光冲霄的剑胚，认主后可御敌。",
+      "price": 2600,
+      "treasureTier": 3,
+      "minRealm": "qi"
     },
     {
       "id": "treasure_mirror",
       "name": "护心宝镜",
       "type": "material",
-      "desc": "出世法宝，认主后护体生光。",
-      "price": 5000
+      "desc": "二阶法宝·防。镜面隐现护体符文。",
+      "price": 1800,
+      "treasureTier": 2,
+      "minRealm": "qi"
     },
     {
       "id": "treasure_pagoda",
       "name": "镇魂塔",
       "type": "material",
-      "desc": "出世法宝，认主后塔影护身。",
-      "price": 8000
+      "desc": "三阶法宝·防。七层残塔，可镇心魔、强体魄。",
+      "price": 3200,
+      "treasureTier": 3,
+      "minRealm": "foundation"
     },
     {
       "id": "treasure_lotus",
       "name": "悟道莲台",
       "type": "material",
-      "desc": "莲开九品，坐上参玄，认主后突破成功率提升。",
-      "price": 12000
+      "desc": "四阶法宝·修。莲开十二品，坐之易悟。",
+      "price": 8800,
+      "treasureTier": 4,
+      "minRealm": "golden_core"
     },
     {
       "id": "treasure_compass",
       "name": "星斗罗盘",
       "type": "material",
-      "desc": "应和周天星斗，推演破关契机。",
-      "price": 36000
+      "desc": "四阶法宝·修。星斗定位，突破更稳。",
+      "price": 9600,
+      "treasureTier": 4,
+      "minRealm": "golden_core"
     },
     {
       "id": "treasure_cauldron",
       "name": "造化丹炉",
       "type": "material",
-      "desc": "炉养造化之气，温养道基，冲击壁垒更稳。",
-      "price": 9000
+      "desc": "四阶法宝·修。炉养造化，炼丹事半功倍。",
+      "price": 11000,
+      "treasureTier": 4,
+      "minRealm": "foundation"
     },
     {
       "id": "treasure_talisman",
       "name": "定魂玉符",
       "type": "material",
-      "desc": "镇守神魂，天劫临头亦能护住一线生机，突破成功率提升。",
-      "price": 150000
+      "desc": "三阶法宝·防。玉符定魂，护住神魂不失。",
+      "price": 5400,
+      "treasureTier": 3,
+      "minRealm": "qi"
+    },
+    {
+      "id": "treasure_fan",
+      "name": "巽风扇",
+      "type": "material",
+      "desc": "五阶法宝·攻。扇出巽风，无坚不摧。",
+      "price": 28000,
+      "treasureTier": 5,
+      "minRealm": "nascent_soul"
+    },
+    {
+      "id": "treasure_bell",
+      "name": "黄钟玉铃",
+      "type": "material",
+      "desc": "五阶法宝·防。钟鸣护体，万法难侵。",
+      "price": 30000,
+      "treasureTier": 5,
+      "minRealm": "nascent_soul"
+    },
+    {
+      "id": "treasure_seal",
+      "name": "山河印",
+      "type": "material",
+      "desc": "六阶法宝·攻。印含山河之势，砸落如岳。",
+      "price": 120000,
+      "treasureTier": 6,
+      "minRealm": "spirit_sea"
+    },
+    {
+      "id": "treasure_net",
+      "name": "天罗网",
+      "type": "material",
+      "desc": "六阶法宝·防。网开天罗，可困可守。",
+      "price": 110000,
+      "treasureTier": 6,
+      "minRealm": "void"
+    },
+    {
+      "id": "treasure_halo",
+      "name": "功德金环",
+      "type": "material",
+      "desc": "七阶法宝·修。金环悬顶，突破与修行皆有所助。",
+      "price": 360000,
+      "treasureTier": 7,
+      "minRealm": "integration"
+    },
+    {
+      "id": "treasure_sword_imm",
+      "name": "太虚仙剑",
+      "type": "material",
+      "desc": "八阶法宝·攻。仙剑出鞘，虚空生裂。",
+      "price": 980000,
+      "treasureTier": 8,
+      "minRealm": "mahayana"
+    },
+    {
+      "id": "treasure_mirror_imm",
+      "name": "昊天宝鉴",
+      "type": "material",
+      "desc": "九阶法宝·防。鉴照诸天，万劫不侵。",
+      "price": 2200000,
+      "treasureTier": 9,
+      "minRealm": "tribulation"
+    },
+    {
+      "id": "pill_mana",
+      "name": "回灵散",
+      "type": "consumable",
+      "desc": "一品丹·无纹。专复灵力/魔元，战斗外亦可用。",
+      "price": 40,
+      "pillGrade": 1,
+      "danMarks": 0,
+      "minRealm": "qi",
+      "effect": {
+        "energy": 60
+      }
+    },
+    {
+      "id": "pill_mana_w5",
+      "name": "回灵散·五纹",
+      "type": "consumable",
+      "desc": "一品丹·五纹。五纹回灵，灵力如潮。",
+      "price": 300,
+      "pillGrade": 1,
+      "danMarks": 5,
+      "minRealm": "qi",
+      "effect": {
+        "energy": 60
+      }
+    },
+    {
+      "id": "pill_cleanse",
+      "name": "清心丹",
+      "type": "consumable",
+      "desc": "一品丹·二纹。祛除杂念心魔，兼安神魂。",
+      "price": 90,
+      "pillGrade": 1,
+      "danMarks": 2,
+      "minRealm": "qi",
+      "effect": {
+        "hp": 40,
+        "energy": 40,
+        "special": "cleanse"
+      }
+    },
+    {
+      "id": "pill_mana2",
+      "name": "凝灵丹",
+      "type": "consumable",
+      "desc": "二品丹·无纹。筑基修士灵力恢复首选。",
+      "price": 280,
+      "pillGrade": 2,
+      "danMarks": 0,
+      "minRealm": "qi",
+      "maxRealm": "golden_core",
+      "effect": {
+        "energy": 180
+      }
+    },
+    {
+      "id": "pill_mana2_w5",
+      "name": "凝灵丹·五纹",
+      "type": "consumable",
+      "desc": "二品丹·五纹。灵台充盈，魔元自生。",
+      "price": 1600,
+      "pillGrade": 2,
+      "danMarks": 5,
+      "minRealm": "foundation",
+      "effect": {
+        "energy": 180
+      }
+    },
+    {
+      "id": "pill_dual",
+      "name": "阴阳双补丹",
+      "type": "consumable",
+      "desc": "二品丹·三纹。气血灵力同补，药性中和。",
+      "price": 520,
+      "pillGrade": 2,
+      "danMarks": 3,
+      "minRealm": "foundation",
+      "effect": {
+        "hp": 150,
+        "energy": 120,
+        "exp": 60
+      }
+    },
+    {
+      "id": "pill_detox",
+      "name": "解煞丸",
+      "type": "consumable",
+      "desc": "二品丹·一纹。化煞气、解蛇虫诸毒。",
+      "price": 240,
+      "pillGrade": 2,
+      "danMarks": 1,
+      "minRealm": "qi",
+      "effect": {
+        "hp": 100,
+        "special": "cleanse"
+      }
+    },
+    {
+      "id": "pill_mana3",
+      "name": "金津玉液丸",
+      "type": "consumable",
+      "desc": "三品丹·无纹。金丹灵力如泉。",
+      "price": 1400,
+      "pillGrade": 3,
+      "danMarks": 0,
+      "minRealm": "golden_core",
+      "maxRealm": "spirit_sea",
+      "effect": {
+        "energy": 420
+      }
+    },
+    {
+      "id": "pill_mana3_w5",
+      "name": "金津玉液丸·五纹",
+      "type": "consumable",
+      "desc": "三品丹·五纹。五纹金津，一滴可续大战。",
+      "price": 8200,
+      "pillGrade": 3,
+      "danMarks": 5,
+      "minRealm": "golden_core",
+      "effect": {
+        "energy": 420
+      }
+    },
+    {
+      "id": "pill_quench",
+      "name": "淬神丹",
+      "type": "consumable",
+      "desc": "三品丹·二纹。淬炼神识，回灵兼得修为。",
+      "price": 1800,
+      "pillGrade": 3,
+      "danMarks": 2,
+      "minRealm": "golden_core",
+      "effect": {
+        "energy": 200,
+        "exp": 400
+      }
+    },
+    {
+      "id": "pill_mana4",
+      "name": "婴火养元丹",
+      "type": "consumable",
+      "desc": "四品丹·无纹。元婴真火温养灵力。",
+      "price": 6000,
+      "pillGrade": 4,
+      "danMarks": 0,
+      "minRealm": "nascent_soul",
+      "maxRealm": "void",
+      "effect": {
+        "energy": 1200
+      }
+    },
+    {
+      "id": "pill_mana4_w3",
+      "name": "婴火养元丹·三纹",
+      "type": "consumable",
+      "desc": "四品丹·三纹。火候精纯，灵力绵长。",
+      "price": 18000,
+      "pillGrade": 4,
+      "danMarks": 3,
+      "minRealm": "nascent_soul",
+      "effect": {
+        "energy": 1200
+      }
+    },
+    {
+      "id": "pill_calm",
+      "name": "定魂丹",
+      "type": "consumable",
+      "desc": "四品丹·三纹。神魂大定，兼复气血。",
+      "price": 11000,
+      "pillGrade": 4,
+      "danMarks": 3,
+      "minRealm": "nascent_soul",
+      "effect": {
+        "hp": 1800,
+        "energy": 600,
+        "special": "cleanse"
+      }
+    },
+    {
+      "id": "pill_mana5",
+      "name": "化神归元丹",
+      "type": "consumable",
+      "desc": "五品丹·无纹。分神归元，灵力浩瀚。",
+      "price": 24000,
+      "pillGrade": 5,
+      "danMarks": 0,
+      "minRealm": "spirit_sea",
+      "maxRealm": "integration",
+      "effect": {
+        "energy": 3200
+      }
+    },
+    {
+      "id": "pill_mana5_w5",
+      "name": "化神归元丹·五纹",
+      "type": "consumable",
+      "desc": "五品丹·五纹。五纹归元，可支连番恶战。",
+      "price": 140000,
+      "pillGrade": 5,
+      "danMarks": 5,
+      "minRealm": "spirit_sea",
+      "effect": {
+        "energy": 3200
+      }
+    },
+    {
+      "id": "pill_body5",
+      "name": "不坏宝身丹",
+      "type": "consumable",
+      "desc": "五品丹·四纹。法体坚逾金石，大补气血。",
+      "price": 36000,
+      "pillGrade": 5,
+      "danMarks": 4,
+      "minRealm": "spirit_sea",
+      "effect": {
+        "hp": 9000,
+        "exp": 2000
+      }
+    },
+    {
+      "id": "pill_mana6",
+      "name": "虚空纳灵丹",
+      "type": "consumable",
+      "desc": "六品丹·无纹。虚空纳灵，炼虚魔元自足。",
+      "price": 70000,
+      "pillGrade": 6,
+      "danMarks": 0,
+      "minRealm": "void",
+      "maxRealm": "mahayana",
+      "effect": {
+        "energy": 9000
+      }
+    },
+    {
+      "id": "pill_mana6_w5",
+      "name": "虚空纳灵丹·五纹",
+      "type": "consumable",
+      "desc": "六品丹·五纹。丹内自有小虚空。",
+      "price": 420000,
+      "pillGrade": 6,
+      "danMarks": 5,
+      "minRealm": "void",
+      "effect": {
+        "energy": 9000
+      }
+    },
+    {
+      "id": "pill_bright",
+      "name": "破妄明心丹",
+      "type": "consumable",
+      "desc": "六品丹·三纹。破幻妄、明道心。",
+      "price": 88000,
+      "pillGrade": 6,
+      "danMarks": 3,
+      "minRealm": "void",
+      "effect": {
+        "exp": 20000,
+        "energy": 2000,
+        "special": "cleanse"
+      }
+    },
+    {
+      "id": "pill_mana7",
+      "name": "两仪灵机丹",
+      "type": "consumable",
+      "desc": "七品丹·无纹。阴阳灵机不绝。",
+      "price": 200000,
+      "pillGrade": 7,
+      "danMarks": 0,
+      "minRealm": "integration",
+      "maxRealm": "ascended",
+      "effect": {
+        "energy": 25000
+      }
+    },
+    {
+      "id": "pill_mana7_w5",
+      "name": "两仪灵机丹·五纹",
+      "type": "consumable",
+      "desc": "七品丹·五纹。灵机自转，魔元如渊。",
+      "price": 1200000,
+      "pillGrade": 7,
+      "danMarks": 5,
+      "minRealm": "integration",
+      "effect": {
+        "energy": 25000
+      }
+    },
+    {
+      "id": "pill_rebirth",
+      "name": "还魂丹",
+      "type": "consumable",
+      "desc": "七品丹·五纹。吊命还魂，重伤可起。",
+      "price": 900000,
+      "pillGrade": 7,
+      "danMarks": 5,
+      "minRealm": "integration",
+      "effect": {
+        "hp": 80000,
+        "special": "full_heal"
+      }
+    },
+    {
+      "id": "pill_mana8",
+      "name": "大道灵犀丹",
+      "type": "consumable",
+      "desc": "八品丹·无纹。大道灵犀，一点即通。",
+      "price": 600000,
+      "pillGrade": 8,
+      "danMarks": 0,
+      "minRealm": "mahayana",
+      "effect": {
+        "energy": 80000,
+        "exp": 50000
+      }
+    },
+    {
+      "id": "pill_mana8_w5",
+      "name": "大道灵犀丹·五纹",
+      "type": "consumable",
+      "desc": "八品丹·五纹。灵犀五转，法力无边。",
+      "price": 3500000,
+      "pillGrade": 8,
+      "danMarks": 5,
+      "minRealm": "mahayana",
+      "effect": {
+        "energy": 80000
+      }
+    },
+    {
+      "id": "pill_mana9",
+      "name": "劫雷洗髓丹",
+      "type": "consumable",
+      "desc": "九品丹·四纹。以劫雷余威洗炼法力。",
+      "price": 1500000,
+      "pillGrade": 9,
+      "danMarks": 4,
+      "minRealm": "tribulation",
+      "effect": {
+        "energy": 200000,
+        "exp": 200000
+      }
+    },
+    {
+      "id": "pill_stone",
+      "name": "灵石精魄丹",
+      "type": "consumable",
+      "desc": "二品丹·一纹。服之如吞灵石矿脉。",
+      "price": 400,
+      "pillGrade": 2,
+      "danMarks": 1,
+      "minRealm": "qi",
+      "effect": {
+        "stone": 250,
+        "exp": 50
+      }
+    },
+    {
+      "id": "herb_spiritgrass",
+      "name": "养神草",
+      "type": "material",
+      "desc": "一阶灵草。安神定志，可炼清心丹。",
+      "price": 35,
+      "herbTier": 1,
+      "minRealm": "qi",
+      "effect": {
+        "energy": 20
+      }
+    },
+    {
+      "id": "herb_frost",
+      "name": "寒霜叶",
+      "type": "material",
+      "desc": "二阶灵叶。性寒清热，解毒良材。",
+      "price": 130,
+      "herbTier": 2,
+      "minRealm": "qi",
+      "effect": {
+        "hp": 60,
+        "energy": 30
+      }
+    },
+    {
+      "id": "herb_flame",
+      "name": "赤焰花",
+      "type": "material",
+      "desc": "二阶灵花。性烈如火，可炼回灵之丹。",
+      "price": 160,
+      "herbTier": 2,
+      "minRealm": "foundation",
+      "effect": {
+        "energy": 50
+      }
+    },
+    {
+      "id": "herb_cloud",
+      "name": "云母芝",
+      "type": "material",
+      "desc": "三阶灵芝。云气缠绕，养气第一。",
+      "price": 900,
+      "herbTier": 3,
+      "minRealm": "golden_core",
+      "effect": {
+        "exp": 350,
+        "energy": 80
+      }
+    },
+    {
+      "id": "herb_ghoul",
+      "name": "阴魂草",
+      "type": "material",
+      "desc": "三阶阴草。鬼修所喜，亦可炼魂丹。",
+      "price": 750,
+      "herbTier": 3,
+      "minRealm": "golden_core",
+      "effect": {
+        "exp": 280
+      }
+    },
+    {
+      "id": "herb_auroraleaf",
+      "name": "极光叶",
+      "type": "material",
+      "desc": "四阶灵叶。叶脉流光，明目清神。",
+      "price": 4000,
+      "herbTier": 4,
+      "minRealm": "nascent_soul",
+      "effect": {
+        "energy": 220,
+        "exp": 700
+      }
+    },
+    {
+      "id": "herb_thunder",
+      "name": "雷纹木心",
+      "type": "material",
+      "desc": "五阶雷木之心。内蕴一丝劫雷。",
+      "price": 16000,
+      "herbTier": 5,
+      "minRealm": "spirit_sea",
+      "effect": {
+        "exp": 3500,
+        "hp": 900
+      }
+    },
+    {
+      "id": "herb_iceheart",
+      "name": "冰心玉髓",
+      "type": "material",
+      "desc": "六阶玉髓。寒玉之心，镇火安神。",
+      "price": 55000,
+      "herbTier": 6,
+      "minRealm": "void",
+      "effect": {
+        "energy": 1200,
+        "exp": 12000
+      }
+    },
+    {
+      "id": "herb_goldlotus",
+      "name": "金莲子",
+      "type": "material",
+      "desc": "七阶金莲所结。佛道双修皆重。",
+      "price": 180000,
+      "herbTier": 7,
+      "minRealm": "integration",
+      "effect": {
+        "exp": 35000,
+        "hp": 8000
+      }
+    },
+    {
+      "id": "herb_starcore",
+      "name": "星核",
+      "type": "material",
+      "desc": "八阶星骸精华。一点星光可开山。",
+      "price": 550000,
+      "herbTier": 8,
+      "minRealm": "mahayana",
+      "effect": {
+        "exp": 120000,
+        "energy": 8000
+      }
+    },
+    {
+      "id": "mat_panacea",
+      "name": "万应灵液",
+      "type": "material",
+      "desc": "四阶奇液。炼丹万用辅药。",
+      "price": 2800,
+      "herbTier": 4,
+      "minRealm": "nascent_soul"
+    },
+    {
+      "id": "mat_thunderwood",
+      "name": "雷击木",
+      "type": "material",
+      "desc": "五阶炼器材。经劫雷而不毁。",
+      "price": 20000,
+      "herbTier": 5,
+      "minRealm": "spirit_sea"
+    },
+    {
+      "id": "mat_starsteel",
+      "name": "星辰铁",
+      "type": "material",
+      "desc": "六阶炼器神材。天外陨铁之精。",
+      "price": 90000,
+      "herbTier": 6,
+      "minRealm": "void"
+    },
+    {
+      "id": "mat_yangjade",
+      "name": "阳燧玉",
+      "type": "material",
+      "desc": "七阶阳玉。炼宝镇邪。",
+      "price": 280000,
+      "herbTier": 7,
+      "minRealm": "integration"
+    },
+    {
+      "id": "treasure_gourd",
+      "name": "紫金葫芦",
+      "type": "material",
+      "desc": "四阶法宝·修。吞吐灵气，修行略助。",
+      "price": 7500,
+      "treasureTier": 4,
+      "minRealm": "golden_core"
+    },
+    {
+      "id": "treasure_ropes",
+      "name": "捆仙索",
+      "type": "material",
+      "desc": "五阶法宝·攻。索出如电，缠打兼备。",
+      "price": 26000,
+      "treasureTier": 5,
+      "minRealm": "nascent_soul"
+    },
+    {
+      "id": "treasure_umbrella",
+      "name": "混元伞",
+      "type": "material",
+      "desc": "五阶法宝·防。伞开混元，风雨不侵。",
+      "price": 27000,
+      "treasureTier": 5,
+      "minRealm": "nascent_soul"
+    },
+    {
+      "id": "treasure_pagoda9",
+      "name": "九霄玲珑塔",
+      "type": "material",
+      "desc": "七阶法宝·防。九层玲珑，镇压气运。",
+      "price": 340000,
+      "treasureTier": 7,
+      "minRealm": "integration"
+    },
+    {
+      "id": "treasure_qin",
+      "name": "伏羲琴",
+      "type": "material",
+      "desc": "八阶法宝·修。琴音可悟道，亦可乱神。",
+      "price": 880000,
+      "treasureTier": 8,
+      "minRealm": "mahayana"
     }
   ],
   "treasureBonus": {
-    "treasure_sword": { "atk": 0.25 },
-    "treasure_mirror": { "def": 0.25 },
-    "treasure_pagoda": { "hp": 0.3 },
-    "treasure_cauldron": { "breakthrough": 4 },
-    "treasure_lotus": { "breakthrough": 8 },
-    "treasure_compass": { "breakthrough": 12 },
-    "treasure_talisman": { "breakthrough": 18 }
+    "treasure_sword": {
+      "atk": 0.25
+    },
+    "treasure_mirror": {
+      "def": 0.2
+    },
+    "treasure_pagoda": {
+      "hp": 0.3
+    },
+    "treasure_cauldron": {
+      "breakthrough": 4
+    },
+    "treasure_lotus": {
+      "cultivate": 0.12,
+      "breakthrough": 6
+    },
+    "treasure_compass": {
+      "breakthrough": 8
+    },
+    "treasure_talisman": {
+      "hp": 0.12,
+      "def": 0.08
+    },
+    "treasure_fan": {
+      "atk": 0.35
+    },
+    "treasure_bell": {
+      "def": 0.28,
+      "hp": 0.1
+    },
+    "treasure_seal": {
+      "atk": 0.4
+    },
+    "treasure_net": {
+      "def": 0.32,
+      "hp": 0.15
+    },
+    "treasure_halo": {
+      "breakthrough": 10,
+      "cultivate": 0.08
+    },
+    "treasure_sword_imm": {
+      "atk": 0.5
+    },
+    "treasure_mirror_imm": {
+      "def": 0.4,
+      "hp": 0.2,
+      "breakthrough": 5
+    },
+    "treasure_gourd": {
+      "cultivate": 0.1
+    },
+    "treasure_ropes": {
+      "atk": 0.3
+    },
+    "treasure_umbrella": {
+      "def": 0.3,
+      "hp": 0.08
+    },
+    "treasure_pagoda9": {
+      "def": 0.35,
+      "hp": 0.25,
+      "breakthrough": 4
+    },
+    "treasure_qin": {
+      "cultivate": 0.15,
+      "breakthrough": 8,
+      "dodge": 0.04
+    }
   },
   "breakthroughPills": [
-    { "id": "pill_break_trib", "rate": 20 },
-    { "id": "pill_break_heaven", "rate": 15 },
-    { "id": "pill_break_adv", "rate": 10 },
-    { "id": "pill_break", "rate": 6 }
+    {
+      "id": "pill_trib_w5",
+      "rate": 25
+    },
+    {
+      "id": "pill_break_trib",
+      "rate": 20
+    },
+    {
+      "id": "pill_break_heaven",
+      "rate": 15
+    },
+    {
+      "id": "pill_break_adv",
+      "rate": 10
+    },
+    {
+      "id": "pill_break",
+      "rate": 6
+    }
   ],
   "breakthroughMaterials": {
     "foundation": "mat_foundation",
@@ -220,20 +1331,102 @@
   "marketStock": {
     "pill": [
       "pill_qi",
+      "pill_qi_w3",
       "pill_heal",
+      "pill_heal_w5",
       "pill_great",
+      "pill_great_w3",
+      "pill_bone",
       "pill_break",
+      "pill_core",
+      "pill_core_w5",
+      "pill_mind",
       "pill_break_adv",
+      "pill_soul",
+      "pill_soul_w5",
+      "pill_soul_heal",
+      "pill_god",
+      "pill_god_w5",
+      "pill_god_heal",
+      "pill_void",
+      "pill_void_w5",
       "pill_break_heaven",
-      "pill_break_trib"
+      "pill_join",
+      "pill_join_w5",
+      "pill_join_heal",
+      "pill_maha",
+      "pill_maha_w5",
+      "pill_break_trib",
+      "pill_trib_w5",
+      "pill_xian",
+      "pill_mana",
+      "pill_mana_w5",
+      "pill_cleanse",
+      "pill_mana2",
+      "pill_mana2_w5",
+      "pill_dual",
+      "pill_detox",
+      "pill_mana3",
+      "pill_mana3_w5",
+      "pill_quench",
+      "pill_mana4",
+      "pill_mana4_w3",
+      "pill_calm",
+      "pill_mana5",
+      "pill_mana5_w5",
+      "pill_body5",
+      "pill_mana6",
+      "pill_mana6_w5",
+      "pill_bright",
+      "pill_mana7",
+      "pill_mana7_w5",
+      "pill_rebirth",
+      "pill_mana8",
+      "pill_mana8_w5",
+      "pill_mana9",
+      "pill_stone"
     ],
     "herb": [
       "herb_qi",
       "herb_moon",
       "herb_blood",
+      "herb_jade",
+      "herb_goldmark",
+      "herb_inklotus",
+      "herb_soulorchid",
+      "herb_nightjade",
+      "herb_godpetal",
+      "herb_starfern",
+      "herb_voidgrass",
+      "herb_yinyang",
+      "herb_sealroot",
+      "herb_aurora",
+      "herb_daofruit",
+      "herb_taowu",
+      "herb_tribflower",
+      "herb_xiantai",
       "mat_foundation",
       "mat_core",
-      "mat_tribulation"
+      "mat_soul",
+      "mat_spirit",
+      "mat_void",
+      "mat_integration",
+      "mat_mahayana",
+      "mat_tribulation",
+      "herb_spiritgrass",
+      "herb_frost",
+      "herb_flame",
+      "herb_cloud",
+      "herb_ghoul",
+      "herb_auroraleaf",
+      "herb_thunder",
+      "herb_iceheart",
+      "herb_goldlotus",
+      "herb_starcore",
+      "mat_panacea",
+      "mat_thunderwood",
+      "mat_starsteel",
+      "mat_yangjade"
     ],
     "treasure": [
       "treasure_sword",
@@ -242,7 +1435,19 @@
       "treasure_cauldron",
       "treasure_lotus",
       "treasure_compass",
-      "treasure_talisman"
+      "treasure_talisman",
+      "treasure_fan",
+      "treasure_bell",
+      "treasure_seal",
+      "treasure_net",
+      "treasure_halo",
+      "treasure_sword_imm",
+      "treasure_mirror_imm",
+      "treasure_gourd",
+      "treasure_ropes",
+      "treasure_umbrella",
+      "treasure_pagoda9",
+      "treasure_qin"
     ]
   }
 }

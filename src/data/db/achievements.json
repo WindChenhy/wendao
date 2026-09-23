@@ -169,6 +169,55 @@
       "reward": { "daoMarks": 12 }
     },
     {
+      "id": "spouse_story_he",
+      "name": "良缘天成",
+      "desc": "任一道侣结缘线达成良缘结局。",
+      "category": "story",
+      "reward": { "daoMarks": 8, "title": "白首同心" }
+    },
+    {
+      "id": "spouse_story_be",
+      "name": "情深不寿",
+      "desc": "任一道侣结缘线达成遗恨结局。",
+      "category": "story",
+      "reward": { "daoMarks": 5 }
+    },
+    {
+      "id": "hidden_companion",
+      "name": "云海有缘",
+      "desc": "解锁隐藏道侣。",
+      "category": "story",
+      "reward": { "daoMarks": 10, "title": "天机眷顾" }
+    },
+    {
+      "id": "quest_chain_1",
+      "name": "受人之托",
+      "desc": "完成 1 条宗门任务链。",
+      "category": "story",
+      "reward": { "stones": 150 }
+    },
+    {
+      "id": "quest_chain_5",
+      "name": "宗门干城",
+      "desc": "完成 5 条宗门任务链。",
+      "category": "challenge",
+      "reward": { "daoMarks": 6 }
+    },
+    {
+      "id": "sect_fragment_learn",
+      "name": "残页参悟",
+      "desc": "以藏经残页参悟一部宗门秘法。",
+      "category": "collect",
+      "reward": { "daoMarks": 4 }
+    },
+    {
+      "id": "sect_build",
+      "name": "宗门建设",
+      "desc": "将任意宗门建筑升至 1 级。",
+      "category": "story",
+      "reward": { "stones": 200 }
+    },
+    {
       "id": "reincarnate_1",
       "name": "再入轮回",
       "desc": "转生 1 次。",

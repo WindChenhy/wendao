@@ -1,5 +1,7 @@
 import { realmIndex } from './realms'
-import type { RealmId } from '../types'
+import { sectRankIndex, type SectRank } from './sects'
+import type { ClassId, RealmId } from '../types'
+import eventsDb from './db/events.json'
 
 export type WorldEventType =
   | 'secret_realm'
@@ -7,16 +9,79 @@ export type WorldEventType =
   | 'boss'
   | 'fortune'
   | 'misfortune'
+  | 'sect'
+  | 'faction'
+  | 'companion'
+  | 'omen'
+
+export type EventPack = 'core' | 'sect_storm' | 'faction_war' | 'omen' | 'dlc'
+
+export interface EventCost {
+  stones?: number
+  contribution?: number
+  items?: Record<string, number>
+}
+
+export interface EventOutcome {
+  kind?: 'settle' | 'combat' | 'unlock_companion' | 'branch'
+  /** 覆盖按钮文案的结算说明 */
+  text?: string
+  bossId?: string
+  stones?: number
+  exp?: number
+  contribution?: number
+  repRight?: number
+  repDemonic?: number
+  itemId?: string
+  daoMarks?: number
+  lifespan?: number
+  hpPct?: number
+  flag?: string
+  companionId?: string
+  ending?: 'he' | 'be'
+  /** combat 失败时的结算；缺省用 lose 文案 */
+  win?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
+  lose?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
+}
+
+export interface WorldEventAction {
+  id: string
+  label: string
+  cost?: EventCost
+  outcome?: EventOutcome
+}
+
+export interface EventGates {
+  minRealm?: RealmId
+  minLayer?: number
+  maxRealm?: RealmId
+  requireSect?: boolean
+  sectId?: string
+  minRank?: SectRank
+  maxRank?: SectRank
+  minRepRight?: number
+  maxRepRight?: number
+  minRepDemonic?: number
+  maxRepDemonic?: number
+  requireSpouse?: boolean
+  spouseId?: string
+  minYear?: number
+  requireClass?: ClassId
+  affinity?: { id: string; min: number }
+  flags?: string[]
+  notFlags?: string[]
+}
 
 export interface WorldEvent {
   id: string
   type: WorldEventType
+  pack?: EventPack
   title: string
   text: string
-  actions: {
-    id: string
-    label: string
-  }[]
+  actions: WorldEventAction[]
+  gates?: EventGates
+  /** 抽取权重，默认 1 */
+  weight?: number
   payload?: {
     itemId?: string
     stone?: number
@@ -26,133 +91,96 @@ export interface WorldEvent {
   }
 }
 
-/** 打坐/闭关/历练后可能刷出的奇遇池 */
-export const WORLD_EVENTS: WorldEvent[] = [
-  {
-    id: 'secret_qingyun',
-    type: 'secret_realm',
-    title: '青云秘境开启',
-    text: '天象异变，青云深处裂开一道古阵光门，内有机缘亦有凶险。',
-    actions: [
-      { id: 'enter', label: '踏入秘境' },
-      { id: 'ignore', label: '按兵不动' },
-    ],
-    payload: { minRealm: 'qi' },
-  },
-  {
-    id: 'secret_ice',
-    type: 'secret_realm',
-    title: '玄冰地窟现世',
-    text: '极北寒雾中露出冰晶洞口，隐约有金丹期妖气。',
-    actions: [
-      { id: 'enter', label: '深入地窟' },
-      { id: 'ignore', label: '暂避锋芒' },
-    ],
-    payload: { minRealm: 'foundation' },
-  },
-  {
-    id: 'treasure_sword',
-    type: 'treasure',
-    title: '青冥剑胚出世',
-    text: '一道青光自山腹冲天而起，有剑胚悬于崖顶，四方修士蠢蠢欲动。',
-    actions: [
-      { id: 'claim', label: '夺取剑胚' },
-      { id: 'ignore', label: '不趟浑水' },
-    ],
-    payload: { itemId: 'treasure_sword' },
-  },
-  {
-    id: 'treasure_mirror',
-    type: 'treasure',
-    title: '护心宝镜现踪',
-    text: '古修遗府开启，铜镜悬于阵眼，镜面隐现护体符文。',
-    actions: [
-      { id: 'claim', label: '取镜而走' },
-      { id: 'ignore', label: '放弃' },
-    ],
-    payload: { itemId: 'treasure_mirror' },
-  },
-  {
-    id: 'treasure_pagoda',
-    type: 'treasure',
-    title: '镇魂塔残层',
-    text: '荒冢深处浮起七层残塔，塔身符文明灭，似能镇压心魔、强健体魄。',
-    actions: [
-      { id: 'claim', label: '收塔认主' },
-      { id: 'ignore', label: '恐有诈，退' },
-    ],
-    payload: { itemId: 'treasure_pagoda', minRealm: 'foundation' },
-  },
-  {
-    id: 'boss_tiger',
-    type: 'boss',
-    title: '裂地虎王拦路',
-    text: '山道震动，裂地虎王自林中扑出，杀意凛然！',
-    actions: [
-      { id: 'fight', label: '迎战' },
-      { id: 'flee', label: '避让' },
-    ],
-    payload: { bossId: 'boss_tiger' },
-  },
-  {
-    id: 'boss_ape',
-    type: 'boss',
-    title: '玄冰魔猿现身',
-    text: '冰窟深处传来咆哮，玄冰魔猿踏碎冰棱而来。',
-    actions: [
-      { id: 'fight', label: '决战' },
-      { id: 'flee', label: '撤离' },
-    ],
-    payload: { bossId: 'boss_ape', minRealm: 'foundation' },
-  },
-  {
-    id: 'boss_demon',
-    type: 'boss',
-    title: '血魔坛主拦杀',
-    text: '魔气滔天，血魔坛主狞笑着挡在道中：「留下性命！」',
-    actions: [
-      { id: 'fight', label: '诛魔' },
-      { id: 'flee', label: '暂退' },
-    ],
-    payload: { bossId: 'boss_demon_lord', minRealm: 'golden_core' },
-  },
-  {
-    id: 'fortune_herbs',
-    type: 'fortune',
-    title: '灵药园残址',
-    text: '你偶入荒废药园，残存几株尚可入药的灵草。',
-    actions: [{ id: 'take', label: '采集' }],
-    payload: { stone: 80, exp: 60 },
-  },
-  {
-    id: 'fortune_stones',
-    type: 'fortune',
-    title: '散修遗囊',
-    text: '道旁遗落乾坤袋，内有灵石若干，失主已陨。',
-    actions: [{ id: 'take', label: '收取' }],
-    payload: { stone: 150 },
-  },
-  {
-    id: 'misfortune_ambush',
-    type: 'misfortune',
-    title: '魔修伏击',
-    text: '黑雾骤起，数名魔修自两侧杀出！',
-    actions: [
-      { id: 'fight', label: '反杀' },
-      { id: 'flee', label: '突围' },
-    ],
-    payload: { bossId: 'demon_guard' },
-  },
-]
+export interface EventGateContext {
+  realm: RealmId
+  layer: number
+  classId: ClassId
+  year: number
+  repRight: number
+  repDemonic: number
+  sectId: string | null
+  sectRank: SectRank
+  spouseId: string | null
+  affinity: Record<string, number>
+  flags: string[]
+}
 
-export function pickWorldEvent(realm: RealmId, extra: WorldEvent[] = []): WorldEvent | null {
-  const pool = [...WORLD_EVENTS, ...extra].filter((e) => {
-    const min = e.payload?.minRealm
-    if (!min) return true
-    return realmIndex(realm) >= realmIndex(min)
-  })
+function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolean {
+  if (!gates) return true
+  if (gates.minRealm && realmIndex(ctx.realm) < realmIndex(gates.minRealm)) return false
+  if (gates.maxRealm && realmIndex(ctx.realm) > realmIndex(gates.maxRealm)) return false
+  if (gates.minLayer && ctx.layer < gates.minLayer) return false
+  if (gates.requireSect && !ctx.sectId) return false
+  if (gates.sectId && ctx.sectId !== gates.sectId) return false
+  if (gates.minRank && sectRankIndex(ctx.sectRank) < sectRankIndex(gates.minRank)) return false
+  if (gates.maxRank && sectRankIndex(ctx.sectRank) > sectRankIndex(gates.maxRank)) return false
+  if (gates.minRepRight != null && ctx.repRight < gates.minRepRight) return false
+  if (gates.maxRepRight != null && ctx.repRight > gates.maxRepRight) return false
+  if (gates.minRepDemonic != null && ctx.repDemonic < gates.minRepDemonic) return false
+  if (gates.maxRepDemonic != null && ctx.repDemonic > gates.maxRepDemonic) return false
+  if (gates.requireSpouse && !ctx.spouseId) return false
+  if (gates.spouseId && ctx.spouseId !== gates.spouseId) return false
+  if (gates.minYear && ctx.year < gates.minYear) return false
+  if (gates.requireClass && ctx.classId !== gates.requireClass) return false
+  if (gates.affinity) {
+    const aff = ctx.affinity[gates.affinity.id] ?? 0
+    if (aff < gates.affinity.min) return false
+  }
+  if (gates.flags?.length && !gates.flags.every((f) => ctx.flags.includes(f))) return false
+  if (gates.notFlags?.length && gates.notFlags.some((f) => ctx.flags.includes(f))) return false
+  return true
+}
+
+export function eventPassesGates(evt: WorldEvent, ctx: EventGateContext): boolean {
+  // 兼容旧 payload.minRealm
+  const legacyMin = evt.payload?.minRealm
+  if (legacyMin && realmIndex(ctx.realm) < realmIndex(legacyMin)) return false
+  return passGates(evt.gates, ctx)
+}
+
+/** 本体事件池（含 v0.9 主题包）；DLC 追加事件由 rules.extraEvents 合并 */
+export const WORLD_EVENTS: WorldEvent[] = eventsDb.events as WorldEvent[]
+
+/** 奇遇触发率：约 12% */
+export const WORLD_EVENT_RATE = 0.12
+
+/**
+ * 按门槛过滤后加权抽取。ctx 不完整时退化为仅境界过滤。
+ * 返回 null 表示本次未触发奇遇。
+ */
+export function pickWorldEvent(
+  ctx: EventGateContext,
+  extra: WorldEvent[] = [],
+): WorldEvent | null {
+  const pool = [...WORLD_EVENTS, ...extra].filter((e) => eventPassesGates(e, ctx))
   if (pool.length === 0) return null
-  // 奇遇触发率：原 22% 偏密，降至 12%（约减 45%，不超过一半）
-  if (Math.random() > 0.12) return null
-  return pool[Math.floor(Math.random() * pool.length)]
+  if (Math.random() > WORLD_EVENT_RATE) return null
+  const weights = pool.map((e) => Math.max(0.05, e.weight ?? 1))
+  const total = weights.reduce((a, b) => a + b, 0)
+  let roll = Math.random() * total
+  for (let i = 0; i < pool.length; i++) {
+    roll -= weights[i]
+    if (roll <= 0) return pool[i]
+  }
+  return pool[pool.length - 1]
+}
+
+/** 旧签名兼容（仅境界）：内部转完整 ctx */
+export function pickWorldEventByRealm(realm: RealmId, extra: WorldEvent[] = []): WorldEvent | null {
+  return pickWorldEvent(
+    {
+      realm,
+      layer: 1,
+      classId: 'sword',
+      year: 1,
+      repRight: 0,
+      repDemonic: 0,
+      sectId: null,
+      sectRank: 'menial',
+      spouseId: null,
+      affinity: {},
+      flags: [],
+    },
+    extra,
+  )
 }

@@ -82,7 +82,21 @@ export interface ItemDef {
     energy?: number
     /** 服用后提升本次/后续突破成功率（百分点）；突破丹药在冲击壁垒时自动消耗 */
     breakthroughRate?: number
+    /** 复活/回满等特殊效果标记 */
+    special?: 'full_heal' | 'full_energy' | 'cleanse'
   }
+  /** 丹药品阶 1～9（对应大境界） */
+  pillGrade?: number
+  /** 丹纹 0～5，5 纹最佳；效果 = 基础 × (1 + danMarks * 0.15) */
+  danMarks?: number
+  /** 灵药阶级 1～9 */
+  herbTier?: number
+  /** 法宝品阶 1～9 */
+  treasureTier?: number
+  /** 可服用/使用的起步境界 */
+  minRealm?: RealmId
+  /** 适用范围上限（超过后药效衰减或不可用） */
+  maxRealm?: RealmId
 }
 
 export interface PlayerState {
@@ -170,9 +184,14 @@ export interface PlotState {
 }
 
 export interface AbodeState {
+  /** 网格地块：索引 = row * cols + col */
   plots: PlotState[]
   /** 器阁等级（0=未建） */
   forgeLevel: number
+  /** 灵田列数（初始 6） */
+  farmCols: number
+  /** 灵田行数（初始 6） */
+  farmRows: number
 }
 
 export interface LegacyState {
@@ -186,6 +205,8 @@ export interface LegacyState {
   totalYears: number
   /** 上一世结束时的年号（仅备注用，便于对照导出存档） */
   lastLifeEndYear: number
+  /** v1.0 转生封印的传承物（跨周目） */
+  sealed: import('../game/seal').SealedItem[]
 }
 
 /** 图鉴分页 */

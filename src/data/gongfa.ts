@@ -19,6 +19,8 @@ export interface GongfaDef {
   desc: string
   /** 起步修炼大境界门槛（达到该大境界方可参悟） */
   minRealm: RealmId
+  /** 适用范围上限：超过后本功法不再生效（留空 = 不限） */
+  maxRealm?: RealmId
   /** 坊市秘籍售价；宗门秘法为 0（以贡献参悟） */
   price: number
   /** 圆满时的加成（按阶段系数缩放）；dodge 为受到伤害降低比例 */
@@ -66,6 +68,49 @@ export function canLearnGongfa(g: GongfaDef, realm: RealmId): boolean {
   return realmIndex(realm) >= realmIndex(g.minRealm)
 }
 
+/**
+ * 品阶随境界收紧（学习/坊市可见）：
+ * 元婴以下：天地玄黄；元婴以上：天地玄；炼虚以上：天地；大乘及以上：仅天阶。
+ * 仙阶为传世特例，仅渡劫/飞升相关可持有，不进常规池。
+ */
+export function gongfaGradesAllowed(realm: RealmId): GongfaGrade[] {
+  const i = realmIndex(realm)
+  const nascent = realmIndex('nascent_soul')
+  const xulian = realmIndex('void')
+  const maha = realmIndex('mahayana')
+  if (i >= maha) return ['天阶']
+  if (i >= xulian) return ['地阶', '天阶']
+  if (i >= nascent) return ['玄阶', '地阶', '天阶']
+  return ['黄阶', '玄阶', '地阶', '天阶']
+}
+
+/** 该功法品阶是否允许在当前境界出现/参悟 */
+export function gongfaGradeOk(g: GongfaDef, realm: RealmId): boolean {
+  if (g.grade === '仙阶') {
+    // 传世仙经：仅大乘及以上可参悟（秘境/残页所得，不走坊市常规筛选）
+    return realmIndex(realm) >= realmIndex('mahayana')
+  }
+  return gongfaGradesAllowed(realm).includes(g.grade)
+}
+
+/** 是否在适用范围内（超过 maxRealm 则失效） */
+export function gongfaInScope(g: GongfaDef, realm: RealmId): boolean {
+  if (!g.maxRealm) return true
+  return realmIndex(realm) <= realmIndex(g.maxRealm)
+}
+
+/** 适用范围文案 */
+export function gongfaScopeText(g: GongfaDef): string {
+  const lo = REALMS[g.minRealm]?.name ?? g.minRealm
+  const hi = g.maxRealm ? (REALMS[g.maxRealm]?.name ?? g.maxRealm) : '不设上限'
+  return `适用 ${lo} → ${hi}`
+}
+
+/** 当前境界可学习（起步 + 品阶门槛） */
+export function canLearnGongfaFull(g: GongfaDef, realm: RealmId): boolean {
+  return canLearnGongfa(g, realm) && gongfaGradeOk(g, realm)
+}
+
 /** 功法内容表：src/data/db/gongfa.json */
 export const GONGFA_LIST: GongfaDef[] = gongfaJson as GongfaDef[]
 
@@ -103,4 +148,9 @@ export function gongfaEffectText(g: GongfaDef, stage: number): string {
   if (g.effect.cultivate) parts.push(`修炼 +${Math.round(g.effect.cultivate * mul * 100)}%`)
   if (g.effect.dodge) parts.push(`受伤降低 ${Math.round(g.effect.dodge * mul * 100)}%`)
   return parts.join('、') || '—'
+}
+
+/** 功法列表中当前境界可研习（品阶+起步门槛） */
+export function gongfaLearnableIn(realm: RealmId): GongfaDef[] {
+  return GONGFA_LIST.filter((g) => canLearnGongfaFull(g, realm))
 }

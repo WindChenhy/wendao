@@ -24,7 +24,7 @@ export function MainMenu() {
         <div className="text-center mb-8">
           <h1 className="font-display text-4xl tracking-widest text-gold mb-2">问道</h1>
           <p className="text-text-dim text-sm">文字修仙养成 · 轻松田园本体</p>
-          <p className="text-text-dim text-xs mt-1">v0.8 · 炼器 / 图鉴成就 / 离线修炼 / 转生</p>
+          <p className="text-text-dim text-xs mt-1">v1.0 · 功法羁绊 / 天劫选择 / 转生封印</p>
         </div>
 
         <div className="panel-box p-4 mb-4">

@@ -1,0 +1,101 @@
+{
+  "rules": [
+    {
+      "id": "syn_same_sect",
+      "name": "同门相济",
+      "desc": "同宗门功法 ≥2 部",
+      "type": "school_count",
+      "school": "any",
+      "min": 2,
+      "effects": { "cultivate": 0.05 }
+    },
+    {
+      "id": "syn_attack3",
+      "name": "攻伐无双",
+      "desc": "攻击法诀 ≥3 部",
+      "type": "kind_count",
+      "kind": "攻击法诀",
+      "min": 3,
+      "effects": { "atk": 0.04 }
+    },
+    {
+      "id": "syn_body3",
+      "name": "铜皮铁骨",
+      "desc": "锻体法 ≥3 部",
+      "type": "kind_count",
+      "kind": "锻体法",
+      "min": 3,
+      "effects": { "def": 0.05, "hp": 0.03 }
+    },
+    {
+      "id": "syn_heart3",
+      "name": "道心通明",
+      "desc": "心法 ≥3 部",
+      "type": "kind_count",
+      "kind": "心法",
+      "min": 3,
+      "effects": { "cultivate": 0.06 }
+    },
+    {
+      "id": "syn_zheng_mo",
+      "name": "正魔同修",
+      "desc": "正道宗门功法与魔道功法同修（走火风险）",
+      "type": "mixed_faction",
+      "effects": { "cultivate": 0.1, "breakthrough": -5 }
+    },
+    {
+      "id": "syn_qingyun_sword",
+      "name": "青云双璧",
+      "desc": "青云剑诀 + 青云太虚剑典",
+      "type": "combo",
+      "ids": ["js_jian", "js_taixu"],
+      "effects": { "atk": 0.06 },
+      "flavor": "剑意相合，双璧生辉。出剑时隐约有青云相随。"
+    },
+    {
+      "id": "syn_taixu_danjing",
+      "name": "太虚丹心",
+      "desc": "太虚剑典 + 长生药王经",
+      "type": "combo",
+      "ids": ["js_taixu", "ty_changsheng"],
+      "effects": { "atk": 0.03, "hp": 0.05, "cultivate": 0.03 },
+      "flavor": "剑心药意，生生不息。"
+    },
+    {
+      "id": "syn_xuesha_wangmo",
+      "name": "血海万魔",
+      "desc": "血海魔身 + 万魔朝宗",
+      "type": "combo",
+      "ids": ["xs_xuehai", "xs_wangmo"],
+      "effects": { "atk": 0.08 },
+      "flavor": "血海翻涌，万魔俯首。"
+    },
+    {
+      "id": "syn_youming_lunhui",
+      "name": "幽冥轮回",
+      "desc": "幽冥斩神录 + 轮回鬼典",
+      "type": "combo",
+      "ids": ["ym_zhanshen", "ym_lunhui"],
+      "effects": { "atk": 0.05, "cultivate": 0.05, "dodge": 0.04 },
+      "flavor": "斩神渡魂，轮回不昧。"
+    },
+    {
+      "id": "syn_body_spirit",
+      "name": "神身合一",
+      "desc": "不灭经 + 神身合一法",
+      "type": "combo",
+      "ids": ["ht_mai", "ht_shenshen"],
+      "effects": { "hp": 0.08, "def": 0.05 },
+      "flavor": "身如不灭，神与身合。"
+    },
+    {
+      "id": "syn_duji_bumie",
+      "name": "劫火不灭",
+      "desc": "渡劫心法 + 不灭锻体",
+      "type": "combo",
+      "ids": ["gf_dujie", "gf_bumie"],
+      "effects": { "hp": 0.06, "breakthrough": 4 },
+      "flavor": "劫火焚身，道基不灭。"
+    }
+  ]
+}

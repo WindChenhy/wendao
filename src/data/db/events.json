@@ -1,0 +1,898 @@
+{
+  "events": [
+    {
+      "id": "sect_defend",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "魔修叩山",
+      "text": "夜半钟声急响，山门外魔气翻涌。数名魔修结阵叩关，口称「借贵宗灵脉一用」。执事传讯：愿出战者重赏，愿破财者亦可。",
+      "gates": { "requireSect": true, "minRank": "steward", "minRealm": "golden_core" },
+      "actions": [
+        {
+          "id": "defend",
+          "label": "出战守山",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": {
+              "text": "你剑锋所指，魔修溃散。山门大阵重新亮起，宗门记你守山之功。",
+              "contribution": 80,
+              "repRight": 20,
+              "exp": 320
+            },
+            "lose": {
+              "text": "魔修势大，你负伤退回内门。幸有长老及时出手。",
+              "hpPct": 0.35,
+              "stones": -40,
+              "contribution": 5
+            }
+          }
+        },
+        {
+          "id": "bribe",
+          "label": "破财消灾",
+          "cost": { "stones": 500 },
+          "outcome": {
+            "kind": "settle",
+            "text": "你奉上灵石，魔修讥笑数声，收阵而去。同门颇有微词。",
+            "contribution": -15,
+            "repDemonic": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_exam_storm",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "大比风波",
+      "text": "宗门大比在即，有人暗中兜售「助威丹」，说是能压过同门一头。你撞见交易，对方笑道：「都是同门，何必较真？」",
+      "gates": { "requireSect": true, "minRank": "outer" },
+      "actions": [
+        {
+          "id": "report",
+          "label": "禀报执法堂",
+          "outcome": {
+            "kind": "settle",
+            "text": "执法堂连夜彻查，风气一肃。长老对你的正直颇为赏识。",
+            "contribution": 35,
+            "repRight": 12
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "当作没看见",
+          "outcome": {
+            "kind": "settle",
+            "text": "你压低斗笠走开。大比场外，多了一笔无人追问的买卖。",
+            "repDemonic": 3
+          }
+        },
+        {
+          "id": "expose",
+          "label": "当场喝破",
+          "outcome": {
+            "kind": "settle",
+            "text": "你当众揭穿，对方恼羞成怒却不敢动手。众人侧目，名声在外。",
+            "contribution": 20,
+            "repRight": 8,
+            "stones": -20
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_traitor",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "叛徒疑云",
+      "text": "藏经阁守夜弟子失踪，禁制上留下魔功残痕。执事密令你暗查：若真是内鬼，格杀勿论；若是误会，亦不可打草惊蛇。",
+      "gates": { "requireSect": true, "minRank": "inner", "minRealm": "foundation" },
+      "actions": [
+        {
+          "id": "investigate",
+          "label": "暗中追查",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "demon_guard",
+            "win": {
+              "text": "你循煞气追至后山，人赃并获。叛徒伏诛，追回残卷三页。",
+              "contribution": 70,
+              "repRight": 15,
+              "itemId": "sect_fragment",
+              "exp": 180
+            },
+            "lose": {
+              "text": "对方狡诈，你只毁去半卷密信，人却走脱了。",
+              "hpPct": 0.2,
+              "contribution": 10
+            }
+          }
+        },
+        {
+          "id": "wait",
+          "label": "请君入瓮",
+          "outcome": {
+            "kind": "settle",
+            "text": "你布下假禁制守株待兔。三日后真凶现身，被你与执法堂联手拿下。",
+            "contribution": 55,
+            "repRight": 10,
+            "itemId": "sect_fragment"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_heirloom",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "传承残页",
+      "text": "坊间流出一页古卷，笔迹与宗门失传剑典如出一辙。卖家开价不菲，也有人说那是赝品、是陷阱。",
+      "gates": { "requireSect": true, "minRank": "outer" },
+      "actions": [
+        {
+          "id": "buy",
+          "label": "重金购下",
+          "cost": { "stones": 400 },
+          "outcome": {
+            "kind": "settle",
+            "text": "你以灵石换得残页，呈交藏经阁。长老抚卷良久，记你一功。",
+            "contribution": 45,
+            "itemId": "sect_fragment"
+          }
+        },
+        {
+          "id": "verify",
+          "label": "先请长老掌眼",
+          "outcome": {
+            "kind": "settle",
+            "text": "长老辨出七分真意。虽未能买下，却因谨慎得赏，另获指点。",
+            "contribution": 15,
+            "exp": 120
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "不趟浑水",
+          "outcome": {
+            "kind": "settle",
+            "text": "你按剑离去。此后再未听闻那页古卷的下落。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_theft",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "灵田失窃",
+      "text": "宗门药园一夜之间少了几株百年灵草，脚印直通外门杂役房。管事请你拿个主意：严查到底，还是内部消化？",
+      "gates": { "requireSect": true, "minRank": "outer" },
+      "actions": [
+        {
+          "id": "investigate",
+          "label": "严查到底",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "shan_xiao",
+            "win": {
+              "text": "窃贼竟是受雇的山魈所化。你斩妖追赃，灵草尽数归还。",
+              "contribution": 50,
+              "repRight": 10,
+              "stones": 80
+            },
+            "lose": {
+              "text": "山魈遁入深林，你只抢回半筐灵草。",
+              "hpPct": 0.15,
+              "contribution": 15,
+              "stones": 30
+            }
+          }
+        },
+        {
+          "id": "cover",
+          "label": "压下风声",
+          "outcome": {
+            "kind": "settle",
+            "text": "你按下不报，药园补种了事。管事塞来一小袋灵石作封口。",
+            "stones": 120,
+            "contribution": -10,
+            "repRight": -5
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_recruit",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "执事举荐",
+      "text": "山下有一散修少年，根骨不错，却因出身被几家山门拒之门外。执事问你：可愿以自身名声作保，举荐入门？",
+      "gates": { "requireSect": true, "minRank": "steward" },
+      "actions": [
+        {
+          "id": "sponsor",
+          "label": "作保举荐",
+          "outcome": {
+            "kind": "settle",
+            "text": "少年入门后勤勉异常。数月后他在小比中崭露头角，逢人便说你是引路之人。",
+            "contribution": 40,
+            "repRight": 15,
+            "stones": -50
+          }
+        },
+        {
+          "id": "decline",
+          "label": "不便作保",
+          "outcome": {
+            "kind": "settle",
+            "text": "你婉言谢绝。少年拜入别派，临行前朝山门方向郑重一揖。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_forge_quarrel",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "器殿争执",
+      "text": "器殿两位师兄为一炉「准灵器」的归属吵到议事堂。若你肯出面调停，两边都欠你人情；若偏帮一方，则得罪另一方。",
+      "gates": { "requireSect": true, "minRank": "inner" },
+      "actions": [
+        {
+          "id": "mediate",
+          "label": "出面调停",
+          "outcome": {
+            "kind": "settle",
+            "text": "你提议共有共用、轮值看炉。二人虽不情愿，终究服气。器殿上下记你情面。",
+            "contribution": 30,
+            "exp": 100
+          }
+        },
+        {
+          "id": "side",
+          "label": "帮资历深的师兄",
+          "outcome": {
+            "kind": "settle",
+            "text": "师兄承你人情，赠你一块炼器边角料。另一人冷眼数日。",
+            "contribution": 20,
+            "itemId": "mat_foundation",
+            "repRight": -3
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_library_night",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "藏经阁夜盗",
+      "text": "三更灯火摇曳，藏经阁顶层有人影掠过。值守长老外出未归，整座山门只你离得最近。",
+      "gates": { "requireSect": true, "minRank": "inner", "minRealm": "foundation" },
+      "actions": [
+        {
+          "id": "defend",
+          "label": "追上顶层",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": {
+              "text": "黑衣人负伤遁走，遗落残页两页。你连夜加固禁制，长老归来大加赞许。",
+              "contribution": 90,
+              "repRight": 18,
+              "itemId": "sect_fragment",
+              "exp": 250
+            },
+            "lose": {
+              "text": "你被禁制余波震退，所幸钟声惊动巡夜，贼人未能得手。",
+              "hpPct": 0.25,
+              "contribution": 8
+            }
+          }
+        },
+        {
+          "id": "alarm",
+          "label": "鸣钟示警",
+          "outcome": {
+            "kind": "settle",
+            "text": "钟声震山。贼人远遁，阁中典籍无失。你因机警受赏。",
+            "contribution": 40,
+            "repRight": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_master_summon",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "宗主召见",
+      "text": "宗主于后山石亭召见，只说了一句：「山中风雨欲来，你可愿担一副担子？」亭外云海翻腾，答与不答，皆是抉择。",
+      "gates": { "requireSect": true, "minRank": "elder" },
+      "actions": [
+        {
+          "id": "accept",
+          "label": "愿为宗门分忧",
+          "outcome": {
+            "kind": "settle",
+            "text": "宗主微微颔首，授你一枚令牌。此后宗门机要之事，多有你署名。",
+            "contribution": 120,
+            "repRight": 25,
+            "exp": 400
+          }
+        },
+        {
+          "id": "hesitate",
+          "label": "容我思量",
+          "outcome": {
+            "kind": "settle",
+            "text": "宗主不再多言。石亭一席茶凉，你心中却已埋下一根刺。",
+            "contribution": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "sect_famine_aid",
+      "type": "sect",
+      "pack": "sect_storm",
+      "title": "山下旱魃",
+      "text": "山下村落颗粒无收，村民上山求雨求药。宗门粮草亦紧，执事问：开仓济民，还是封山自守？",
+      "gates": { "requireSect": true, "minRank": "outer" },
+      "actions": [
+        {
+          "id": "aid",
+          "label": "开仓济民",
+          "cost": { "stones": 200 },
+          "outcome": {
+            "kind": "settle",
+            "text": "你力主开仓，并亲往施药。村民立长生牌位，正道之中口碑大振。",
+            "repRight": 30,
+            "contribution": 25
+          }
+        },
+        {
+          "id": "close",
+          "label": "封山自守",
+          "outcome": {
+            "kind": "settle",
+            "text": "山门紧闭三月。门中安稳，山下却多添了几座新坟。",
+            "contribution": 15,
+            "repRight": -15,
+            "repDemonic": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "demon_recruit",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "魔道招揽",
+      "text": "月夜，一道传音符落在你掌心：「阁下煞气/剑意不凡，何苦在正道蹉跎？入我血池，三年内必成大器。」署名是一朵血梅。",
+      "gates": { "minRealm": "foundation", "minRepDemonic": 5 },
+      "actions": [
+        {
+          "id": "decline",
+          "label": "焚符回绝",
+          "outcome": {
+            "kind": "settle",
+            "text": "符纸在指尖燃尽。你把此事压在心底，剑意却更沉了几分。",
+            "repRight": 8
+          }
+        },
+        {
+          "id": "listen",
+          "label": "虚与委蛇",
+          "outcome": {
+            "kind": "settle",
+            "text": "你假意周旋，套出几条魔门暗线。正道密探对你另眼相看。",
+            "repRight": 15,
+            "repDemonic": 8,
+            "stones": 60
+          }
+        },
+        {
+          "id": "join",
+          "label": "应邀赴约",
+          "outcome": {
+            "kind": "settle",
+            "text": "血池之畔，你饮下一杯不知名的酒。从此正道榜上，多了一个模糊的名字。",
+            "repDemonic": 35,
+            "repRight": -25,
+            "itemId": "demon_shard",
+            "exp": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "righteous_hunt",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "除魔令",
+      "text": "正道盟会传下除魔令：血煞坛主屠村三处，凡筑基以上修士皆可领命。赏格丰厚，风险亦高。",
+      "gates": { "minRealm": "foundation", "minRepRight": 15 },
+      "actions": [
+        {
+          "id": "accept",
+          "label": "领命出征",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": {
+              "text": "坛主授首，村中遗孤跪谢。你提其首级赴盟会销令，声望大振。",
+              "repRight": 40,
+              "repDemonic": -15,
+              "contribution": 0,
+              "stones": 300,
+              "exp": 350
+            },
+            "lose": {
+              "text": "坛主凶悍，你重伤突围。除魔令未销，江湖上多了一句讥讽。",
+              "hpPct": 0.4,
+              "repRight": -5,
+              "stones": -50
+            }
+          }
+        },
+        {
+          "id": "decline",
+          "label": "推说有事",
+          "outcome": {
+            "kind": "settle",
+            "text": "你按剑不语，转身回山。盟会执事在名册上画了一个淡淡的圈。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "faction_dilemma",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "正魔夹缝",
+      "text": "官道上，正道巡夜与魔道马队狭路相逢。双方都认得你，也都希望你「站对一边」。风雪扑面，刀已出鞘半寸。",
+      "gates": { "minRealm": "foundation" },
+      "actions": [
+        {
+          "id": "side_right",
+          "label": "助正道",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "demon_guard",
+            "win": {
+              "text": "魔队溃散。正道执事抱拳：「今日之恩，盟会记下了。」",
+              "repRight": 25,
+              "repDemonic": -10,
+              "exp": 150
+            },
+            "lose": {
+              "text": "混战中你寡不敌众，双方各自退去，只留你在雪地里咳血。",
+              "hpPct": 0.3,
+              "stones": -30
+            }
+          }
+        },
+        {
+          "id": "side_demon",
+          "label": "助魔道",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "shan_xiao",
+            "win": {
+              "text": "正道巡夜败退。魔修丢来一袋煞气结晶：「够朋友。」",
+              "repDemonic": 25,
+              "repRight": -15,
+              "itemId": "demon_shard",
+              "exp": 150
+            },
+            "lose": {
+              "text": "你被两边当成弃子，重伤倒在雪里。魔队扬长而去。",
+              "hpPct": 0.35,
+              "repRight": -5,
+              "repDemonic": -5
+            }
+          }
+        },
+        {
+          "id": "leave",
+          "label": "抽身而退",
+          "outcome": {
+            "kind": "settle",
+            "text": "你踏雪绕行。身后喊杀声起，你没有回头。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "blood_rite",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "血祭预警",
+      "text": "荒村夜哭。你发觉有人在布血祭大阵，欲以三十六口生魂炼宝。阵眼尚未合拢，尚可一搏；也可拿此事卖魔道一个好。",
+      "gates": { "minRealm": "golden_core" },
+      "actions": [
+        {
+          "id": "fight",
+          "label": "破阵救人",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": {
+              "text": "大阵崩碎，生魂归窍。你虽耗损精血，心口却一片清明。",
+              "repRight": 35,
+              "repDemonic": -20,
+              "exp": 280,
+              "stones": 150
+            },
+            "lose": {
+              "text": "阵法反噬，你抢出十余人后被迫撤离。余下魂火，终究熄灭了几盏。",
+              "hpPct": 0.35,
+              "repRight": 10,
+              "lifespan": 1
+            }
+          }
+        },
+        {
+          "id": "trade",
+          "label": "卖情报于魔道",
+          "outcome": {
+            "kind": "settle",
+            "text": "魔修很满意，血祭如期而至。你数着到手的灵石，耳畔幻听三日不绝。",
+            "stones": 400,
+            "repDemonic": 30,
+            "repRight": -30
+          }
+        },
+        {
+          "id": "warn",
+          "label": "通风报信后离去",
+          "outcome": {
+            "kind": "settle",
+            "text": "你传讯最近的正道据点后抽身。后来听说惨案止于半途，不知谁该谢你。",
+            "repRight": 12
+          }
+        }
+      ]
+    },
+    {
+      "id": "spy_web",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "细作风波",
+      "text": "你截获一封密信：有人在向魔道递送宗门布防图。字迹像极了你的同门/旧识。信末画了一朵小小血梅。",
+      "gates": { "minRealm": "foundation" },
+      "actions": [
+        {
+          "id": "investigate",
+          "label": "一查到底",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "demon_guard",
+            "win": {
+              "text": "细作伏法，布防图焚于丹炉。此事牵连甚广，你只求无愧于心。",
+              "repRight": 28,
+              "repDemonic": -8,
+              "contribution": 40,
+              "exp": 160
+            },
+            "lose": {
+              "text": "对方先下手为强，你被反咬一口。所幸证据链残缺，未被定罪。",
+              "hpPct": 0.2,
+              "repRight": -8
+            }
+          }
+        },
+        {
+          "id": "burn",
+          "label": "焚信不报",
+          "outcome": {
+            "kind": "settle",
+            "text": "火光映着你的脸。密信成灰，秘密却从今夜起与你有关。",
+            "repDemonic": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "bounty_mirror",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "悬赏通缉",
+      "text": "黑市悬赏榜上，你的画像与一位魔道巨枭并列。有人来递话：「交出那人下落，榜上你的名字就能抹去。」",
+      "gates": { "minRepDemonic": 20 },
+      "actions": [
+        {
+          "id": "refuse",
+          "label": "拒不交易",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "demon_guard",
+            "win": {
+              "text": "赏金猎人铩羽而归。你的名字还在榜上，却再无人敢轻易来摘。",
+              "repRight": 20,
+              "repDemonic": 10,
+              "exp": 200
+            },
+            "lose": {
+              "text": "你负伤遁走，悬赏金额又抬高了一截。",
+              "hpPct": 0.3,
+              "stones": -80
+            }
+          }
+        },
+        {
+          "id": "sell",
+          "label": "出卖下落",
+          "outcome": {
+            "kind": "settle",
+            "text": "巨枭三日后陨落。赏金到手，你却开始在夜里数脚步声。",
+            "stones": 500,
+            "repDemonic": 20,
+            "repRight": -35
+          }
+        }
+      ]
+    },
+    {
+      "id": "righteous_council",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "正道盟会",
+      "text": "盟会飞帖邀你赴会：共议魔患。席间有人主剿，有人主抚，都想借你的嘴说话。",
+      "gates": { "minRepRight": 25, "minRealm": "foundation" },
+      "actions": [
+        {
+          "id": "hawk",
+          "label": "力主清剿",
+          "outcome": {
+            "kind": "settle",
+            "text": "你的陈词被记入盟会纪要。数日后清剿令下，正道声望陡升。",
+            "repRight": 30,
+            "repDemonic": -10,
+            "exp": 120
+          }
+        },
+        {
+          "id": "dove",
+          "label": "主张招抚",
+          "outcome": {
+            "kind": "settle",
+            "text": "招抚之议得过。有魔修受抚归田，也有同道在背后摇头。",
+            "repRight": 10,
+            "repDemonic": 8,
+            "stones": 80
+          }
+        },
+        {
+          "id": "silent",
+          "label": "闭口不言",
+          "outcome": {
+            "kind": "settle",
+            "text": "你只饮茶。散会后有人赞你持重，有人笑你滑头。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "demon_forbidden",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "魔功诱惑",
+      "text": "残碑之下压着半卷《血煞魔功》。碑文警告：习之进境极快，亦易遭反噬。风声里似有无数人在咽口水。",
+      "gates": { "minRealm": "foundation", "minRepDemonic": 8 },
+      "actions": [
+        {
+          "id": "study",
+          "label": "参悟魔功",
+          "outcome": {
+            "kind": "settle",
+            "text": "魔气入体，煞意缠腰。你的杀伐更利了，眉目间却多了几分阴冷。",
+            "exp": 350,
+            "repDemonic": 25,
+            "repRight": -12,
+            "itemId": "demon_shard"
+          }
+        },
+        {
+          "id": "seal",
+          "label": "重新封禁",
+          "outcome": {
+            "kind": "settle",
+            "text": "你以正法压碑，转身离去。背后似有叹息，又似风声。",
+            "repRight": 18
+          }
+        }
+      ]
+    },
+    {
+      "id": "village_raid",
+      "type": "faction",
+      "pack": "faction_war",
+      "title": "屠村疑云",
+      "text": "前方村落火光冲天。赶到时，魔修正在洗劫，却也有人跪地求饶、自称被裹挟。领头者狞笑：「大仙要一起发财么？」",
+      "gates": { "minRealm": "qi", "minLayer": 5 },
+      "actions": [
+        {
+          "id": "fight",
+          "label": "出手救人",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "demon_guard",
+            "win": {
+              "text": "魔修尽诛，火势扑灭。村长捧出仅存的粗粮相谢，你收下了。",
+              "repRight": 22,
+              "repDemonic": -8,
+              "stones": 40,
+              "exp": 100
+            },
+            "lose": {
+              "text": "你只抢出几个孩子便力竭撤出。村子还是烧了大半。",
+              "hpPct": 0.25,
+              "repRight": 5
+            }
+          }
+        },
+        {
+          "id": "join",
+          "label": "分一杯羹",
+          "outcome": {
+            "kind": "settle",
+            "text": "火光里你的影子很长。灵石入手滚烫，像还带着体温。",
+            "stones": 350,
+            "repDemonic": 28,
+            "repRight": -40
+          }
+        },
+        {
+          "id": "flee",
+          "label": "悄然退走",
+          "outcome": {
+            "kind": "settle",
+            "text": "你隐入夜色。哭喊声在身后渐渐低下去。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "omen_tribulation",
+      "type": "omen",
+      "pack": "omen",
+      "title": "天劫预兆",
+      "text": "连续七夜，紫微垣旁有流星如雨。有老修登高而望：「此乃大能将渡之兆，亦是天道示警。」你灵台微震，似有雷音自识海滚过。",
+      "gates": { "minRealm": "spirit_sea" },
+      "weight": 0.7,
+      "actions": [
+        {
+          "id": "observe",
+          "label": "观星悟道",
+          "outcome": {
+            "kind": "settle",
+            "text": "你对雷意多了几分了然。日后渡劫，或许少一分慌乱。",
+            "exp": 500,
+            "flag": "omen_tribulation_seen"
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "不以为意",
+          "outcome": {
+            "kind": "settle",
+            "text": "天象如常流转。你继续自己的修行。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "omen_demon_star",
+      "type": "omen",
+      "pack": "omen",
+      "title": "域外天魔",
+      "text": "虚空裂开一线，有魔影隔界窥伺，低语如针刺入识海：「小小界中仙，可要一缕超脱？」你道心轰鸣，金丹/元婴都在发烫。",
+      "gates": { "minRealm": "nascent_soul" },
+      "weight": 0.55,
+      "actions": [
+        {
+          "id": "fight",
+          "label": "斩灭魔影",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": {
+              "text": "魔影尖啸溃散。你以道心为刃，斩断那一缕窥伺。",
+              "exp": 800,
+              "repRight": 25,
+              "daoMarks": 2
+            },
+            "lose": {
+              "text": "魔念入体三日方清。你道心留下一道细痕，修为却更见狠厉。",
+              "hpPct": 0.3,
+              "lifespan": 2,
+              "exp": 200,
+              "repDemonic": 15
+            }
+          }
+        },
+        {
+          "id": "refuse",
+          "label": "封锁识海",
+          "outcome": {
+            "kind": "settle",
+            "text": "低语渐远。裂隙合拢前，那魔影似乎「看」了你很久。",
+            "repRight": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "omen_cave",
+      "type": "omen",
+      "pack": "omen",
+      "title": "上古洞府",
+      "text": "星坠之野裂开古修洞府，禁制上流转的符文远非此界手笔。府门半掩，内有长明灯如豆。",
+      "gates": { "minRealm": "spirit_sea" },
+      "weight": 0.6,
+      "actions": [
+        {
+          "id": "enter",
+          "label": "深入洞府",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_ape",
+            "win": {
+              "text": "你破开守府傀儡，得丹炉一座、灵石若干，壁上刻着半篇不知名心法。",
+              "exp": 700,
+              "stones": 600,
+              "itemId": "mat_core",
+              "daoMarks": 1
+            },
+            "lose": {
+              "text": "傀儡凶悍，你只抢出一只丹炉便被扫出府外。",
+              "hpPct": 0.3,
+              "stones": 80
+            }
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "封府留缘",
+          "outcome": {
+            "kind": "settle",
+            "text": "你补上一道禁制，留与有缘人。洞府重新隐入星野。",
+            "repRight": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": "omen_tianji",
+      "type": "omen",
+      "pack": "omen",
+      "title": "天机有缘",
+      "text": "云海尽头有人抚琴，一曲《忘机》。她回首时，眸中星河流转：「道友，可算到了。我等你很久了——不是这一世。」",
+      "gates": { "minRealm": "spirit_sea", "notFlags": ["hidden_companion_unlocked"] },
+      "weight": 0.35,
+      "actions": [
+        {
+          "id": "claim",
+          "label": "上前相见",
+          "outcome": {
+            "kind": "unlock_companion",
+            "companionId": "xuan_ling",
+            "flag": "hidden_companion_unlocked",
+            "text": "她赠你一枚玉珏，转身没入云海。从此红尘之中，多了一段说不清的缘分。",
+            "exp": 300
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "只作幻听",
+          "outcome": {
+            "kind": "settle",
+            "text": "琴声散入山风。云海依旧，仿佛什么都未发生。"
+          }
+        }
+      ]
+    }
+  ]
+}

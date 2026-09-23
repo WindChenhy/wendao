@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CATEGORY_LABELS, ITEMS, itemCategory, treasureEffectText, type ItemCategory } from '../data/items'
+import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, treasureEffectText, type ItemCategory } from '../data/items'
 import {
   GONGFAS,
-  canLearnGongfa,
+  canLearnGongfaFull as canLearnGongfa,
   gongfaRealmText,
 } from '../data/gongfa'
 import { formatNum } from '../game/format'
@@ -108,6 +108,12 @@ export function InventoryPanel() {
                   </div>
                   <div className="text-xs text-text-dim mt-0.5">
                     {item.desc}
+                    {(item.pillGrade || item.herbTier || item.treasureTier) && (
+                      <div className="text-[11px] text-jade mt-0.5">
+                        {itemTierText(item)}
+                        {itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}
+                      </div>
+                    )}
                     {g && (
                       <span
                         className={`ml-2 ${
@@ -163,6 +169,12 @@ export function InventoryPanel() {
                       )}
                     </div>
                     <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
+                    {(item.pillGrade || item.herbTier || item.treasureTier) && (
+                      <div className="text-[11px] text-jade mt-0.5">
+                        {itemTierText(item)}
+                        {itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}
+                      </div>
+                    )}
                     <div className="text-xs text-jade mt-0.5">加成：{treasureEffectText(id)}</div>
                   </div>
                   <button
