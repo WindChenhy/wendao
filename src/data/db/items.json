@@ -87,6 +87,13 @@
       "price": 90
     },
     {
+      "id": "sect_fragment",
+      "name": "藏经残页",
+      "type": "quest",
+      "desc": "宗门传承残页。集齐 3 页可在藏经阁参悟一部未习秘法。",
+      "price": 200
+    },
+    {
       "id": "mat_foundation",
       "name": "筑基丹",
       "type": "material",

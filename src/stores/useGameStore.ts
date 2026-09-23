@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { expandPlotCost, MAX_PLOTS, RECIPES, SEEDS } from '../data/abode'
+import { expandPlotCost, MAX_PLOTS, RECIPES, SEEDS, SEED_LIST } from '../data/abode'
 import {
   ACHIEVEMENT_MAP,
   describeReward as describeAchieveReward,
@@ -13,9 +13,29 @@ import {
   pendingCodexRewards,
   describeCodexReward,
 } from '../data/codex'
-import { companionById, giftAffinity, type CompanionDef } from '../data/companions'
+import {
+  companionById,
+  giftAffinity,
+  nextStoryBeat,
+  storyEndingKey,
+  type CompanionDef,
+  type StoryBeat,
+  type StoryChoice,
+} from '../data/companions'
 import { ENEMIES, ENEMY_TEMPLATES, enemyTemplateId, pickEnemy } from '../data/enemies'
-import { pickWorldEvent, type WorldEvent } from '../data/events'
+import {
+  pickWorldEvent,
+  type EventGateContext,
+  type EventOutcome,
+  type WorldEvent,
+  type WorldEventAction,
+} from '../data/events'
+import {
+  questChainById,
+  questStepMatchesDeliver,
+  availableQuestChains,
+  type SectQuestState,
+} from '../data/sectQuests'
 import {
   GONGFA_STAGE_LABELS,
   GONGFA_STAGE_MUL,
@@ -139,7 +159,7 @@ import type {
 import { useLogStore } from './useLogStore'
 
 const SAVE_PREFIX = 'wendao-slot-'
-const SAVE_VERSION = 9
+const SAVE_VERSION = 10
 
 export interface OfflinePending extends OfflineSettlement {
   stones: number
@@ -167,6 +187,16 @@ export interface SectState {
   taskDoneOn: string
   /** 宗门大比考核通过（考核型晋升必需，晋升后消耗） */
   examPassed: boolean
+  /** v0.9 进行中的任务链（可中断续做） */
+  quest: SectQuestState | null
+  /** 宗主建设：藏经阁扩容 0～3 */
+  libraryLv: number
+  /** 宗主建设：坊市折扣 0～3 */
+  marketLv: number
+  /** 已完成任务链条数 */
+  questsDone: number
+  /** 已用残页参悟次数 */
+  fragmentsUsed: number
 }
 
 export interface CompanionState {
@@ -178,6 +208,23 @@ export interface CompanionState {
   spouseId: string | null
   /** 双修冷却日 key */
   dualDoneOn: string
+  /** v0.9 结缘后剧情进度 */
+  postStage: Record<string, number>
+  /** 已达成结局 key: `${companionId}_${he|be}` */
+  endings: Record<string, 'he' | 'be'>
+  /** 全局剧情 flag */
+  flags: string[]
+  /** 已解锁隐藏道侣 */
+  hiddenUnlocked: string[]
+  /** 道侣代劳灵田日 key */
+  farmHelpOn: string
+  /** 道侣代炼丹药日 key */
+  pillHelpOn: string
+}
+
+export interface PendingStory {
+  companionId: string
+  beat: StoryBeat
 }
 
 export interface SlotSnapshot {
@@ -213,6 +260,11 @@ function freshSect(): SectState {
     learned: [],
     taskDoneOn: '',
     examPassed: false,
+    quest: null,
+    libraryLv: 0,
+    marketLv: 0,
+    questsDone: 0,
+    fragmentsUsed: 0,
   }
 }
 
@@ -263,17 +315,88 @@ function migrateGongfa(raw: unknown, sectLearned?: string[]): GongfaState {  con
 function migrateSect(raw: unknown): SectState {
   const base = freshSect()
   if (!raw || typeof raw !== 'object') return base
-  const r = raw as Partial<SectState> & { rank?: string }
+  const r = raw as Partial<SectState> & { rank?: string; quest?: Partial<SectQuestState> | null }
+  const questRaw = r.quest
+  const quest: SectQuestState | null =
+    questRaw && typeof questRaw === 'object' && questRaw.chainId
+      ? {
+          chainId: String(questRaw.chainId),
+          stepIndex: Math.max(0, Number(questRaw.stepIndex) || 0),
+          progress: Math.max(0, Number(questRaw.progress) || 0),
+          completedSteps: Math.max(0, Number(questRaw.completedSteps) || 0),
+        }
+      : null
   return {
     ...base,
-    ...r,
+    sectId: r.sectId ?? null,
     rank: LEGACY_RANK_MAP[r.rank ?? ''] ?? (r.sectId ? 'outer' : 'menial'),
+    contribution: Number(r.contribution) || 0,
+    learned: Array.isArray(r.learned) ? r.learned.filter((x) => typeof x === 'string') : [],
+    taskDoneOn: typeof r.taskDoneOn === 'string' ? r.taskDoneOn : '',
     examPassed: Boolean(r.examPassed),
+    quest: quest && questChainById(quest.chainId) ? quest : null,
+    libraryLv: Math.max(0, Math.min(3, Number(r.libraryLv) || 0)),
+    marketLv: Math.max(0, Math.min(3, Number(r.marketLv) || 0)),
+    questsDone: Math.max(0, Number(r.questsDone) || 0),
+    fragmentsUsed: Math.max(0, Number(r.fragmentsUsed) || 0),
   }
 }
 
 function freshCompanion(): CompanionState {
-  return { affinity: {}, heartsSeen: {}, spouseId: null, dualDoneOn: '' }
+  return {
+    affinity: {},
+    heartsSeen: {},
+    spouseId: null,
+    dualDoneOn: '',
+    postStage: {},
+    endings: {},
+    flags: [],
+    hiddenUnlocked: [],
+    farmHelpOn: '',
+    pillHelpOn: '',
+  }
+}
+
+function migrateCompanion(raw: unknown): CompanionState {
+  const base = freshCompanion()
+  if (!raw || typeof raw !== 'object') return base
+  const r = raw as Partial<CompanionState>
+  const affinity: Record<string, number> = {}
+  if (r.affinity && typeof r.affinity === 'object') {
+    for (const [k, v] of Object.entries(r.affinity)) {
+      if (typeof v === 'number') affinity[k] = v
+    }
+  }
+  const heartsSeen: Record<string, number> = {}
+  if (r.heartsSeen && typeof r.heartsSeen === 'object') {
+    for (const [k, v] of Object.entries(r.heartsSeen)) {
+      if (typeof v === 'number') heartsSeen[k] = v
+    }
+  }
+  const postStage: Record<string, number> = {}
+  if (r.postStage && typeof r.postStage === 'object') {
+    for (const [k, v] of Object.entries(r.postStage)) {
+      if (typeof v === 'number') postStage[k] = v
+    }
+  }
+  const endings: Record<string, 'he' | 'be'> = {}
+  if (r.endings && typeof r.endings === 'object') {
+    for (const [k, v] of Object.entries(r.endings)) {
+      if (v === 'he' || v === 'be') endings[k] = v
+    }
+  }
+  return {
+    affinity,
+    heartsSeen,
+    spouseId: typeof r.spouseId === 'string' && r.spouseId ? r.spouseId : null,
+    dualDoneOn: typeof r.dualDoneOn === 'string' ? r.dualDoneOn : '',
+    postStage,
+    endings,
+    flags: Array.isArray(r.flags) ? uniqIds(r.flags.map(String)) : [],
+    hiddenUnlocked: Array.isArray(r.hiddenUnlocked) ? uniqIds(r.hiddenUnlocked.map(String)) : [],
+    farmHelpOn: typeof r.farmHelpOn === 'string' ? r.farmHelpOn : '',
+    pillHelpOn: typeof r.pillHelpOn === 'string' ? r.pillHelpOn : '',
+  }
 }
 
 function freshGongfa(): GongfaState {
@@ -381,6 +504,8 @@ function deriveCollectionFromState(s: {
   for (const [id, n] of Object.entries(s.companion.heartsSeen)) {
     if ((n ?? 0) > 0) companionIds.push(id)
   }
+  companionIds.push(...(s.companion.hiddenUnlocked ?? []))
+  companionIds.push(...Object.keys(s.companion.endings ?? {}))
 
   return {
     realm: realmIds,
@@ -441,8 +566,78 @@ function log(text: string, level: 'info' | 'good' | 'bad' | 'gold' | 'dim' = 'in
   useLogStore.getState().push(text, level)
 }
 
-function pickEvent(realm: PlayerState['realm']): WorldEvent | null {
-  return pickWorldEvent(realm, currentRules().extraEvents)
+function buildEventContext(s: {
+  player: PlayerState | null
+  time: GameTime
+  sect: SectState
+  companion: CompanionState
+}): EventGateContext | null {
+  const p = s.player
+  if (!p) return null
+  return {
+    realm: p.realm,
+    layer: p.layer,
+    classId: p.classId,
+    year: s.time.year,
+    repRight: p.repRight,
+    repDemonic: p.repDemonic,
+    sectId: s.sect.sectId,
+    sectRank: s.sect.rank,
+    spouseId: s.companion.spouseId,
+    affinity: s.companion.affinity,
+    flags: s.companion.flags,
+  }
+}
+
+function pickEvent(): WorldEvent | null {
+  const s = useGameStore.getState()
+  const ctx = buildEventContext(s)
+  if (!ctx) return null
+  return pickWorldEvent(ctx, currentRules().extraEvents)
+}
+
+/** 任务链：历练/秘境获胜推进 explore_win 步骤 */
+function bumpQuestExploreWin(set: MetaSet) {
+  const { sect } = useGameStore.getState()
+  if (!sect.sectId || !sect.quest) return
+  const chain = questChainById(sect.quest.chainId)
+  if (!chain) return
+  const step = chain.steps[sect.quest.stepIndex]
+  if (!step || step.type !== 'explore_win') return
+  const need = step.count ?? 1
+  const progress = sect.quest.progress + 1
+  if (progress >= need) {
+    set({
+      sect: {
+        ...sect,
+        quest: {
+          ...sect.quest,
+          stepIndex: sect.quest.stepIndex + 1,
+          progress: 0,
+          completedSteps: sect.quest.completedSteps + 1,
+        },
+      },
+    })
+    log(`任务链「${chain.name}」：${step.desc} —— 已完成。`, 'good')
+  } else {
+    set({ sect: { ...sect, quest: { ...sect.quest, progress } } })
+    log(`任务链「${chain.name}」：${step.desc}（${progress}/${need}）`, 'dim')
+  }
+}
+
+/** 结缘后剧情：有可触发段则弹出 */
+function maybeTriggerSpouseStory(get: MetaGet, set: MetaSet) {
+  const s = get()
+  if (!s.player || s.pendingEvent || s.pendingStory || s.activeCombat) return
+  const spouseId = s.companion.spouseId
+  if (!spouseId) return
+  const c = companionById(spouseId)
+  if (!c?.postStory?.length) return
+  const stage = s.companion.postStage[spouseId] ?? 0
+  if (stage >= c.postStory.length) return
+  const beat = nextStoryBeat(c, stage)
+  if (!beat) return
+  set({ pendingStory: { companionId: spouseId, beat } })
 }
 
 function gainCultivate(classId: PlayerState['classId'], realm: PlayerState['realm'], layer: number): number {
@@ -882,6 +1077,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
       })
       unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
       if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+      bumpQuestExploreWin(set)
       afterProgressSnapshot(get, set)
     } else {
       log(`历练遭遇 ${enemy.name}，不敌败退。`, 'bad')
@@ -897,8 +1093,9 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
         },
       })
     }
-    const evt = pickEvent(player.realm)
+    const evt = pickEvent()
     if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+    maybeTriggerSpouseStory(get, set)
     return
   }
 
@@ -946,6 +1143,7 @@ function settleActiveCombat(get: () => GameState, set: (p: Partial<GameState>) =
         unlockCodex(get, set, 'enemy', templateId)
       }
       if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+      bumpQuestExploreWin(set)
       afterProgressSnapshot(get, set)
       if (clearedAll) {
         log(`你贯通了「${realm.name}」全部 ${realm.floors} 层！已退出秘境。`, 'gold')
@@ -1083,6 +1281,8 @@ interface GameState {
   exploring: boolean
   lastCombat: { enemy: EnemyDef; win: boolean; log: string[] } | null
   pendingEvent: PendingEvent | null
+  /** v0.9 结缘后剧情待确认 */
+  pendingStory: PendingStory | null
   /** 进行中的回合制战斗（v0.6 技能战） */
   activeCombat: (CombatEngineState & { pendingEventAction?: string }) | null
   autoCombat: boolean
@@ -1107,6 +1307,24 @@ interface GameState {
   explore: () => void
   clearCombat: () => void
   resolveEvent: (actionId: string) => void
+  /** v0.9 结缘后剧情抉择 */
+  resolveStory: (choiceId: string | null) => void
+  /** 手动触发道侣长线剧情（若可） */
+  triggerSpouseStory: () => void
+  /** 道侣代劳：打理灵田（每日一次） */
+  spouseFarmHelp: () => void
+  /** 道侣代劳：代炼低阶丹（每日一次） */
+  spousePillHelp: () => void
+  /** 接取宗门任务链 */
+  acceptQuestChain: (chainId: string) => void
+  /** 推进当前任务链（交付/回报/花灵石） */
+  advanceQuestStep: () => void
+  /** 放弃任务链（进度清空） */
+  abandonQuestChain: () => void
+  /** 宗主建设升级 */
+  upgradeSectBuilding: (which: 'library' | 'market') => void
+  /** 以 3 张藏经残页参悟一部未习宗门秘法 */
+  redeemSectFragment: () => void
   combatAct: (action: PlayerAction) => void
   toggleCombatAuto: () => void
   runCombatAutoToEnd: () => void
@@ -1225,6 +1443,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   exploring: false,
   lastCombat: null,
   pendingEvent: null,
+  pendingStory: null,
   activeCombat: null,
   /** 默认手动，保证战斗面板能先显示；勾选自动后再托管 */
   autoCombat: false,
@@ -1324,6 +1543,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         player: null,
         lastCombat: null,
         pendingEvent: null,
+        pendingStory: null,
         tower: null,
         sect: freshSect(),
         companion: freshCompanion(),
@@ -1351,6 +1571,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       player: null,
       lastCombat: null,
       pendingEvent: null,
+      pendingStory: null,
       tower: null,
       activeCombat: null,
       exploring: false,
@@ -1402,6 +1623,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       activePanel: 'cultivate',
       lastCombat: null,
       pendingEvent: null,
+      pendingStory: null,
       activeCombat: null,
       exploring: false,
       autoCombat: false,
@@ -1422,7 +1644,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   meditate: () => {
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
     const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
@@ -1470,15 +1692,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
     touchOnline(get, set)
 
-    const evt = pickEvent(player.realm)
+    const evt = pickEvent()
     if (evt) set({ pendingEvent: { event: evt, kind: 'meditate' } })
+    maybeTriggerSpouseStory(get, set)
   },
 
   seclude: (days) => {
     // 与游戏日历对齐：1 年 = 360 日；上限约百年 + 余量
     const n = clamp(days, 1, GAME_DAYS_PER_YEAR * 120)
     const { player, time, sect, companion } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
     const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
@@ -1523,13 +1746,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
     touchOnline(get, set)
 
-    const evt = pickEvent(player.realm)
+    const evt = pickEvent()
     if (evt) set({ pendingEvent: { event: evt, kind: 'seclude' } })
+    maybeTriggerSpouseStory(get, set)
   },
 
   breakthrough: () => {
     const { player, inventory, sect, companion, treasures } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     if (!canBreakthrough(player.realm, player.layer, player.exp)) {
       log('修为不足，无法冲击壁垒。', 'bad')
       return
@@ -1678,7 +1902,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('你已飞升，不再入世历练。', 'dim')
       return
     }
-    if (get().pendingEvent) {
+    if (get().pendingEvent || get().pendingStory) {
       log('尚有奇遇未了结，请先处理当前事件。', 'bad')
       return
     }
@@ -2207,13 +2431,224 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   resolveEvent: (actionId) => {
-    const { pendingEvent, player, inventory, stones, treasures } = get()
+    const { pendingEvent, player, inventory, stones, treasures, sect, companion, legacy } = get()
     if (!pendingEvent || !player || !player.alive) {
       set({ pendingEvent: null })
       return
     }
     const evt = pendingEvent.event
     let inv = { ...inventory }
+    const action: WorldEventAction | undefined = evt.actions.find((a) => a.id === actionId)
+
+    // 支付行动代价
+    if (action?.cost) {
+      const c = action.cost
+      if (c.stones && stones < c.stones) {
+        log('灵石不足，无法如此行事。', 'bad')
+        return
+      }
+      if (c.contribution && sect.contribution < c.contribution) {
+        log('宗门贡献不足。', 'bad')
+        return
+      }
+      if (c.items) {
+        for (const [id, n] of Object.entries(c.items)) {
+          if ((inv[id] ?? 0) < n) {
+            log(`「${ITEMS[id]?.name ?? id}」不足。`, 'bad')
+            return
+          }
+        }
+        for (const [id, n] of Object.entries(c.items)) {
+          inv[id] = (inv[id] ?? 0) - n
+          if (inv[id] <= 0) delete inv[id]
+        }
+      }
+    }
+
+    const applySettleOutcome = (oc: EventOutcome | undefined, fallbackText: string) => {
+      let p = { ...player }
+      let st = stones - (action?.cost?.stones ?? 0) + (oc?.stones ?? 0)
+      let contrib = sect.contribution - (action?.cost?.contribution ?? 0) + (oc?.contribution ?? 0)
+      let flags = [...companion.flags]
+      let hidden = [...companion.hiddenUnlocked]
+      let nextInv = { ...inv }
+      if (oc?.itemId) {
+        nextInv[oc.itemId] = (nextInv[oc.itemId] ?? 0) + 1
+      }
+      if (oc?.exp) p.exp += oc.exp
+      if (oc?.repRight) p.repRight += oc.repRight
+      if (oc?.repDemonic) p.repDemonic += oc.repDemonic
+      if (oc?.lifespan) p.lifespanLeft = Math.max(1, p.lifespanLeft - oc.lifespan)
+      if (oc?.hpPct) p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * oc.hpPct))
+      let legacyNext = legacy
+      if (oc?.daoMarks) {
+        legacyNext = { ...legacy, daoMarks: legacy.daoMarks + oc.daoMarks }
+      }
+      if (oc?.flag && !flags.includes(oc.flag)) flags.push(oc.flag)
+      if (oc?.kind === 'unlock_companion' && oc.companionId) {
+        if (!hidden.includes(oc.companionId)) hidden.push(oc.companionId)
+        // 初见好感
+        companion.affinity[oc.companionId] = Math.max(companion.affinity[oc.companionId] ?? 0, 30)
+      }
+      log(oc?.text ?? fallbackText, oc?.kind === 'unlock_companion' ? 'gold' : 'info')
+      set({
+        pendingEvent: null,
+        inventory: nextInv,
+        stones: Math.max(0, st),
+        legacy: legacyNext,
+        sect: { ...sect, contribution: Math.max(0, contrib) },
+        companion: {
+          ...companion,
+          flags: uniqIds(flags),
+          hiddenUnlocked: uniqIds(hidden),
+          affinity: { ...companion.affinity },
+        },
+        player: p,
+      })
+      if (oc?.itemId) unlockCodex(get, set, 'item', oc.itemId)
+      if (oc?.kind === 'unlock_companion' && oc.companionId) {
+        unlockCodex(get, set, 'companion', oc.companionId)
+      }
+      afterProgressSnapshot(get, set)
+    }
+
+    const runEventCombat = (bossId: string, win?: EventOutcome, lose?: EventOutcome) => {
+      const enemy = ENEMIES.find((e) => e.id === bossId) ?? ENEMIES[0]
+      const actor = makePlayerCombatant(player, treasures, 1)
+      const label = '奇遇战斗'
+      const result = runCombatAuto(
+        actor,
+        enemy,
+        {
+          kind: 'event',
+          title: `${label}：${evt.title}`,
+          enemy,
+          hpScale: 1,
+        },
+        inv,
+        player.realm,
+        player.layer,
+        (st) => defaultAutoAction(st, inv, player.realm, player.layer),
+      )
+      inv = applyCombatConsumables(
+        {
+          potionsUsed: result.potionsUsed,
+          blastPillsUsed: result.blastPillsUsed,
+        } as CombatEngineState,
+        inv,
+      )
+      const lines = result.log.map((l) => l.text)
+      // 先扣行动代价中的灵石/贡献
+      const costStones = action?.cost?.stones ?? 0
+      const costContrib = action?.cost?.contribution ?? 0
+      if (result.win) {
+        const dropId = enemy.loot.itemId
+        if (dropId && Math.random() < (enemy.loot.dropRate ?? 0.6)) {
+          inv[dropId] = (inv[dropId] ?? 0) + 1
+        }
+        const rep = repDeltaOnKill(enemy)
+        log(`${label}获胜：${enemy.name}`, 'gold')
+        const extra = win
+        if (extra?.text) log(extra.text, 'gold')
+        const metaEvt = get().meta
+        let flags = [...get().companion.flags]
+        if (extra?.flag && !flags.includes(extra.flag)) flags.push(extra.flag)
+        const nextInv = { ...inv }
+        if (extra?.itemId) nextInv[extra.itemId] = (nextInv[extra.itemId] ?? 0) + 1
+        const stonesGain =
+          result.stoneGain - costStones + (extra?.stones ?? 0)
+        const contribGain =
+          sect.contribution - costContrib + (extra?.contribution ?? 0) + 0
+        let legacyNext = legacy
+        if (extra?.daoMarks) {
+          legacyNext = { ...legacy, daoMarks: legacy.daoMarks + extra.daoMarks }
+        }
+        set({
+          pendingEvent: null,
+          inventory: nextInv,
+          stones: Math.max(0, get().stones + stonesGain),
+          legacy: legacyNext,
+          sect: { ...sect, contribution: Math.max(0, contribGain) },
+          companion: { ...get().companion, flags: uniqIds(flags) },
+          lastCombat: { enemy, win: true, log: lines },
+          player: {
+            ...player,
+            exp: player.exp + result.expGain + (extra?.exp ?? 0),
+            hp: Math.max(1, result.playerHpLeft),
+            energy: result.playerEnergyLeft,
+            lifespanLeft: Math.max(
+              1,
+              player.lifespanLeft - result.lifespanCost - (extra?.lifespan ?? 0),
+            ),
+            repRight: player.repRight + rep.right + (extra?.repRight ?? 0),
+            repDemonic: player.repDemonic + rep.demonic + (extra?.repDemonic ?? 0),
+          },
+          meta: {
+            ...metaEvt,
+            stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
+          },
+        })
+        unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
+        if (dropId) unlockCodex(get, set, 'item', dropId)
+        if (extra?.itemId) unlockCodex(get, set, 'item', extra.itemId)
+        afterProgressSnapshot(get, set)
+      } else {
+        log(`${label}失败：${enemy.name}`, 'bad')
+        const extra = lose
+        if (extra?.text) log(extra.text, 'bad')
+        let flags = [...get().companion.flags]
+        if (extra?.flag && !flags.includes(extra.flag)) flags.push(extra.flag)
+        const nextInv = { ...inv }
+        if (extra?.itemId) nextInv[extra.itemId] = (nextInv[extra.itemId] ?? 0) + 1
+        let legacyNext = legacy
+        if (extra?.daoMarks) {
+          legacyNext = { ...legacy, daoMarks: legacy.daoMarks + extra.daoMarks }
+        }
+        const hpFloor = extra?.hpPct
+          ? Math.max(1, player.hp - Math.floor(player.maxHp * extra.hpPct))
+          : Math.max(1, Math.floor(player.maxHp * 0.15))
+        set({
+          pendingEvent: null,
+          inventory: nextInv,
+          lastCombat: { enemy, win: false, log: lines },
+          legacy: legacyNext,
+          stones: Math.max(0, get().stones - 20 - costStones + (extra?.stones ?? 0)),
+          sect: {
+            ...sect,
+            contribution: Math.max(0, sect.contribution - costContrib + (extra?.contribution ?? 0)),
+          },
+          companion: { ...get().companion, flags: uniqIds(flags) },
+          player: {
+            ...player,
+            exp: player.exp + (extra?.exp ?? 0),
+            hp: hpFloor,
+            energy: result.playerEnergyLeft,
+            lifespanLeft: Math.max(
+              1,
+              player.lifespanLeft - result.lifespanCost - (extra?.lifespan ?? 0),
+            ),
+            repRight: player.repRight + (extra?.repRight ?? 0),
+            repDemonic: player.repDemonic + (extra?.repDemonic ?? 0),
+          },
+        })
+        if (extra?.itemId) unlockCodex(get, set, 'item', extra.itemId)
+      }
+    }
+
+    // v0.9：带 outcome 的新动作
+    if (action?.outcome) {
+      const oc = action.outcome
+      if (oc.kind === 'combat') {
+        runEventCombat(oc.bossId ?? evt.payload?.bossId ?? 'boss_tiger', oc.win, oc.lose)
+        return
+      }
+      if (oc.kind === 'unlock_companion') {
+        applySettleOutcome(oc, '缘分已至。')
+        return
+      }
+      applySettleOutcome(oc, `你选择：${action.label}`)
+      return
+    }
 
     if (actionId === 'ignore' || actionId === 'flee') {
       log(`你选择避开：${evt.title}`, 'dim')
@@ -2265,84 +2700,383 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     if (actionId === 'enter' || actionId === 'fight') {
-      const bossId =
+      runEventCombat(
         evt.payload?.bossId ??
-        (evt.id.includes('ice') ? 'boss_ape' : evt.id.includes('demon') ? 'boss_demon_lord' : 'boss_tiger')
-      const enemy = ENEMIES.find((e) => e.id === bossId) ?? ENEMIES[0]
-      const actor = makePlayerCombatant(player, treasures, 1)
-      const label = actionId === 'enter' ? '秘境探索' : '奇遇战斗'
-      const result = runCombatAuto(
-        actor,
-        enemy,
-        {
-          kind: 'event',
-          title: `${label}：${evt.title}`,
-          enemy,
-          hpScale: 1,
-        },
-        inv,
-        player.realm,
-        player.layer,
-        (st) => defaultAutoAction(st, inv, player.realm, player.layer),
+          (evt.id.includes('ice') ? 'boss_ape' : evt.id.includes('demon') ? 'boss_demon_lord' : 'boss_tiger'),
       )
-      inv = applyCombatConsumables(
-        {
-          potionsUsed: result.potionsUsed,
-          blastPillsUsed: result.blastPillsUsed,
-        } as CombatEngineState,
-        inv,
-      )
-      const lines = result.log.map((l) => l.text)
-      if (result.win) {
-        const dropId = enemy.loot.itemId
-        if (dropId && Math.random() < (enemy.loot.dropRate ?? 0.6)) {
-          inv[dropId] = (inv[dropId] ?? 0) + 1
-        }
-        const rep = repDeltaOnKill(enemy)
-        log(`${label}获胜：${enemy.name}`, 'gold')
-        log(`修为 +${result.expGain}，灵石 +${result.stoneGain}`, 'good')
-        const metaEvt = get().meta
-        set({
-          pendingEvent: null,
-          inventory: inv,
-          stones: get().stones + result.stoneGain,
-          lastCombat: { enemy, win: true, log: lines },
-          player: {
-            ...player,
-            exp: player.exp + result.expGain,
-            hp: Math.max(1, result.playerHpLeft),
-            energy: result.playerEnergyLeft,
-            lifespanLeft: Math.max(1, player.lifespanLeft - result.lifespanCost),
-            repRight: player.repRight + rep.right,
-            repDemonic: player.repDemonic + rep.demonic,
-          },
-          meta: {
-            ...metaEvt,
-            stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
-          },
-        })
-        unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
-        if (dropId) unlockCodex(get, set, 'item', dropId)
-        afterProgressSnapshot(get, set)
-      } else {
-        log(`${label}失败：${enemy.name}`, 'bad')
-        set({
-          pendingEvent: null,
-          inventory: inv,
-          lastCombat: { enemy, win: false, log: lines },
-          stones: Math.max(0, get().stones - 20),
-          player: {
-            ...player,
-            hp: Math.max(1, Math.floor(player.maxHp * 0.15)),
-            energy: result.playerEnergyLeft,
-            lifespanLeft: Math.max(1, player.lifespanLeft - result.lifespanCost),
-          },
-        })
-      }
       return
     }
 
     set({ pendingEvent: null })
+  },
+
+  resolveStory: (choiceId) => {
+    const { pendingStory, companion, player, stones, legacy, inventory } = get()
+    if (!pendingStory || !player) {
+      set({ pendingStory: null })
+      return
+    }
+    const { companionId, beat } = pendingStory
+    const choice: StoryChoice | undefined = beat.choices?.find((c) => c.id === choiceId)
+    const stage = companion.postStage[companionId] ?? 0
+    const nextStage = stage + 1
+    const aff = companion.affinity[companionId] ?? 0
+
+    log(`【${beat.title}】${beat.text}`, 'gold')
+    if (choice) {
+      log(choice.text, choice.ending === 'be' ? 'bad' : choice.ending === 'he' ? 'gold' : 'info')
+    } else if (beat.postText) {
+      log(beat.postText, 'info')
+    }
+
+    let nextAff = aff + (choice?.affinity ?? 0)
+    let nextStones = stones + (choice?.stones ?? 0)
+    let nextInv = { ...inventory }
+    if (choice?.itemId) nextInv[choice.itemId] = (nextInv[choice.itemId] ?? 0) + 1
+    let p = { ...player }
+    if (choice?.exp) p.exp += choice.exp
+    if (choice?.repRight) p.repRight += choice.repRight
+    if (choice?.repDemonic) p.repDemonic += choice.repDemonic
+    if (choice?.hpPct) p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * choice.hpPct))
+    let legacyNext = legacy
+    if (choice?.daoMarksCost) {
+      if (legacy.daoMarks < choice.daoMarksCost) {
+        log('道痕不足，无法强改天机。请另作抉择。', 'bad')
+        return
+      }
+      legacyNext = { ...legacy, daoMarks: legacy.daoMarks - choice.daoMarksCost }
+    }
+
+    const endings = { ...companion.endings }
+    const flags = [...companion.flags]
+    const ending = choice?.ending ?? beat.ending ?? null
+    if (ending) {
+      endings[storyEndingKey(companionId, ending)] = ending
+    }
+    if (choice?.flag && !flags.includes(choice.flag)) flags.push(choice.flag)
+
+    // BE 结局后不再推进后续段
+    const storyLen = companionById(companionId)?.postStory?.length ?? nextStage
+    const advancedStage = ending === 'be' ? storyLen : nextStage
+
+    set({
+      pendingStory: null,
+      stones: Math.max(0, nextStones),
+      inventory: nextInv,
+      legacy: legacyNext,
+      companion: {
+        ...companion,
+        affinity: { ...companion.affinity, [companionId]: Math.max(0, nextAff) },
+        postStage: { ...companion.postStage, [companionId]: advancedStage },
+        endings,
+        flags: uniqIds(flags),
+      },
+      player: p,
+    })
+    if (ending) {
+      unlockCodex(get, set, 'companion', storyEndingKey(companionId, ending))
+    }
+    afterProgressSnapshot(get, set)
+  },
+
+  triggerSpouseStory: () => {
+    maybeTriggerSpouseStory(get, set)
+    if (!get().pendingStory) {
+      log('眼下无新的缘法可续。', 'dim')
+    }
+  },
+
+  spouseFarmHelp: () => {
+    const { companion, player, time, abode, inventory } = get()
+    if (!player || !player.alive || !companion.spouseId) return
+    const key = `${time.year}-${time.month}-${time.day}`
+    if (companion.farmHelpOn === key) {
+      log('今日道侣已代为打理过灵田。', 'dim')
+      return
+    }
+    const c = companionById(companion.spouseId)
+    if (!c) return
+    let inv = { ...inventory }
+    let harvested = 0
+    const plots = abode.plots.map((plot) => {
+      const prog = plotProgress(plot, time)
+      if (!plot.seedId || !prog.ready) return plot
+      const seed = SEEDS[plot.seedId]
+      if (!seed) return { seedId: null, plantedDay: 0 }
+      const n = harvestYield(plot.seedId) + 1 + Math.floor(Math.random() * 2)
+      inv[seed.yieldItemId] = (inv[seed.yieldItemId] ?? 0) + n
+      harvested += n
+      return { seedId: null, plantedDay: 0 }
+    })
+    // 自动补种
+    let replanted = 0
+    const finalPlots = plots.map((plot) => {
+      if (plot.seedId) return plot
+      for (const s of SEED_LIST) {
+        if ((inv[s.id] ?? 0) > 0) {
+          inv[s.id] -= 1
+          if (inv[s.id] <= 0) delete inv[s.id]
+          replanted += 1
+          return { seedId: s.id, plantedDay: dayNumber(time) }
+        }
+      }
+      return plot
+    })
+    log(
+      `${c.name}代你打理灵田：收获 ${harvested} 份${replanted ? `，补种 ${replanted} 块` : ''}。`,
+      'good',
+    )
+    set({
+      inventory: inv,
+      abode: { ...abode, plots: finalPlots },
+      companion: { ...companion, farmHelpOn: key },
+    })
+  },
+
+  spousePillHelp: () => {
+    const { companion, player, time, inventory } = get()
+    if (!player || !player.alive || !companion.spouseId) return
+    const key = `${time.year}-${time.month}-${time.day}`
+    if (companion.pillHelpOn === key) {
+      log('今日道侣已代炼过丹药。', 'dim')
+      return
+    }
+    const c = companionById(companion.spouseId)
+    if (!c) return
+    const inv = { ...inventory }
+    // 苏青/玄灵炼丹更佳
+    const skilled = c.id === 'su_qing' || c.id === 'xuan_ling'
+    const healN = skilled ? 2 : 1
+    const qiN = skilled ? 1 : 0
+    inv.pill_heal = (inv.pill_heal ?? 0) + healN
+    if (qiN) inv.pill_qi = (inv.pill_qi ?? 0) + qiN
+    log(
+      `${c.name}代炼低阶丹药：回春散 ×${healN}${qiN ? `，聚气丹 ×${qiN}` : ''}。`,
+      'good',
+    )
+    set({
+      inventory: inv,
+      companion: { ...companion, pillHelpOn: key },
+    })
+    unlockCodex(get, set, 'item', 'pill_heal')
+    afterProgressSnapshot(get, set)
+  },
+
+  acceptQuestChain: (chainId) => {
+    const { sect, player } = get()
+    if (!player || !sect.sectId) return
+    if (sect.quest) {
+      log('已有任务在身，可先完成或放弃。', 'dim')
+      return
+    }
+    const chain = questChainById(chainId)
+    if (!chain) return
+    const cur = SECTS.find((s) => s.id === sect.sectId)
+    const align = cur?.alignment ?? 'righteous'
+    const open = availableQuestChains(sect.rank, player.realm, align)
+    if (!open.some((c) => c.id === chainId)) {
+      log('当前职位/境界尚不可接取此任务链。', 'bad')
+      return
+    }
+    log(`接取宗门任务链「${chain.name}」：${chain.brief}`, 'gold')
+    set({
+      sect: {
+        ...sect,
+        quest: { chainId, stepIndex: 0, progress: 0, completedSteps: 0 },
+      },
+    })
+  },
+
+  advanceQuestStep: () => {
+    const { sect, player, time, inventory, stones } = get()
+    if (!player || !sect.sectId || !sect.quest) return
+    if (get().activeCombat && !get().activeCombat!.finished) {
+      log('战斗进行中，无法处理任务链。', 'bad')
+      return
+    }
+    const chain = questChainById(sect.quest.chainId)
+    if (!chain) return
+    const step = chain.steps[sect.quest.stepIndex]
+    if (!step) {
+      // 全部完成，结算
+      const r = chain.reward
+      const rankMul = SECT_RANKS[sect.rank].taskMul
+      const gain = Math.floor(r.contribution * rankMul)
+      let inv = { ...inventory }
+      let gotFragment = false
+      if (r.fragmentChance && Math.random() < r.fragmentChance) {
+        inv.sect_fragment = (inv.sect_fragment ?? 0) + 1
+        gotFragment = true
+      }
+      log(`任务链「${chain.name}」完成！贡献 +${gain}，灵石 +${r.stone ?? 0}`, 'gold')
+      if (gotFragment) log('宗门额外赐下「藏经残页」×1。', 'gold')
+      if (r.exp) log(`修为 +${r.exp}`, 'good')
+      set({
+        inventory: inv,
+        stones: stones + (r.stone ?? 0),
+        sect: {
+          ...sect,
+          contribution: sect.contribution + gain,
+          quest: null,
+          questsDone: sect.questsDone + 1,
+        },
+        player: { ...player, exp: player.exp + (r.exp ?? 0) },
+      })
+      if (gotFragment) unlockCodex(get, set, 'item', 'sect_fragment')
+      afterProgressSnapshot(get, set)
+      return
+    }
+
+    if (step.type === 'explore_win') {
+      log('此步需在历练/秘境中获胜，外出时自动计入进度。', 'dim')
+      return
+    }
+
+    if (step.type === 'deliver') {
+      const need = step.count ?? 1
+      const match = questStepMatchesDeliver(step, inventory)
+      if (!match.ok || !match.itemId) {
+        log(`材料不足：${step.desc}`, 'bad')
+        return
+      }
+      const inv = { ...inventory }
+      inv[match.itemId] = (inv[match.itemId] ?? 0) - need
+      if (inv[match.itemId] <= 0) delete inv[match.itemId]
+      log(`任务链「${chain.name}」：交付完成（${step.desc}）。`, 'good')
+      set({
+        inventory: inv,
+        sect: {
+          ...sect,
+          quest: {
+            ...sect.quest,
+            stepIndex: sect.quest.stepIndex + 1,
+            progress: 0,
+            completedSteps: sect.quest.completedSteps + 1,
+          },
+        },
+      })
+      return
+    }
+
+    if (step.type === 'stones') {
+      const cost = step.stones ?? 0
+      if (stones < cost) {
+        log(`灵石不足 ${cost}。`, 'bad')
+        return
+      }
+      log(`任务链「${chain.name}」：拨付灵石 ${cost}。`, 'good')
+      set({
+        stones: stones - cost,
+        sect: {
+          ...sect,
+          quest: {
+            ...sect.quest,
+            stepIndex: sect.quest.stepIndex + 1,
+            progress: 0,
+            completedSteps: sect.quest.completedSteps + 1,
+          },
+        },
+      })
+      return
+    }
+
+    if (step.type === 'report') {
+      const advanced = advanceTime(time, 1)
+      log(`任务链「${chain.name}」：${step.desc}`, 'good')
+      set({
+        time: advanced.time,
+        sect: {
+          ...sect,
+          quest: {
+            ...sect.quest,
+            stepIndex: sect.quest.stepIndex + 1,
+            progress: 0,
+            completedSteps: sect.quest.completedSteps + 1,
+          },
+        },
+        player: {
+          ...player,
+          age: player.age + advanced.agedYears,
+          lifespanLeft: player.lifespanLeft - advanced.agedYears,
+        },
+      })
+      // 若已是最后一步，下一次 advance 会结算
+      const nextStep = chain.steps[sect.quest.stepIndex + 1]
+      if (!nextStep) {
+        get().advanceQuestStep()
+      }
+      return
+    }
+  },
+
+  abandonQuestChain: () => {
+    const { sect } = get()
+    if (!sect.quest) return
+    const chain = questChainById(sect.quest.chainId)
+    log(`放弃任务链「${chain?.name ?? '未知委托'}」，进度不保留。`, 'dim')
+    set({ sect: { ...sect, quest: null } })
+  },
+
+  upgradeSectBuilding: (which) => {
+    const { sect, player } = get()
+    if (!player || !sect.sectId) return
+    if (sect.rank !== 'master' && sect.rank !== 'supreme') {
+      log('宗门建设须宗主（或太上长老）推行。', 'bad')
+      return
+    }
+    const lv = which === 'library' ? sect.libraryLv : sect.marketLv
+    if (lv >= 3) {
+      log('此建筑已至当前上限。', 'dim')
+      return
+    }
+    const cost = 300 * (lv + 1) + 100 * lv * lv
+    if (sect.contribution < cost) {
+      log(`建设需自贡献池支取 ${cost} 贡献，当前不足。`, 'bad')
+      return
+    }
+    const name = which === 'library' ? '藏经阁扩容' : '坊市让利'
+    log(`宗门建设「${name}」升至 ${lv + 1} 级（消耗贡献 ${cost}）。`, 'gold')
+    set({
+      sect: {
+        ...sect,
+        contribution: sect.contribution - cost,
+        libraryLv: which === 'library' ? lv + 1 : sect.libraryLv,
+        marketLv: which === 'market' ? lv + 1 : sect.marketLv,
+      },
+    })
+    afterProgressSnapshot(get, set)
+  },
+
+  redeemSectFragment: () => {
+    const { sect, player, inventory, gongfa, treasures, legacy } = get()
+    if (!player || !sect.sectId) return
+    if ((inventory.sect_fragment ?? 0) < 3) {
+      log('集齐 3 张藏经残页方可参悟。', 'bad')
+      return
+    }
+    const cur = SECTS.find((s) => s.id === sect.sectId)
+    if (!cur) return
+    const candidates = cur.library.filter((l) => !gongfa.learned[l.id])
+    if (candidates.length === 0) {
+      log('本宗藏经阁秘法已尽数参悟。', 'dim')
+      return
+    }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)]
+    const inv = { ...inventory }
+    inv.sect_fragment = (inv.sect_fragment ?? 0) - 3
+    if (inv.sect_fragment <= 0) delete inv.sect_fragment
+    const learned = { ...gongfa.learned, [pick.id]: { stage: 0 } }
+    const p = recomputeVitals({ ...player }, treasures, learned, legacy.daoMarks)
+    log(`残页合一，灵光乍现：《${pick.name}》参悟入门。`, 'gold')
+    set({
+      player: p,
+      inventory: inv,
+      gongfa: { learned },
+      sect: { ...sect, fragmentsUsed: sect.fragmentsUsed + 1 },
+    })
+    unlockCodex(get, set, 'gongfa', pick.id)
+    unlockCodex(get, set, 'item', 'sect_fragment')
+    afterProgressSnapshot(get, set)
   },
 
   useItem: (id) => {
@@ -2551,22 +3285,37 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('战斗进行中，无法兑换物资。', 'bad')
       return
     }
-    if (!sect.sectId || sect.contribution < cost) {
+    if (!sect.sectId) {
+      log('未入宗门。', 'bad')
+      return
+    }
+    // 坊市让利：宗主建设折扣
+    const actual = Math.max(1, Math.floor(cost * (1 - 0.04 * sect.marketLv)))
+    if (sect.contribution < actual) {
       log('贡献不足。', 'bad')
       return
     }
     const inv = { ...inventory }
     inv[itemId] = (inv[itemId] ?? 0) + 1
-    log(`以贡献兑换「${ITEMS[itemId]?.name ?? itemId}」。`, 'gold')
-    set({ inventory: inv, sect: { ...sect, contribution: sect.contribution - cost } })
+    log(
+      `以贡献兑换「${ITEMS[itemId]?.name ?? itemId}」${actual < cost ? `（建设让利，实付 ${actual}）` : ''}。`,
+      'gold',
+    )
+    set({ inventory: inv, sect: { ...sect, contribution: sect.contribution - actual } })
     unlockCodex(get, set, 'item', itemId)
     afterProgressSnapshot(get, set)
   },
 
   sectLearn: (libId, cost) => {
     const { sect, player, gongfa, treasures, legacy } = get()
-    if (!sect.sectId || sect.contribution < cost || !player) {
+    if (!sect.sectId || !player) {
       log('贡献不足或未入门。', 'bad')
+      return
+    }
+    // 藏经阁扩容折扣
+    const actual = Math.max(1, Math.floor(cost * (1 - 0.05 * sect.libraryLv)))
+    if (sect.contribution < actual) {
+      log('贡献不足。', 'bad')
       return
     }
     const g = GONGFAS[libId]
@@ -2581,11 +3330,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     const learned = { ...gongfa.learned, [libId]: { stage: 0 } }
     const p = recomputeVitals({ ...player }, treasures, learned, legacy.daoMarks)
-    log(`藏经阁中灵光乍现，《${g.name}》参悟入门。`, 'gold')
+    log(
+      `藏经阁中灵光乍现，《${g.name}》参悟入门。${actual < cost ? `（扩容折扣，实付 ${actual}）` : ''}`,
+      'gold',
+    )
     set({
       player: p,
       gongfa: { learned },
-      sect: { ...sect, contribution: sect.contribution - cost },
+      sect: { ...sect, contribution: sect.contribution - actual },
     })
     unlockCodex(get, set, 'gongfa', libId)
     afterProgressSnapshot(get, set)
@@ -2593,7 +3345,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   sectGrandCompetition: () => {
     const { player, sect, treasures } = get()
-    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().tower || get().activeCombat) return
+    if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     if (!sect.sectId) return
     const nextId = nextSectRank(sect.rank)
     const next = nextId ? SECT_RANKS[nextId] : null
@@ -2619,6 +3371,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       autoCombat: false,
       lastCombat: null,
       pendingEvent: null,
+      pendingStory: null,
       player: {
         ...player,
         energy: Math.min(player.maxEnergy, actor.energy),
@@ -2878,6 +3631,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         lifespanLeft: life,
       },
     })
+    if (companion.spouseId === id) maybeTriggerSpouseStory(get, set)
   },
 
   propose: (id) => {
@@ -2909,10 +3663,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     log(`${c.name}应允了。自此结为道侣，祸福与共。`, 'gold')
     set({
       stones: stones - 200,
-      companion: { ...companion, spouseId: id },
+      companion: { ...companion, spouseId: id, postStage: { ...companion.postStage, [id]: companion.postStage[id] ?? 0 } },
     })
     unlockCodex(get, set, 'companion', id)
     afterProgressSnapshot(get, set)
+    maybeTriggerSpouseStory(get, set)
   },
 
   advanceDays: (n) => {
@@ -2988,7 +3743,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const wasFullHp = snap.player.hp >= snap.player.maxHp - 1
       const wasFullEn = snap.player.energy >= snap.player.maxEnergy - 1
       const legacy = migrateLegacy(snap.legacy)
-      const companion = snap.companion ?? freshCompanion()
+      const companion = migrateCompanion(snap.companion)
       const inventory = sanitizeInventory(snap.inventory)
       const treasures = snap.treasures ?? []
       const towerBest = snap.towerBest ?? {}
@@ -3084,6 +3839,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         tower: null,
         lastCombat: null,
         pendingEvent: null,
+        pendingStory: null,
         activeCombat: null,
         activePanel: 'cultivate',
       })
@@ -3147,7 +3903,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const migratedSect = migrateSect(snap.sect)
       const migratedGongfa = migrateGongfa(snap.gongfa, migratedSect.learned)
       migratedSect.learned = []
-      const companion = snap.companion ?? freshCompanion()
+      const companion = migrateCompanion(snap.companion)
       const inventory = sanitizeInventory(snap.inventory ?? {})
       const treasures = snap.treasures ?? []
       const towerBest = snap.towerBest ?? {}
@@ -3232,6 +3988,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         tower: null,
         lastCombat: null,
         pendingEvent: null,
+        pendingStory: null,
         activeCombat: null,
       })
       processMetaProgress(get, set)

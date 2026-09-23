@@ -49,8 +49,17 @@ export interface AchievementProgressInput {
     spouseId: string | null
     heartsSeen: Record<string, number>
     affinity: Record<string, number>
+    endings?: Record<string, 'he' | 'be'>
+    hiddenUnlocked?: string[]
   }
-  sect: { rank: string; sectId: string | null }
+  sect: {
+    rank: string
+    sectId: string | null
+    questsDone?: number
+    libraryLv?: number
+    marketLv?: number
+    fragmentsUsed?: number
+  }
   towerBest: Record<string, number>
   collection: CollectionState
   stats: MetaStats
@@ -100,6 +109,17 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
 
   if (hasHeartEvent(input.companion.heartsSeen)) push('heart')
   if (input.companion.spouseId) push('marry')
+
+  const endings = Object.values(input.companion.endings ?? {})
+  if (endings.includes('he')) push('spouse_story_he')
+  if (endings.includes('be')) push('spouse_story_be')
+  if ((input.companion.hiddenUnlocked ?? []).length > 0) push('hidden_companion')
+
+  const questsDone = input.sect.questsDone ?? 0
+  if (questsDone >= 1) push('quest_chain_1')
+  if (questsDone >= 5) push('quest_chain_5')
+  if ((input.sect.fragmentsUsed ?? 0) >= 1) push('sect_fragment_learn')
+  if ((input.sect.libraryLv ?? 0) >= 1 || (input.sect.marketLv ?? 0) >= 1) push('sect_build')
 
   const rankIdx = SECT_RANK_ORDER.indexOf(input.sect.rank as SectRank)
   if (rankIdx >= SECT_RANK_ORDER.indexOf('elder')) push('sect_elder')

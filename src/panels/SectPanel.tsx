@@ -2,6 +2,13 @@ import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsF
 import { GONGFA_GRADE_CLASS, GONGFAS, canLearnGongfa, gongfaRealmText } from '../data/gongfa'
 import { ITEMS } from '../data/items'
 import { realmIndex, realmLabel } from '../data/realms'
+import {
+  availableQuestChains,
+  describeQuestReward,
+  questChainById,
+  questDeliverCandidates,
+  questStepMatchesDeliver,
+} from '../data/sectQuests'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
@@ -13,6 +20,11 @@ export function SectPanel() {
   const joinSect = useGameStore((s) => s.joinSect)
   const leaveSect = useGameStore((s) => s.leaveSect)
   const sectTask = useGameStore((s) => s.sectTask)
+  const acceptQuestChain = useGameStore((s) => s.acceptQuestChain)
+  const advanceQuestStep = useGameStore((s) => s.advanceQuestStep)
+  const abandonQuestChain = useGameStore((s) => s.abandonQuestChain)
+  const upgradeSectBuilding = useGameStore((s) => s.upgradeSectBuilding)
+  const redeemSectFragment = useGameStore((s) => s.redeemSectFragment)
   const sectExchange = useGameStore((s) => s.sectExchange)
   const sectLearn = useGameStore((s) => s.sectLearn)
   const sectGrandCompetition = useGameStore((s) => s.sectGrandCompetition)
@@ -61,6 +73,14 @@ export function SectPanel() {
   const canPromote = Boolean(nextDef) && contribOk && examOk && realmOk
   const canExchange = curIdx >= 1
   const canEnterLibrary = curIdx >= 2
+  const quest = sect.quest
+  const questChain = quest ? questChainById(quest.chainId) : null
+  const questStep = questChain && quest ? questChain.steps[quest.stepIndex] : null
+  const openChains = availableQuestChains(sect.rank, player.realm, current?.alignment ?? 'righteous')
+  const isMaster = sect.rank === 'master' || sect.rank === 'supreme'
+  const fragCount = inventory.sect_fragment ?? 0
+  const libDiscount = 1 - 0.05 * sect.libraryLv
+  const marketDiscount = 1 - 0.04 * sect.marketLv
 
   const reqMark = (ok: boolean) => (ok ? <span className="text-jade">✔</span> : <span className="text-vermilion">✘</span>)
 
@@ -181,6 +201,178 @@ export function SectPanel() {
           </div>
 
           <div className="panel-box p-4">
+            <div className="font-display text-gold mb-3">宗门任务链</div>
+            <p className="text-xs text-text-dim mb-3 leading-relaxed">
+              委托已升级为 3～5 环任务链：交付材料、历练获胜、拨付灵石、回山交令。进度可中断续做；完成有概率获「藏经残页」。
+            </p>
+            {quest && questChain ? (
+              <div className="border border-border px-3 py-2 space-y-2">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <div className="text-sm text-gold">{questChain.name}</div>
+                    <div className="text-xs text-text-dim mt-0.5">{questChain.brief}</div>
+                  </div>
+                  <button className="pixel-btn text-xs danger" onClick={abandonQuestChain}>
+                    放弃
+                  </button>
+                </div>
+                <div className="text-xs text-jade">
+                  进度：{Math.min(quest.completedSteps, questChain.steps.length)}/{questChain.steps.length} 环
+                  {questStep ? ` · 当前：${questStep.desc}` : ' · 可交令结算'}
+                  {questStep?.type === 'explore_win'
+                    ? `（${quest.progress}/${questStep.count ?? 1}）`
+                    : ''}
+                </div>
+                <ol className="text-[11px] text-text-dim space-y-0.5 list-decimal list-inside">
+                  {questChain.steps.map((st, i) => (
+                    <li
+                      key={st.desc + i}
+                      className={
+                        i < quest.stepIndex
+                          ? 'text-jade/80'
+                          : i === quest.stepIndex
+                            ? 'text-gold'
+                            : ''
+                      }
+                    >
+                      {st.desc}
+                      {i === quest.stepIndex && st.type === 'explore_win'
+                        ? `（${quest.progress}/${st.count ?? 1}）`
+                        : ''}
+                    </li>
+                  ))}
+                </ol>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="pixel-btn primary text-xs"
+                    disabled={inCombat || !questStep}
+                    onClick={advanceQuestStep}
+                  >
+                    {questStep
+                      ? questStep.type === 'deliver'
+                        ? '交付材料'
+                        : questStep.type === 'stones'
+                          ? '拨付灵石'
+                          : questStep.type === 'report'
+                            ? '交令结算（耗 1 日）'
+                            : '外出历练计次'
+                      : '领取任务链奖励'}
+                  </button>
+                  {questStep?.type === 'deliver' && (
+                    <span className="text-[11px] text-text-dim self-center">
+                      需{questDeliverCandidates(questStep)
+                        .map((id) => ITEMS[id]?.name ?? id)
+                        .join('/')}
+                      ×{questStep.count ?? 1}
+                      （当前
+                      {questStepMatchesDeliver(questStep, inventory).ok ? '已备齐' : '未备齐'}）
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-text-dim">完成奖励：{describeQuestReward(questChain.reward)}</div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-xs text-text-dim">
+                  可接任务链（{openChains.length}）· 已完成 {sect.questsDone} 条
+                </div>
+                {openChains.length === 0 && (
+                  <div className="text-xs text-vermilion">暂无符合职位/境界的任务链。</div>
+                )}
+                {openChains.map((c) => (
+                  <div
+                    key={c.id}
+                    className="border border-border px-3 py-2 flex justify-between items-start gap-2"
+                  >
+                    <div>
+                      <div className="text-sm text-gold">{c.name}</div>
+                      <div className="text-xs text-text-dim mt-0.5">{c.brief}</div>
+                      <div className="text-[11px] text-jade mt-1">{describeQuestReward(c.reward)}</div>
+                      <div className="text-[11px] text-text-dim mt-0.5">
+                        共 {c.steps.length} 环：
+                        {c.steps.map((s) => s.desc).join(' → ')}
+                      </div>
+                    </div>
+                    <button
+                      className="pixel-btn text-xs primary"
+                      disabled={inCombat}
+                      onClick={() => acceptQuestChain(c.id)}
+                    >
+                      接取
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="panel-box p-4">
+            <div className="font-display text-gold mb-3">藏经残页</div>
+            <div className="flex justify-between items-center gap-2">
+              <div className="text-xs text-text-dim">
+                持有 <span className="text-gold">{fragCount}</span> 张 · 集齐 3 张可参悟一部未习宗门秘法。
+                {sect.fragmentsUsed > 0 && (
+                  <span className="ml-2">已参悟 {sect.fragmentsUsed} 次</span>
+                )}
+              </div>
+              <button
+                className="pixel-btn text-xs"
+                disabled={fragCount < 3 || inCombat}
+                onClick={redeemSectFragment}
+              >
+                残页参悟
+              </button>
+            </div>
+          </div>
+
+          <div className="panel-box p-4">
+            <div className="font-display text-gold mb-3">宗门建设</div>
+            {!isMaster && (
+              <p className="text-xs text-vermilion mb-2">
+                宗主（或太上长老）方可推行建设，自贡献池支取。
+              </p>
+            )}
+            <div className="space-y-2 text-sm">
+              <div className="border border-border px-3 py-2 flex justify-between items-center">
+                <div>
+                  <div>
+                    藏经阁扩容 <span className="text-gold">Lv.{sect.libraryLv}</span>
+                    <span className="text-xs text-text-dim ml-2">参悟消耗 ×{libDiscount.toFixed(2)}</span>
+                  </div>
+                  <div className="text-xs text-text-dim">宗主建设后，藏经阁参悟更省贡献。</div>
+                </div>
+                <button
+                  className="pixel-btn text-xs"
+                  disabled={!isMaster || sect.libraryLv >= 3 || inCombat}
+                  onClick={() => upgradeSectBuilding('library')}
+                >
+                  {sect.libraryLv >= 3
+                    ? '已满级'
+                    : `升级（${300 * (sect.libraryLv + 1) + 100 * sect.libraryLv * sect.libraryLv} 贡献）`}
+                </button>
+              </div>
+              <div className="border border-border px-3 py-2 flex justify-between items-center">
+                <div>
+                  <div>
+                    坊市让利 <span className="text-gold">Lv.{sect.marketLv}</span>
+                    <span className="text-xs text-text-dim ml-2">兑换消耗 ×{marketDiscount.toFixed(2)}</span>
+                  </div>
+                  <div className="text-xs text-text-dim">宗主让利后，贡献兑换更便宜。</div>
+                </div>
+                <button
+                  className="pixel-btn text-xs"
+                  disabled={!isMaster || sect.marketLv >= 3 || inCombat}
+                  onClick={() => upgradeSectBuilding('market')}
+                >
+                  {sect.marketLv >= 3
+                    ? '已满级'
+                    : `升级（${300 * (sect.marketLv + 1) + 100 * sect.marketLv * sect.marketLv} 贡献）`}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="panel-box p-4">
             <div className="font-display text-gold mb-3">贡献兑换</div>
             {!canExchange && (
               <p className="text-xs text-vermilion mb-2">
@@ -217,10 +409,12 @@ export function SectPanel() {
                   </div>
                   <button
                     className="pixel-btn text-xs"
-                    disabled={!canExchange || sect.contribution < row.cost}
+                    disabled={!canExchange || sect.contribution < Math.max(1, Math.floor(row.cost * marketDiscount))}
                     onClick={() => sectExchange(row.itemId, row.cost)}
                   >
-                    {row.cost} 贡献
+                    {marketDiscount < 1
+                      ? `${Math.max(1, Math.floor(row.cost * marketDiscount))} 贡献`
+                      : `${row.cost} 贡献`}
                   </button>
                 </div>
               ))}
@@ -266,10 +460,18 @@ export function SectPanel() {
                       ) : (
                         <button
                           className="pixel-btn text-xs"
-                          disabled={!canEnterLibrary || sect.contribution < lib.cost || !realmOk}
+                          disabled={
+                            !canEnterLibrary ||
+                            sect.contribution < Math.max(1, Math.floor(lib.cost * libDiscount)) ||
+                            !realmOk
+                          }
                           onClick={() => sectLearn(lib.id, lib.cost)}
                         >
-                          {!realmOk ? '境界不足' : `${lib.cost} 贡献`}
+                          {!realmOk
+                            ? '境界不足'
+                            : libDiscount < 1
+                              ? `${Math.max(1, Math.floor(lib.cost * libDiscount))} 贡献`
+                              : `${lib.cost} 贡献`}
                         </button>
                       )}
                     </div>
