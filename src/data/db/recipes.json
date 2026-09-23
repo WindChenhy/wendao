@@ -2,8 +2,13 @@
   {
     "id": "craft_pill_qi",
     "name": "炼聚气丹",
-    "desc": "草药入炉，凝作聚气丹。",
-    "inputs": [{ "itemId": "herb_qi", "count": 2 }],
+    "desc": "草药入炉，凝作一品聚气丹。",
+    "inputs": [
+      {
+        "itemId": "herb_qi",
+        "count": 2
+      }
+    ],
     "outputItemId": "pill_qi",
     "outputCount": 1,
     "craftDays": 1,
@@ -14,8 +19,14 @@
     "name": "炼回春散",
     "desc": "月华入引，可续气血。",
     "inputs": [
-      { "itemId": "herb_qi", "count": 1 },
-      { "itemId": "herb_moon", "count": 1 }
+      {
+        "itemId": "herb_qi",
+        "count": 1
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 1
+      }
     ],
     "outputItemId": "pill_heal",
     "outputCount": 2,
@@ -23,13 +34,41 @@
     "baseRate": 78
   },
   {
+    "id": "craft_pill_qi_w3",
+    "name": "炼三纹聚气丹",
+    "desc": "文火养纹，可得三纹聚气丹。",
+    "inputs": [
+      {
+        "itemId": "herb_qi",
+        "count": 3
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_qi_w3",
+    "outputCount": 1,
+    "craftDays": 2,
+    "baseRate": 60
+  },
+  {
     "id": "craft_pill_great",
     "name": "炼凝元丹",
-    "desc": "血参为君，药力远胜聚气。",
+    "desc": "血参为君，二品凝元。",
     "inputs": [
-      { "itemId": "herb_blood", "count": 1 },
-      { "itemId": "herb_moon", "count": 2 },
-      { "itemId": "herb_qi", "count": 3 }
+      {
+        "itemId": "herb_blood",
+        "count": 1
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 2
+      },
+      {
+        "itemId": "herb_qi",
+        "count": 3
+      }
     ],
     "outputItemId": "pill_great",
     "outputCount": 1,
@@ -37,17 +76,568 @@
     "baseRate": 62
   },
   {
+    "id": "craft_pill_bone",
+    "name": "炼淬骨丹",
+    "desc": "玉骨花入炉，淬炼体魄。",
+    "inputs": [
+      {
+        "itemId": "herb_jade",
+        "count": 2
+      },
+      {
+        "itemId": "herb_blood",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_bone",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 58
+  },
+  {
     "id": "craft_pill_break",
     "name": "炼破境丹",
-    "desc": "以突破灵物为引，炼制冲击壁垒的辅丹。",
+    "desc": "以突破灵物为引，炼制冲击壁垒辅丹。",
     "inputs": [
-      { "itemId": "herb_blood", "count": 2 },
-      { "itemId": "herb_moon", "count": 2 },
-      { "itemId": "mat_foundation", "count": 1 }
+      {
+        "itemId": "herb_blood",
+        "count": 2
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 2
+      },
+      {
+        "itemId": "mat_foundation",
+        "count": 1
+      }
     ],
     "outputItemId": "pill_break",
     "outputCount": 1,
     "craftDays": 3,
     "baseRate": 55
+  },
+  {
+    "id": "craft_pill_core",
+    "name": "炼金丹玉露丸",
+    "desc": "金纹芝为君，三品玉露。",
+    "inputs": [
+      {
+        "itemId": "herb_goldmark",
+        "count": 2
+      },
+      {
+        "itemId": "herb_jade",
+        "count": 1
+      },
+      {
+        "itemId": "mat_core",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_core",
+    "outputCount": 1,
+    "craftDays": 4,
+    "baseRate": 50
+  },
+  {
+    "id": "craft_pill_mind",
+    "name": "炼澄神丹",
+    "desc": "墨心莲清心，可成澄神。",
+    "inputs": [
+      {
+        "itemId": "herb_inklotus",
+        "count": 2
+      },
+      {
+        "itemId": "herb_goldmark",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mind",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 52
+  },
+  {
+    "id": "craft_pill_soul",
+    "name": "炼养婴丹",
+    "desc": "元婴兰入炉，四品养婴。",
+    "inputs": [
+      {
+        "itemId": "herb_soulorchid",
+        "count": 2
+      },
+      {
+        "itemId": "herb_inklotus",
+        "count": 1
+      },
+      {
+        "itemId": "mat_soul",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_soul",
+    "outputCount": 1,
+    "craftDays": 5,
+    "baseRate": 45
+  },
+  {
+    "id": "craft_pill_god",
+    "name": "炼化神丹",
+    "desc": "化神莲瓣为君，五品化神。",
+    "inputs": [
+      {
+        "itemId": "herb_godpetal",
+        "count": 2
+      },
+      {
+        "itemId": "herb_starfern",
+        "count": 1
+      },
+      {
+        "itemId": "mat_spirit",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_god",
+    "outputCount": 1,
+    "craftDays": 6,
+    "baseRate": 40
+  },
+  {
+    "id": "craft_pill_void",
+    "name": "炼虚空丹",
+    "desc": "虚空草调和阴阳藤，六品虚空。",
+    "inputs": [
+      {
+        "itemId": "herb_voidgrass",
+        "count": 2
+      },
+      {
+        "itemId": "herb_yinyang",
+        "count": 1
+      },
+      {
+        "itemId": "mat_void",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_void",
+    "outputCount": 1,
+    "craftDays": 8,
+    "baseRate": 35
+  },
+  {
+    "id": "craft_pill_join",
+    "name": "炼合体丹",
+    "desc": "封灵根与极光兰合炼，七品合体。",
+    "inputs": [
+      {
+        "itemId": "herb_sealroot",
+        "count": 2
+      },
+      {
+        "itemId": "herb_aurora",
+        "count": 1
+      },
+      {
+        "itemId": "mat_integration",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_join",
+    "outputCount": 1,
+    "craftDays": 10,
+    "baseRate": 30
+  },
+  {
+    "id": "craft_pill_maha",
+    "name": "炼大乘道丹",
+    "desc": "道果为核，八品道丹。",
+    "inputs": [
+      {
+        "itemId": "herb_daofruit",
+        "count": 1
+      },
+      {
+        "itemId": "herb_taowu",
+        "count": 1
+      },
+      {
+        "itemId": "mat_mahayana",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_maha",
+    "outputCount": 1,
+    "craftDays": 14,
+    "baseRate": 25
+  },
+  {
+    "id": "craft_pill_break_adv",
+    "name": "炼凝神破境丹",
+    "desc": "三纹破境之方，成则成功率大增。",
+    "inputs": [
+      {
+        "itemId": "herb_goldmark",
+        "count": 2
+      },
+      {
+        "itemId": "herb_inklotus",
+        "count": 2
+      },
+      {
+        "itemId": "mat_core",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_break_adv",
+    "outputCount": 1,
+    "craftDays": 5,
+    "baseRate": 42
+  },
+  {
+    "id": "craft_pill_qi_w5",
+    "name": "炼五纹聚气丹",
+    "desc": "丹成五纹方为极品，极考火候。",
+    "inputs": [
+      {
+        "itemId": "herb_qi",
+        "count": 6
+      },
+      {
+        "itemId": "herb_goldmark",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_qi_w5",
+    "outputCount": 1,
+    "craftDays": 4,
+    "baseRate": 28
+  },
+  {
+    "id": "craft_pill_mana",
+    "name": "炼回灵散",
+    "desc": "养神草入炉，复灵力。",
+    "inputs": [
+      {
+        "itemId": "herb_spiritgrass",
+        "count": 2
+      }
+    ],
+    "outputItemId": "pill_mana",
+    "outputCount": 2,
+    "craftDays": 1,
+    "baseRate": 80
+  },
+  {
+    "id": "craft_pill_cleanse",
+    "name": "炼清心丹",
+    "desc": "养神草配月华，清心安神。",
+    "inputs": [
+      {
+        "itemId": "herb_spiritgrass",
+        "count": 1
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_cleanse",
+    "outputCount": 1,
+    "craftDays": 1,
+    "baseRate": 72
+  },
+  {
+    "id": "craft_pill_mana2",
+    "name": "炼凝灵丹",
+    "desc": "赤焰花催火，二品凝灵。",
+    "inputs": [
+      {
+        "itemId": "herb_flame",
+        "count": 2
+      },
+      {
+        "itemId": "herb_frost",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana2",
+    "outputCount": 1,
+    "craftDays": 2,
+    "baseRate": 65
+  },
+  {
+    "id": "craft_pill_detox",
+    "name": "炼解煞丸",
+    "desc": "寒霜叶解百毒。",
+    "inputs": [
+      {
+        "itemId": "herb_frost",
+        "count": 2
+      },
+      {
+        "itemId": "herb_qi",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_detox",
+    "outputCount": 1,
+    "craftDays": 1,
+    "baseRate": 70
+  },
+  {
+    "id": "craft_pill_dual",
+    "name": "炼阴阳双补丹",
+    "desc": "血参月华双补。",
+    "inputs": [
+      {
+        "itemId": "herb_blood",
+        "count": 1
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 2
+      },
+      {
+        "itemId": "herb_flame",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_dual",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 55
+  },
+  {
+    "id": "craft_pill_mana3",
+    "name": "炼金津玉液丸",
+    "desc": "云母芝养气，三品回灵。",
+    "inputs": [
+      {
+        "itemId": "herb_cloud",
+        "count": 2
+      },
+      {
+        "itemId": "herb_goldmark",
+        "count": 1
+      },
+      {
+        "itemId": "mat_core",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana3",
+    "outputCount": 1,
+    "craftDays": 4,
+    "baseRate": 48
+  },
+  {
+    "id": "craft_pill_quench",
+    "name": "炼淬神丹",
+    "desc": "墨心莲配云母芝。",
+    "inputs": [
+      {
+        "itemId": "herb_inklotus",
+        "count": 2
+      },
+      {
+        "itemId": "herb_cloud",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_quench",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 50
+  },
+  {
+    "id": "craft_pill_mana4",
+    "name": "炼婴火养元丹",
+    "desc": "元婴兰催婴火。",
+    "inputs": [
+      {
+        "itemId": "herb_soulorchid",
+        "count": 2
+      },
+      {
+        "itemId": "herb_auroraleaf",
+        "count": 1
+      },
+      {
+        "itemId": "mat_soul",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana4",
+    "outputCount": 1,
+    "craftDays": 5,
+    "baseRate": 42
+  },
+  {
+    "id": "craft_pill_calm",
+    "name": "炼定魂丹",
+    "desc": "夜光玉髓草安魂。",
+    "inputs": [
+      {
+        "itemId": "herb_nightjade",
+        "count": 2
+      },
+      {
+        "itemId": "herb_inklotus",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_calm",
+    "outputCount": 1,
+    "craftDays": 4,
+    "baseRate": 44
+  },
+  {
+    "id": "craft_pill_mana5",
+    "name": "炼化神归元丹",
+    "desc": "化神莲瓣归元。",
+    "inputs": [
+      {
+        "itemId": "herb_godpetal",
+        "count": 2
+      },
+      {
+        "itemId": "herb_starfern",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana5",
+    "outputCount": 1,
+    "craftDays": 6,
+    "baseRate": 38
+  },
+  {
+    "id": "craft_pill_body5",
+    "name": "炼不坏宝身丹",
+    "desc": "雷纹木心淬法体。",
+    "inputs": [
+      {
+        "itemId": "herb_thunder",
+        "count": 1
+      },
+      {
+        "itemId": "herb_godpetal",
+        "count": 1
+      },
+      {
+        "itemId": "herb_starfern",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_body5",
+    "outputCount": 1,
+    "craftDays": 7,
+    "baseRate": 36
+  },
+  {
+    "id": "craft_pill_bright",
+    "name": "炼破妄明心丹",
+    "desc": "冰心玉髓破妄。",
+    "inputs": [
+      {
+        "itemId": "herb_iceheart",
+        "count": 1
+      },
+      {
+        "itemId": "herb_yinyang",
+        "count": 1
+      },
+      {
+        "itemId": "mat_void",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_bright",
+    "outputCount": 1,
+    "craftDays": 8,
+    "baseRate": 34
+  },
+  {
+    "id": "craft_pill_mana6",
+    "name": "炼虚空纳灵丹",
+    "desc": "虚空草纳灵。",
+    "inputs": [
+      {
+        "itemId": "herb_voidgrass",
+        "count": 2
+      },
+      {
+        "itemId": "herb_iceheart",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana6",
+    "outputCount": 1,
+    "craftDays": 8,
+    "baseRate": 32
+  },
+  {
+    "id": "craft_pill_mana7",
+    "name": "炼两仪灵机丹",
+    "desc": "金莲子生两仪灵机。",
+    "inputs": [
+      {
+        "itemId": "herb_goldlotus",
+        "count": 1
+      },
+      {
+        "itemId": "herb_aurora",
+        "count": 1
+      },
+      {
+        "itemId": "mat_integration",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana7",
+    "outputCount": 1,
+    "craftDays": 10,
+    "baseRate": 28
+  },
+  {
+    "id": "craft_pill_stone",
+    "name": "炼灵石精魄丹",
+    "desc": "以灵石碎屑入药。",
+    "inputs": [
+      {
+        "itemId": "herb_qi",
+        "count": 3
+      },
+      {
+        "itemId": "herb_goldmark",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_stone",
+    "outputCount": 1,
+    "craftDays": 2,
+    "baseRate": 60
+  },
+  {
+    "id": "craft_pill_mana_w5",
+    "name": "炼五纹回灵散",
+    "desc": "五纹回灵，火候极难。",
+    "inputs": [
+      {
+        "itemId": "herb_spiritgrass",
+        "count": 5
+      },
+      {
+        "itemId": "herb_cloud",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana_w5",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 26
   }
 ]

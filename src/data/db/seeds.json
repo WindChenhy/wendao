@@ -2,7 +2,7 @@
   {
     "id": "seed_qi",
     "name": "聚气草种",
-    "desc": "三日一熟，可炼聚气丹。",
+    "desc": "三日一熟，可炼聚气丹。一阶。",
     "growDays": 3,
     "yieldItemId": "herb_qi",
     "yieldMin": 2,
@@ -12,7 +12,7 @@
   {
     "id": "seed_moon",
     "name": "月华花种",
-    "desc": "七日开花，药性温润。",
+    "desc": "七日开花，药性温润。一阶。",
     "growDays": 7,
     "yieldItemId": "herb_moon",
     "yieldMin": 1,
@@ -22,11 +22,151 @@
   {
     "id": "seed_blood",
     "name": "血参种",
-    "desc": "半月方成，气血大补。",
+    "desc": "半月方成，气血大补。二阶。",
     "growDays": 15,
     "yieldItemId": "herb_blood",
     "yieldMin": 1,
     "yieldMax": 2,
     "seedPrice": 120
+  },
+  {
+    "id": "seed_jade",
+    "name": "玉骨花种",
+    "desc": "二十日开花，可炼淬骨丹。二阶。",
+    "growDays": 20,
+    "yieldItemId": "herb_jade",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 180
+  },
+  {
+    "id": "seed_goldmark",
+    "name": "金纹芝种",
+    "desc": "一月生纹，凝丹要药。三阶。",
+    "growDays": 30,
+    "yieldItemId": "herb_goldmark",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 650
+  },
+  {
+    "id": "seed_inklotus",
+    "name": "墨心莲种",
+    "desc": "静水养莲，清心安神。三阶。",
+    "growDays": 28,
+    "yieldItemId": "herb_inklotus",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 720
+  },
+  {
+    "id": "seed_soulorchid",
+    "name": "元婴兰种",
+    "desc": "养魂奇兰，两月方馨。四阶。",
+    "growDays": 45,
+    "yieldItemId": "herb_soulorchid",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 2600
+  },
+  {
+    "id": "seed_godpetal",
+    "name": "化神莲瓣种",
+    "desc": "神莲残瓣入土，百日一瓣。五阶。",
+    "growDays": 60,
+    "yieldItemId": "herb_godpetal",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 9000
+  },
+  {
+    "id": "seed_voidgrass",
+    "name": "虚空草种",
+    "desc": "裂隙边缘方能成活。六阶。",
+    "growDays": 80,
+    "yieldItemId": "herb_voidgrass",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 30000
+  },
+  {
+    "id": "seed_daofruit",
+    "name": "道果核",
+    "desc": "果核入土，道纹自生。八阶。",
+    "growDays": 120,
+    "yieldItemId": "herb_daofruit",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 350000
+  },
+  {
+    "id": "seed_spiritgrass",
+    "name": "养神草种",
+    "desc": "五日一熟，可炼清心丹。一阶。",
+    "growDays": 5,
+    "yieldItemId": "herb_spiritgrass",
+    "yieldMin": 2,
+    "yieldMax": 3,
+    "seedPrice": 30
+  },
+  {
+    "id": "seed_frost",
+    "name": "寒霜叶种",
+    "desc": "十二日生叶。二阶。",
+    "growDays": 12,
+    "yieldItemId": "herb_frost",
+    "yieldMin": 1,
+    "yieldMax": 3,
+    "seedPrice": 100
+  },
+  {
+    "id": "seed_flame",
+    "name": "赤焰花种",
+    "desc": "十五日开花。二阶。",
+    "growDays": 15,
+    "yieldItemId": "herb_flame",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 130
+  },
+  {
+    "id": "seed_cloud",
+    "name": "云母芝种",
+    "desc": "一月生云纹。三阶。",
+    "growDays": 32,
+    "yieldItemId": "herb_cloud",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 700
+  },
+  {
+    "id": "seed_auroraleaf",
+    "name": "极光叶种",
+    "desc": "四十日流光。四阶。",
+    "growDays": 40,
+    "yieldItemId": "herb_auroraleaf",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 3000
+  },
+  {
+    "id": "seed_thunder",
+    "name": "雷纹木心苗",
+    "desc": "需雷雨滋养，七十日。五阶。",
+    "growDays": 70,
+    "yieldItemId": "herb_thunder",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 12000
+  },
+  {
+    "id": "seed_goldlotus",
+    "name": "金莲子",
+    "desc": "入泥百日开花结子。七阶。",
+    "growDays": 100,
+    "yieldItemId": "herb_goldlotus",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 150000
   }
 ]

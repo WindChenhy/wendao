@@ -1,5 +1,5 @@
 import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsFor } from '../data/sects'
-import { GONGFA_GRADE_CLASS, GONGFAS, canLearnGongfa, gongfaRealmText } from '../data/gongfa'
+import { GONGFA_GRADE_CLASS, GONGFAS, canLearnGongfaFull as canLearnGongfa, gongfaRealmText, gongfaScopeText } from '../data/gongfa'
 import { ITEMS } from '../data/items'
 import { realmIndex, realmLabel } from '../data/realms'
 import {
@@ -454,6 +454,7 @@ export function SectPanel() {
                           )}
                         </div>
                         <div className="text-xs text-text-dim mt-0.5">{lib.desc}</div>
+                        {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
                       </div>
                       {known ? (
                         <span className="text-xs text-bamboo">已参悟</span>

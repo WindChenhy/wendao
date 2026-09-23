@@ -100,5 +100,19 @@ export function unlockedActiveSkills(classId: ClassId, realm: RealmId, layer: nu
   return activeSkillsForClass(classId).filter((s) => isSkillUnlocked(s, realm, layer))
 }
 
-export const ATTACK_TREASURES = new Set(['treasure_sword'])
-export const DEF_TREASURES = new Set(['treasure_mirror', 'treasure_pagoda'])
+export const ATTACK_TREASURES = new Set([
+  'treasure_sword',
+  'treasure_fan',
+  'treasure_seal',
+  'treasure_sword_imm',
+  'treasure_ropes',
+])
+export const DEF_TREASURES = new Set([
+  'treasure_mirror',
+  'treasure_pagoda',
+  'treasure_bell',
+  'treasure_net',
+  'treasure_mirror_imm',
+  'treasure_umbrella',
+  'treasure_pagoda9',
+])

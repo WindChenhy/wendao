@@ -1,27 +1,147 @@
 {
   "qualities": {
-    "mortal": { "id": "mortal", "name": "凡品", "affixCount": 0, "weight": 55 },
-    "spirit": { "id": "spirit", "name": "灵器", "affixCount": 1, "weight": 30 },
-    "treasure": { "id": "treasure", "name": "宝器", "affixCount": 2, "weight": 12 },
-    "immortal": { "id": "immortal", "name": "仙器", "affixCount": 3, "weight": 3 }
+    "mortal": {
+      "id": "mortal",
+      "name": "凡品",
+      "affixCount": 0,
+      "weight": 55
+    },
+    "spirit": {
+      "id": "spirit",
+      "name": "灵器",
+      "affixCount": 1,
+      "weight": 30
+    },
+    "treasure": {
+      "id": "treasure",
+      "name": "宝器",
+      "affixCount": 2,
+      "weight": 12
+    },
+    "immortal": {
+      "id": "immortal",
+      "name": "仙器",
+      "affixCount": 3,
+      "weight": 3
+    }
   },
   "affixes": [
-    { "id": "atk_pct", "name": "锋锐", "desc": "攻击 +3%", "kind": "combat", "atk": 0.03, "weight": 20 },
-    { "id": "atk_pct_high", "name": "破军", "desc": "攻击 +6%", "kind": "combat", "atk": 0.06, "weight": 8, "minQuality": "treasure" },
-    { "id": "def_pct", "name": "坚壁", "desc": "防御 +3%", "kind": "combat", "def": 0.03, "weight": 18 },
-    { "id": "hp_pct", "name": "血髓", "desc": "气血 +2%", "kind": "combat", "hp": 0.02, "weight": 18 },
-    { "id": "breakthrough", "name": "悟道", "desc": "突破成功率 +1%", "kind": "cultivate", "breakthrough": 1, "weight": 14 },
-    { "id": "dmg_reduce", "name": "玄甲", "desc": "受伤降低 2%", "kind": "combat", "dmgReduce": 0.02, "weight": 10, "minQuality": "spirit" },
-    { "id": "sword_intent", "name": "剑胎", "desc": "战斗开始剑意 +1（剑修）", "kind": "battle", "swordIntent": 1, "weight": 6, "minQuality": "treasure" },
-    { "id": "counter", "name": "反震", "desc": "反伤 +2%", "kind": "battle", "counter": 0.02, "weight": 8, "minQuality": "spirit" },
-    { "id": "offline_gain", "name": "太虚", "desc": "离线修炼 +5%", "kind": "cultivate", "offline": 0.05, "weight": 5, "minQuality": "immortal" },
-    { "id": "skill_level", "name": "灵犀", "desc": "技能倍率 +4%", "kind": "battle", "skillMul": 0.04, "weight": 5, "minQuality": "immortal" }
+    {
+      "id": "atk_pct",
+      "name": "锋锐",
+      "desc": "攻击 +3%",
+      "kind": "combat",
+      "atk": 0.03,
+      "weight": 20
+    },
+    {
+      "id": "atk_pct_high",
+      "name": "破军",
+      "desc": "攻击 +6%",
+      "kind": "combat",
+      "atk": 0.06,
+      "weight": 8,
+      "minQuality": "treasure"
+    },
+    {
+      "id": "def_pct",
+      "name": "坚壁",
+      "desc": "防御 +3%",
+      "kind": "combat",
+      "def": 0.03,
+      "weight": 18
+    },
+    {
+      "id": "hp_pct",
+      "name": "血髓",
+      "desc": "气血 +2%",
+      "kind": "combat",
+      "hp": 0.02,
+      "weight": 18
+    },
+    {
+      "id": "breakthrough",
+      "name": "悟道",
+      "desc": "突破成功率 +1%",
+      "kind": "cultivate",
+      "breakthrough": 1,
+      "weight": 14
+    },
+    {
+      "id": "dmg_reduce",
+      "name": "玄甲",
+      "desc": "受伤降低 2%",
+      "kind": "combat",
+      "dmgReduce": 0.02,
+      "weight": 10,
+      "minQuality": "spirit"
+    },
+    {
+      "id": "sword_intent",
+      "name": "剑胎",
+      "desc": "战斗开始剑意 +1（剑修）",
+      "kind": "battle",
+      "swordIntent": 1,
+      "weight": 6,
+      "minQuality": "treasure"
+    },
+    {
+      "id": "counter",
+      "name": "反震",
+      "desc": "反伤 +2%",
+      "kind": "battle",
+      "counter": 0.02,
+      "weight": 8,
+      "minQuality": "spirit"
+    },
+    {
+      "id": "offline_gain",
+      "name": "太虚",
+      "desc": "离线修炼 +5%",
+      "kind": "cultivate",
+      "offline": 0.05,
+      "weight": 5,
+      "minQuality": "immortal"
+    },
+    {
+      "id": "skill_level",
+      "name": "灵犀",
+      "desc": "技能倍率 +4%",
+      "kind": "battle",
+      "skillMul": 0.04,
+      "weight": 5,
+      "minQuality": "immortal"
+    }
   ],
   "forgeLevels": [
-    { "level": 0, "name": "未建器阁", "rateBonus": 0, "qualityCap": "mortal", "upgradeCost": 0 },
-    { "level": 1, "name": "器阁 · 粗作", "rateBonus": 4, "qualityCap": "spirit", "upgradeCost": 800 },
-    { "level": 2, "name": "器阁 · 精工", "rateBonus": 8, "qualityCap": "treasure", "upgradeCost": 3000 },
-    { "level": 3, "name": "器阁 · 天工", "rateBonus": 14, "qualityCap": "immortal", "upgradeCost": 12000 }
+    {
+      "level": 0,
+      "name": "未建器阁",
+      "rateBonus": 0,
+      "qualityCap": "mortal",
+      "upgradeCost": 0
+    },
+    {
+      "level": 1,
+      "name": "器阁 · 粗作",
+      "rateBonus": 4,
+      "qualityCap": "spirit",
+      "upgradeCost": 800
+    },
+    {
+      "level": 2,
+      "name": "器阁 · 精工",
+      "rateBonus": 8,
+      "qualityCap": "treasure",
+      "upgradeCost": 3000
+    },
+    {
+      "level": 3,
+      "name": "器阁 · 天工",
+      "rateBonus": 14,
+      "qualityCap": "immortal",
+      "upgradeCost": 12000
+    }
   ],
   "recipes": [
     {
@@ -32,7 +152,16 @@
       "baseRate": 62,
       "craftDays": 3,
       "minForgeLevel": 1,
-      "inputs": [{ "itemId": "tiger_bone", "count": 2 }, { "itemId": "mat_foundation", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "tiger_bone",
+          "count": 2
+        },
+        {
+          "itemId": "mat_foundation",
+          "count": 1
+        }
+      ],
       "stoneCost": 400
     },
     {
@@ -43,7 +172,16 @@
       "baseRate": 62,
       "craftDays": 3,
       "minForgeLevel": 1,
-      "inputs": [{ "itemId": "tiger_bone", "count": 1 }, { "itemId": "mat_foundation", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "tiger_bone",
+          "count": 1
+        },
+        {
+          "itemId": "mat_foundation",
+          "count": 1
+        }
+      ],
       "stoneCost": 400
     },
     {
@@ -54,7 +192,16 @@
       "baseRate": 58,
       "craftDays": 4,
       "minForgeLevel": 1,
-      "inputs": [{ "itemId": "tiger_bone", "count": 2 }, { "itemId": "mat_core", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "tiger_bone",
+          "count": 2
+        },
+        {
+          "itemId": "mat_core",
+          "count": 1
+        }
+      ],
       "stoneCost": 600
     },
     {
@@ -65,7 +212,16 @@
       "baseRate": 55,
       "craftDays": 5,
       "minForgeLevel": 1,
-      "inputs": [{ "itemId": "mat_foundation", "count": 2 }, { "itemId": "mat_core", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "mat_foundation",
+          "count": 2
+        },
+        {
+          "itemId": "mat_core",
+          "count": 1
+        }
+      ],
       "stoneCost": 800
     },
     {
@@ -76,7 +232,16 @@
       "baseRate": 48,
       "craftDays": 7,
       "minForgeLevel": 2,
-      "inputs": [{ "itemId": "mat_core", "count": 2 }, { "itemId": "mat_soul", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "mat_core",
+          "count": 2
+        },
+        {
+          "itemId": "mat_soul",
+          "count": 1
+        }
+      ],
       "stoneCost": 1500
     },
     {
@@ -87,7 +252,16 @@
       "baseRate": 42,
       "craftDays": 8,
       "minForgeLevel": 2,
-      "inputs": [{ "itemId": "mat_soul", "count": 1 }, { "itemId": "mat_spirit", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "mat_soul",
+          "count": 1
+        },
+        {
+          "itemId": "mat_spirit",
+          "count": 1
+        }
+      ],
       "stoneCost": 4000
     },
     {
@@ -98,7 +272,16 @@
       "baseRate": 38,
       "craftDays": 10,
       "minForgeLevel": 3,
-      "inputs": [{ "itemId": "mat_spirit", "count": 1 }, { "itemId": "mat_void", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "mat_spirit",
+          "count": 1
+        },
+        {
+          "itemId": "mat_void",
+          "count": 1
+        }
+      ],
       "stoneCost": 15000
     },
     {
@@ -110,7 +293,16 @@
       "craftDays": 6,
       "minForgeLevel": 2,
       "qualityFloor": "spirit",
-      "inputs": [{ "itemId": "tiger_bone", "count": 3 }, { "itemId": "mat_core", "count": 2 }],
+      "inputs": [
+        {
+          "itemId": "tiger_bone",
+          "count": 3
+        },
+        {
+          "itemId": "mat_core",
+          "count": 2
+        }
+      ],
       "stoneCost": 2000
     },
     {
@@ -122,7 +314,16 @@
       "craftDays": 6,
       "minForgeLevel": 2,
       "qualityFloor": "spirit",
-      "inputs": [{ "itemId": "tiger_bone", "count": 2 }, { "itemId": "mat_core", "count": 2 }],
+      "inputs": [
+        {
+          "itemId": "tiger_bone",
+          "count": 2
+        },
+        {
+          "itemId": "mat_core",
+          "count": 2
+        }
+      ],
       "stoneCost": 2000
     },
     {
@@ -134,8 +335,280 @@
       "craftDays": 8,
       "minForgeLevel": 3,
       "qualityFloor": "treasure",
-      "inputs": [{ "itemId": "mat_soul", "count": 2 }, { "itemId": "mat_spirit", "count": 1 }],
+      "inputs": [
+        {
+          "itemId": "mat_soul",
+          "count": 2
+        },
+        {
+          "itemId": "mat_spirit",
+          "count": 1
+        }
+      ],
       "stoneCost": 8000
+    },
+    {
+      "id": "art_fan",
+      "name": "巽风扇胚",
+      "itemId": "treasure_fan",
+      "desc": "五阶攻宝，扇出巽风。",
+      "baseRate": 38,
+      "craftDays": 6,
+      "minForgeLevel": 2,
+      "qualityFloor": "spirit",
+      "inputs": [
+        {
+          "itemId": "herb_starfern",
+          "count": 1
+        },
+        {
+          "itemId": "tiger_bone",
+          "count": 2
+        },
+        {
+          "itemId": "mat_soul",
+          "count": 1
+        }
+      ],
+      "stoneCost": 4000
+    },
+    {
+      "id": "art_bell",
+      "name": "黄钟玉铃胚",
+      "itemId": "treasure_bell",
+      "desc": "五阶防宝，钟鸣护体。",
+      "baseRate": 36,
+      "craftDays": 6,
+      "minForgeLevel": 2,
+      "qualityFloor": "spirit",
+      "inputs": [
+        {
+          "itemId": "herb_nightjade",
+          "count": 1
+        },
+        {
+          "itemId": "tiger_bone",
+          "count": 2
+        },
+        {
+          "itemId": "mat_soul",
+          "count": 1
+        }
+      ],
+      "stoneCost": 4200
+    },
+    {
+      "id": "art_seal",
+      "name": "山河印胚",
+      "itemId": "treasure_seal",
+      "desc": "六阶攻宝，印含山河。",
+      "baseRate": 30,
+      "craftDays": 9,
+      "minForgeLevel": 3,
+      "qualityFloor": "treasure",
+      "inputs": [
+        {
+          "itemId": "herb_voidgrass",
+          "count": 2
+        },
+        {
+          "itemId": "mat_void",
+          "count": 1
+        },
+        {
+          "itemId": "tiger_bone",
+          "count": 3
+        }
+      ],
+      "stoneCost": 15000
+    },
+    {
+      "id": "art_net",
+      "name": "天罗网胚",
+      "itemId": "treasure_net",
+      "desc": "六阶防宝，天罗可困。",
+      "baseRate": 28,
+      "craftDays": 9,
+      "minForgeLevel": 3,
+      "qualityFloor": "treasure",
+      "inputs": [
+        {
+          "itemId": "herb_yinyang",
+          "count": 2
+        },
+        {
+          "itemId": "mat_void",
+          "count": 1
+        }
+      ],
+      "stoneCost": 14000
+    },
+    {
+      "id": "art_halo",
+      "name": "功德金环胚",
+      "itemId": "treasure_halo",
+      "desc": "七阶修宝，突破有助。",
+      "baseRate": 22,
+      "craftDays": 12,
+      "minForgeLevel": 3,
+      "qualityFloor": "treasure",
+      "inputs": [
+        {
+          "itemId": "herb_sealroot",
+          "count": 2
+        },
+        {
+          "itemId": "mat_integration",
+          "count": 1
+        },
+        {
+          "itemId": "herb_aurora",
+          "count": 1
+        }
+      ],
+      "stoneCost": 40000
+    },
+    {
+      "id": "art_sword_imm",
+      "name": "太虚仙剑胚",
+      "itemId": "treasure_sword_imm",
+      "desc": "八阶攻宝传世。",
+      "baseRate": 15,
+      "craftDays": 16,
+      "minForgeLevel": 3,
+      "qualityFloor": "immortal",
+      "inputs": [
+        {
+          "itemId": "herb_daofruit",
+          "count": 1
+        },
+        {
+          "itemId": "mat_mahayana",
+          "count": 1
+        },
+        {
+          "itemId": "herb_taowu",
+          "count": 1
+        }
+      ],
+      "stoneCost": 120000
+    },
+    {
+      "id": "art_gourd",
+      "name": "紫金葫芦胚",
+      "itemId": "treasure_gourd",
+      "desc": "四阶修宝，吞吐灵气。",
+      "baseRate": 42,
+      "craftDays": 5,
+      "minForgeLevel": 1,
+      "qualityFloor": "spirit",
+      "inputs": [
+        {
+          "itemId": "herb_cloud",
+          "count": 2
+        },
+        {
+          "itemId": "herb_goldmark",
+          "count": 1
+        }
+      ],
+      "stoneCost": 2500
+    },
+    {
+      "id": "art_ropes",
+      "name": "捆仙索胚",
+      "itemId": "treasure_ropes",
+      "desc": "五阶攻宝，索出如电。",
+      "baseRate": 34,
+      "craftDays": 7,
+      "minForgeLevel": 2,
+      "qualityFloor": "spirit",
+      "inputs": [
+        {
+          "itemId": "herb_thunder",
+          "count": 1
+        },
+        {
+          "itemId": "mat_thunderwood",
+          "count": 1
+        },
+        {
+          "itemId": "tiger_bone",
+          "count": 2
+        }
+      ],
+      "stoneCost": 5500
+    },
+    {
+      "id": "art_umbrella",
+      "name": "混元伞胚",
+      "itemId": "treasure_umbrella",
+      "desc": "五阶防宝，伞开混元。",
+      "baseRate": 34,
+      "craftDays": 7,
+      "minForgeLevel": 2,
+      "qualityFloor": "spirit",
+      "inputs": [
+        {
+          "itemId": "herb_godpetal",
+          "count": 1
+        },
+        {
+          "itemId": "mat_thunderwood",
+          "count": 1
+        }
+      ],
+      "stoneCost": 5600
+    },
+    {
+      "id": "art_pagoda9",
+      "name": "九霄玲珑塔胚",
+      "itemId": "treasure_pagoda9",
+      "desc": "七阶防宝，九层玲珑。",
+      "baseRate": 20,
+      "craftDays": 14,
+      "minForgeLevel": 3,
+      "qualityFloor": "treasure",
+      "inputs": [
+        {
+          "itemId": "herb_goldlotus",
+          "count": 1
+        },
+        {
+          "itemId": "mat_yangjade",
+          "count": 1
+        },
+        {
+          "itemId": "mat_integration",
+          "count": 1
+        }
+      ],
+      "stoneCost": 50000
+    },
+    {
+      "id": "art_qin",
+      "name": "伏羲琴胚",
+      "itemId": "treasure_qin",
+      "desc": "八阶修宝，琴音悟道。",
+      "baseRate": 14,
+      "craftDays": 18,
+      "minForgeLevel": 3,
+      "qualityFloor": "immortal",
+      "inputs": [
+        {
+          "itemId": "herb_starcore",
+          "count": 1
+        },
+        {
+          "itemId": "mat_mahayana",
+          "count": 1
+        },
+        {
+          "itemId": "herb_taowu",
+          "count": 1
+        }
+      ],
+      "stoneCost": 150000
     }
   ]
 }

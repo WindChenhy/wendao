@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { expandPlotCost, MAX_PLOTS, RECIPES, SEEDS, SEED_LIST } from '../data/abode'
+import { expandColCost, expandRowCost, canExpandFarmCols, canExpandFarmRows, RECIPES, SEEDS, SEED_LIST } from '../data/abode'
 import {
   ACHIEVEMENT_MAP,
   describeReward as describeAchieveReward,
@@ -43,10 +43,12 @@ import {
   gongfaAdvanceCost,
   gongfaByScrollId,
   isMarketGongfa,
-  canLearnGongfa,
+  canLearnGongfaFull,
+  gongfaInScope,
+  gongfaScopeText,
   gongfaRealmText,
 } from '../data/gongfa'
-import { ITEMS, TREASURE_BONUS, bestBreakthroughPill, pillExp, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
+import { ITEMS, TREASURE_BONUS, bestBreakthroughPill, itemEffectWithMarks, itemMinRealmOk, itemOverScope, itemScopeText, itemTierText, pillExp, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
 import {
   REALMS,
   REALM_ORDER,
@@ -113,7 +115,7 @@ import {
   formatOfflineDuration,
   type OfflineSettlement,
 } from '../game/offline'
-import { canCraft, craftRate, freshAbode, harvestYield, migrateAbode, plotProgress } from '../game/farm'
+import { canCraft, craftRate, freshAbode, harvestYield, migrateAbode, plotProgress, remapFarmPlots } from '../game/farm'
 import {
   type ArtifactInstance,
   type ArtifactQuality,
@@ -140,7 +142,21 @@ function ARTIFACT_CRAFT_DAYS(recipeId: string): number {
   return ARTIFACT_RECIPES.find((r) => r.id === recipeId)?.craftDays ?? 2
 }
 import { clamp } from '../game/format'
-import { applyDaoToMaxHp, daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
+import {
+  applyDaoToMaxHp,
+  daoBonuses,
+  isAscended,
+  reincarnateGain,
+} from '../game/reincarnate'
+import { sealDaoCost, sealSlots, type SealedItem } from '../game/seal'
+import { activeSynergies, synergyBonus } from '../data/gongfaSynergy'
+import {
+  isTribulationMoment,
+  softenSeverity,
+  tribulationPlan,
+  type TribulationPlanId,
+} from '../data/tribulation'
+import { makeArtifactUid } from '../data/artifacts'
 import { decryptSave, encryptSave } from '../game/saveCrypto'
 import { loadGameSettings, saveGameSettings } from '../game/settings'
 import type {
@@ -159,7 +175,7 @@ import type {
 import { useLogStore } from './useLogStore'
 
 const SAVE_PREFIX = 'wendao-slot-'
-const SAVE_VERSION = 10
+const SAVE_VERSION = 12
 
 export interface OfflinePending extends OfflineSettlement {
   stones: number
@@ -220,6 +236,8 @@ export interface CompanionState {
   farmHelpOn: string
   /** 道侣代炼丹药日 key */
   pillHelpOn: string
+  /** v1.0 道侣重伤：恢复日序（dayNumber） */
+  spouseHurtUntilDay?: number
 }
 
 export interface PendingStory {
@@ -354,6 +372,7 @@ function freshCompanion(): CompanionState {
     hiddenUnlocked: [],
     farmHelpOn: '',
     pillHelpOn: '',
+    spouseHurtUntilDay: 0,
   }
 }
 
@@ -396,6 +415,7 @@ function migrateCompanion(raw: unknown): CompanionState {
     hiddenUnlocked: Array.isArray(r.hiddenUnlocked) ? uniqIds(r.hiddenUnlocked.map(String)) : [],
     farmHelpOn: typeof r.farmHelpOn === 'string' ? r.farmHelpOn : '',
     pillHelpOn: typeof r.pillHelpOn === 'string' ? r.pillHelpOn : '',
+    spouseHurtUntilDay: typeof r.spouseHurtUntilDay === 'number' ? r.spouseHurtUntilDay : 0,
   }
 }
 
@@ -404,19 +424,40 @@ function freshGongfa(): GongfaState {
 }
 
 function freshLegacy(): LegacyState {
-  return { daoMarks: 0, reincarnations: 0, bestRealmIndex: 0, totalYears: 0, lastLifeEndYear: 0 }
+  return {
+    daoMarks: 0,
+    reincarnations: 0,
+    bestRealmIndex: 0,
+    totalYears: 0,
+    lastLifeEndYear: 0,
+    sealed: [],
+  }
 }
 
 function migrateLegacy(raw: unknown): LegacyState {
   const base = freshLegacy()
   if (!raw || typeof raw !== 'object') return base
   const r = raw as Partial<LegacyState>
+  const sealed: SealedItem[] = Array.isArray(r.sealed)
+    ? r.sealed
+        .filter((x) => x && typeof x === 'object' && x.id)
+        .map((x) => ({
+          kind: x.kind === 'artifact' ? ('artifact' as const) : ('gongfa' as const),
+          id: String(x.id),
+          name: String(x.name ?? x.id),
+          stage: typeof x.stage === 'number' ? x.stage : undefined,
+          quality: x.quality,
+          affixes: Array.isArray(x.affixes) ? x.affixes : undefined,
+          daoCost: typeof x.daoCost === 'number' ? x.daoCost : undefined,
+        }))
+    : []
   return {
     daoMarks: Number(r.daoMarks) || 0,
     reincarnations: Number(r.reincarnations) || 0,
     bestRealmIndex: Number(r.bestRealmIndex) || 0,
     totalYears: Number(r.totalYears) || 0,
     lastLifeEndYear: Number(r.lastLifeEndYear) || 0,
+    sealed,
   }
 }
 
@@ -664,7 +705,7 @@ function cultivateMultipliers(
   if (!player) return 1
   const sdef = sectDef(sect.sectId)
   const rankBonus = SECT_RANKS[sect.rank]?.cultivateMul ?? 1
-  const gongfaMul = gongfaBonuses(gongfaLearned).cultivate
+  const gongfaMul = gongfaBonuses(gongfaLearned, useGameStore.getState().player?.realm).cultivate
   const spouse = spouseDef(companion)
   const dao = daoBonuses(daoMarks)
   return (
@@ -891,16 +932,19 @@ export function treasureBreakthroughWithAffix(treasures: string[], artifacts?: A
   )
 }
 
-/** 已参悟功法的加成（按阶段系数缩放，圆满 1.5 倍）；dodge 为受伤降低（加算） */
-export function gongfaBonuses(learned: Record<string, GongfaLearned>) {
+/** 已参悟功法的加成（按阶段系数缩放，圆满 1.5 倍）；dodge 为受伤降低（加算）；含 v1.0 羁绊；超适用范围失效 */
+export function gongfaBonuses(learned: Record<string, GongfaLearned>, realm?: string) {
   let atk = 1
   let def = 1
   let hp = 1
   let cultivate = 1
   let dodge = 0
+  const activeIds: string[] = []
   for (const [id, st] of Object.entries(learned)) {
     const g = GONGFAS[id]
     if (!g) continue
+    if (realm && !gongfaInScope(g, realm as never)) continue
+    activeIds.push(id)
     const mul = GONGFA_STAGE_MUL[Math.min(GONGFA_STAGE_MUL.length - 1, st.stage)]
     if (g.effect.atk) atk *= 1 + g.effect.atk * mul
     if (g.effect.def) def *= 1 + g.effect.def * mul
@@ -908,7 +952,21 @@ export function gongfaBonuses(learned: Record<string, GongfaLearned>) {
     if (g.effect.cultivate) cultivate *= 1 + g.effect.cultivate * mul
     if (g.effect.dodge) dodge += g.effect.dodge * mul
   }
-  return { atk, def, hp, cultivate, dodge }
+  const syn = synergyBonus(activeIds)
+  atk *= 1 + syn.atk
+  def *= 1 + syn.def
+  hp *= 1 + syn.hp
+  cultivate *= 1 + syn.cultivate
+  dodge += syn.dodge
+  return {
+    atk,
+    def,
+    hp,
+    cultivate,
+    dodge,
+    breakthrough: syn.breakthrough,
+    synergies: activeSynergies(activeIds),
+  }
 }
 
 function spouseDef(companion: CompanionState): CompanionDef | null {
@@ -924,7 +982,7 @@ function sectDef(id: string | null): SectDef | null {
 function makePlayerCombatant(player: PlayerState, treasures: string[], hpScale = 1): CombatActor {
   const st = useGameStore.getState()
   const artifacts = st.artifacts
-  const gb = gongfaBonuses(st.gongfa.learned)
+  const gb = gongfaBonuses(st.gongfa.learned, st.player?.realm)
   const tb = treasureBonus(treasures, artifacts)
   const extras = artifactBattleExtras(artifacts)
   const base = realmCombatBase(player.realm, player.layer)
@@ -1228,7 +1286,7 @@ function recomputeVitals(
   daoMarks: number,
 ): PlayerState {
   const c = CLASSES[p.classId]
-  const gb = gongfaBonuses(gongfaLearned)
+  const gb = gongfaBonuses(gongfaLearned, useGameStore.getState().player?.realm)
   const tb = treasureBonus(treasures, useGameStore.getState().artifacts)
   const baseHp = realmMaxHp(p.realm, c.hpMul, p.layer)
   const maxHp = applyDaoToMaxHp(Math.floor(baseHp * gb.hp * tb.hp), daoMarks)
@@ -1250,7 +1308,7 @@ function playerMaxHpCap(
   daoMarks: number,
 ): number {
   const c = CLASSES[p.classId]
-  const gb = gongfaBonuses(gongfaLearned)
+  const gb = gongfaBonuses(gongfaLearned, useGameStore.getState().player?.realm)
   const tb = treasureBonus(treasures, useGameStore.getState().artifacts)
   const baseHp = realmMaxHp(p.realm, c.hpMul, p.layer)
   return applyDaoToMaxHp(Math.floor(baseHp * gb.hp * tb.hp), daoMarks)
@@ -1303,7 +1361,8 @@ interface GameState {
 
   meditate: () => void
   seclude: (days: number) => void
-  breakthrough: () => void
+  /** 冲击壁垒；plan 仅大境界/渡劫时可选（默认常规） */
+  breakthrough: (plan?: TribulationPlanId) => void
   explore: () => void
   clearCombat: () => void
   resolveEvent: (actionId: string) => void
@@ -1345,6 +1404,10 @@ interface GameState {
   /** 一键收获：收下所有已成熟的灵田 */
   harvestAll: () => void
   expandPlot: () => void
+  /** 开拓灵田一列（右侧） */
+  expandFarmCol: () => void
+  /** 开拓灵田一行（下方） */
+  expandFarmRow: () => void
   craftItem: (recipeId: string) => void
   /** v0.8 器阁升级 */
   upgradeForge: () => void
@@ -1356,7 +1419,8 @@ interface GameState {
   equipArtifact: (uid: string) => void
   /** 分解法宝胚/法宝，返还材料 */
   decomposeArtifact: (uid: string) => void
-  reincarnate: (input: CharacterCreateInput) => void
+  /** 转生；sealed 为可选封印的传承物 */
+  reincarnate: (input: CharacterCreateInput, sealed?: SealedItem | null) => void
 
   joinSect: (sectId: string) => void
   leaveSect: () => void
@@ -1530,6 +1594,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
         totalYears: (legacy.totalYears ?? 0) + player.age,
         lastLifeEndYear: endedYear,
+        sealed: legacy.sealed ?? [],
       }
       log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
       log(
@@ -1592,8 +1657,37 @@ export const useGameStore = create<GameState>((set, get) => ({
     const player = freshPlayer(input, legacy)
     const dao = daoBonuses(legacy.daoMarks)
     const abode = freshAbode()
-    while (abode.plots.length < Math.min(MAX_PLOTS, abode.plots.length + dao.startPlotsBonus)) {
-      abode.plots.push({ seedId: null, plantedDay: 0 })
+    // 初始 6×6=36 格；道痕不再额外送地（开拓另计）
+    log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
+    // v1.0 封印传承物：功法残卷入门带入 / 法宝实例带入
+    const learned: Record<string, GongfaLearned> = {}
+    const sealedArts: ArtifactInstance[] = []
+    const sealedTreasures: string[] = []
+    for (const s of legacy.sealed ?? []) {
+      if (s.kind === 'gongfa' && GONGFAS[s.id]) {
+        if (!learned[s.id]) {
+          learned[s.id] = { stage: 0 }
+          log(`前世残卷苏醒：《${GONGFAS[s.id].name}》入门（进阶消耗降低）。`, 'gold')
+        }
+      } else if (s.kind === 'artifact' && s.id) {
+        const inst: ArtifactInstance = {
+          uid: makeArtifactUid(),
+          itemId: s.id,
+          name: artifactDisplayName(s.id, s.name),
+          quality: s.quality ?? 'mortal',
+          affixes: s.affixes ?? [],
+          equipped: true,
+        }
+        sealedArts.push(inst)
+        if (s.id.startsWith('treasure_')) sealedTreasures.push(s.id)
+        log(`前世法宝渡来：「${inst.name}」。`, 'gold')
+      }
+    }
+    // 同类只出战一件
+    const seenArt = new Set<string>()
+    for (const a of sealedArts) {
+      if (seenArt.has(a.itemId)) a.equipped = false
+      else seenArt.add(a.itemId)
     }
     log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
     log(`初始寿元 ${player.lifespanLeft} 年。${dayKey(get().time)}，天朗气清。`, 'dim')
@@ -1615,8 +1709,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       inventory: defaultInventory(),
       sect: freshSect(),
       companion: freshCompanion(),
-      gongfa: freshGongfa(),
-      treasures: [],
+      gongfa: { learned },
+      treasures: sealedTreasures,
+      artifacts: sealedArts,
       towerBest: {},
       tower: null,
       abode,
@@ -1638,6 +1733,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         lastOnlineAt: Date.now(),
       },
     })
+    if (Object.keys(learned).length > 0) {
+      const p2 = recomputeVitals(
+        get().player!,
+        sealedTreasures,
+        learned,
+        legacy.daoMarks,
+      )
+      set({ player: p2 })
+    }
     unlockCodex(get, set, 'realm', 'qi')
     processMetaProgress(get, set)
   },
@@ -1647,7 +1751,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
-    const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
+    const gongfaMul = gongfaBonuses(get().gongfa.learned, get().player?.realm).cultivate
     const spouse = spouseDef(companion)
     const dao = daoBonuses(get().legacy.daoMarks)
     let gain = gainCultivate(player.classId, player.realm, player.layer)
@@ -1704,7 +1808,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     const sdef = sectDef(sect.sectId)
     const rankBonus = SECT_RANKS[sect.rank].cultivateMul
-    const gongfaMul = gongfaBonuses(get().gongfa.learned).cultivate
+    const gongfaMul = gongfaBonuses(get().gongfa.learned, get().player?.realm).cultivate
     const spouse = spouseDef(companion)
     const dao = daoBonuses(get().legacy.daoMarks)
     let gain = gainSeclusion(player.classId, player.realm, player.layer, n)
@@ -1751,7 +1855,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     maybeTriggerSpouseStory(get, set)
   },
 
-  breakthrough: () => {
+  breakthrough: (planId = 'normal') => {
     const { player, inventory, sect, companion, treasures } = get()
     if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
     if (!canBreakthrough(player.realm, player.layer, player.exp)) {
@@ -1767,35 +1871,71 @@ export const useGameStore = create<GameState>((set, get) => ({
       return
     }
 
+    const plan = tribulationPlan(planId)
+    const planOpen = isTribulationMoment(player.realm, player.layer, def.layers)
+    const usedPlan = planOpen ? plan : tribulationPlan('normal')
+    let inv = { ...inventory }
+
+    // 方案代价
+    if (usedPlan.costItemId) {
+      const need = usedPlan.costCount ?? 1
+      if ((inv[usedPlan.costItemId] ?? 0) < need) {
+        log(`方案「${usedPlan.name}」需「${ITEMS[usedPlan.costItemId]?.name}」×${need}，不足。`, 'bad')
+        return
+      }
+      inv[usedPlan.costItemId] = (inv[usedPlan.costItemId] ?? 0) - need
+      if (inv[usedPlan.costItemId] <= 0) delete inv[usedPlan.costItemId]
+    }
+    if (usedPlan.spouseRisk) {
+      const hurtUntil = companion.spouseHurtUntilDay ?? 0
+      if (companion.spouseId && hurtUntil > dayNumber(get().time)) {
+        log('道侣重伤未愈，无法护法。', 'bad')
+        return
+      }
+      if (!companion.spouseId) {
+        log('并无道侣在侧，无法选此方案。', 'bad')
+        return
+      }
+    }
+
     const sdef = sectDef(sect.sectId)
     const spouse = spouseDef(companion)
-    const spouseBonus = spouse?.breakthroughBonus ?? 0
+    const spouseHurt =
+      companion.spouseId && (companion.spouseHurtUntilDay ?? 0) > dayNumber(get().time)
+    const spouseBonus = spouse && !spouseHurt ? (spouse.breakthroughBonus ?? 0) : 0
     const dao = daoBonuses(get().legacy.daoMarks)
+    const synBt = gongfaBonuses(get().gongfa.learned, get().player?.realm).breakthrough ?? 0
     // 突破法宝（认主常驻，同类不叠加）+ 最佳突破丹药（本次消耗）+ 渡劫令持有
     const treasureBt = treasureBreakthroughBonus(treasures)
-    const breakPill = bestBreakthroughPill(inventory)
-    const pillBt = breakPill?.rate ?? 0
-    const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? 5 : 0
+    const breakPill = bestBreakthroughPill(inv)
+    // 金丹护道已扣渡劫金丹，不再从自动突破丹里重复扣
+    const pillBt =
+      usedPlan.id === 'golden_pill' ? 0 : breakPill?.rate ?? 0
+    const tribTokenBt = (inv.mat_tribulation ?? 0) > 0 ? 5 : 0
     const rate = Math.min(
       95,
-      breakthroughRate(player.classId, player.realm) +
-        (sdef?.bonus.breakthroughBonus ?? 0) +
-        spouseBonus +
-        dao.breakthroughBonus +
-        treasureBt +
-        pillBt +
-        tribTokenBt +
-        currentRules().breakthroughRateDelta,
+      Math.max(
+        5,
+        breakthroughRate(player.classId, player.realm) +
+          (sdef?.bonus.breakthroughBonus ?? 0) +
+          spouseBonus +
+          dao.breakthroughBonus +
+          treasureBt +
+          pillBt +
+          tribTokenBt +
+          synBt +
+          usedPlan.rateDelta +
+          currentRules().breakthroughRateDelta,
+      ),
     )
     const roll = Math.random() * 100
-    // 用含宗门/道侣/法宝/丹药加成后的 rate 重判，保证 severity 与展示一致
+    // 用含宗门/道侣/法宝/丹药/方案加成后的 rate 重判，保证 severity 与展示一致
     const result = attemptBreakthrough(player.classId, player.realm, player.layer, roll)
     const success = roll < rate
     const need = expNeeded(player.realm, player.layer)
 
-    // 冲击壁垒自动消耗一枚突破丹（无论成败）
-    const inv = { ...inventory }
-    if (breakPill) {
+    // 冲击壁垒自动消耗一枚突破丹（无论成败；金丹护道方案除外）
+    if (usedPlan.id !== 'golden_pill' && breakPill) {
       inv[breakPill.id] = (inv[breakPill.id] ?? 1) - 1
       if (inv[breakPill.id] <= 0) delete inv[breakPill.id]
     }
@@ -1814,16 +1954,27 @@ export const useGameStore = create<GameState>((set, get) => ({
         get().legacy.daoMarks,
       )
       log(result.message, 'gold')
+      if (usedPlan.id !== 'normal') log(`天劫方案：${usedPlan.name}`, 'gold')
       if (justAscended) {
         log('霞举飞升，超脱此界。此世修行已圆满，可在修炼页选择转生。', 'gold')
       }
-      if (spouse) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
-      if (breakPill) log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
+      if (spouse && !spouseHurt) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
+      if (breakPill && usedPlan.id !== 'golden_pill')
+        log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
+      if (usedPlan.id === 'golden_pill') log('渡劫金丹化开，雷劫声势为之一缓。', 'dim')
       if (treasureBt > 0) log(`认主法宝加持：突破成功率 +${treasureBt}%`, 'dim')
       if (tribTokenBt > 0) log('渡劫令微光流转，稳住道基。', 'dim')
+      if (synBt !== 0) log(`功法羁绊：突破 ${synBt > 0 ? '+' : ''}${synBt}%`, 'dim')
       log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
+      let extraDao = usedPlan.extraDao ?? 0
+      let legacyNext = get().legacy
+      if (extraDao > 0) {
+        legacyNext = { ...legacyNext, daoMarks: legacyNext.daoMarks + extraDao }
+        log(`强冲天机，额外道痕 +${extraDao}。`, 'gold')
+      }
       set({
         inventory: inv,
+        legacy: legacyNext,
         player: {
           ...vitals,
           realm: next.realm,
@@ -1853,6 +2004,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (isTribulation && roll > rate + 35) severity = 'critical'
     else if (isMajor && roll >= rate) severity = 'major'
     else severity = 'minor'
+    if (usedPlan.softenFail) severity = softenSeverity(severity)
+
+    if (usedPlan.spouseRisk && spouse) {
+      const until = dayNumber(get().time) + 7
+      set({
+        companion: { ...get().companion, spouseHurtUntilDay: until },
+      })
+      log(`${spouse.name}护法被雷劫余波所伤，七日内无法助战/代劳。`, 'bad')
+    }
 
     const failMsg =
       severity === 'critical'
@@ -1861,7 +2021,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? `突破${def.name}圆满失败，气血逆冲，境界跌落一层。`
           : '冲击壁垒失败，经脉受损，损失部分修为与气血。'
     log(failMsg, 'bad')
-    if (breakPill) log(`服用「${breakPill.name}」，药力仍未能扭转乾坤。`, 'dim')
+    if (usedPlan.id !== 'normal') log(`天劫方案：${usedPlan.name}`, 'dim')
+    if (breakPill && usedPlan.id !== 'golden_pill')
+      log(`服用「${breakPill.name}」，药力仍未能扭转乾坤。`, 'dim')
     log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
     let next = { realm: player.realm, layer: player.layer }
     let exp = Math.floor(player.exp * 0.55)
@@ -2115,19 +2277,65 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ inventory: inv, abode: { ...abode, plots } })
   },
 
-  expandPlot: () => {
+  expandPlot: () => {},
+
+  expandFarmCol: () => {
     const { abode, stones, player } = get()
     if (!player || !player.alive) return
-    if (abode.plots.length >= MAX_PLOTS) return
-    const cost = expandPlotCost(abode.plots.length)
-    if (stones < cost) {
-      log('灵石不足，无法扩建。', 'bad')
+    if (!canExpandFarmCols(abode.farmCols)) {
+      log('灵田横向已开拓至极限。', 'dim')
       return
     }
-    log(`开垦新灵田，花费灵石 ${cost}。`, 'gold')
+    const cost = expandColCost(abode.farmCols)
+    if (stones < cost) {
+      log(`开拓一列灵田需灵石 ${cost}。`, 'bad')
+      return
+    }
+    const newCols = abode.farmCols + 1
+    const plots = remapFarmPlots(
+      abode.plots,
+      abode.farmCols,
+      abode.farmRows,
+      newCols,
+      abode.farmRows,
+    )
+    log(
+      `向右开拓荒地，灵田扩为 ${newCols}×${abode.farmRows}（${plots.length} 格），花费灵石 ${cost}。`,
+      'gold',
+    )
     set({
       stones: stones - cost,
-      abode: { ...abode, plots: [...abode.plots, { seedId: null, plantedDay: 0 }] },
+      abode: { ...abode, farmCols: newCols, plots },
+    })
+  },
+
+  expandFarmRow: () => {
+    const { abode, stones, player } = get()
+    if (!player || !player.alive) return
+    if (!canExpandFarmRows(abode.farmRows)) {
+      log('灵田纵向已开拓至极限。', 'dim')
+      return
+    }
+    const cost = expandRowCost(abode.farmRows)
+    if (stones < cost) {
+      log(`开拓一行灵田需灵石 ${cost}。`, 'bad')
+      return
+    }
+    const newRows = abode.farmRows + 1
+    const plots = remapFarmPlots(
+      abode.plots,
+      abode.farmCols,
+      abode.farmRows,
+      abode.farmCols,
+      newRows,
+    )
+    log(
+      `向前开拓荒地，灵田扩为 ${abode.farmCols}×${newRows}（${plots.length} 格），花费灵石 ${cost}。`,
+      'gold',
+    )
+    set({
+      stones: stones - cost,
+      abode: { ...abode, farmRows: newRows, plots },
     })
   },
 
@@ -2405,22 +2613,45 @@ export const useGameStore = create<GameState>((set, get) => ({
     log(`分解「${artifactDisplayName(art.itemId, art.name)}」，获得 ${yieldText}。`, 'dim')
   },
 
-  reincarnate: (input) => {
+  reincarnate: (input, sealed = null) => {
     const { player, companion, legacy } = get()
     if (!player || (player.alive && !isAscended(player))) {
       log('此身尚在修行，无需转生。（需先飞升或道消）', 'dim')
       return
     }
     const gain = reincarnateGain(player, Boolean(companion.spouseId))
+    let extraDaoCost = 0
+    const nextSealed: SealedItem[] = [...(legacy.sealed ?? [])]
+    const slots = sealSlots(legacy.daoMarks + gain.daoMarks)
+    if (sealed) {
+      if (nextSealed.length >= slots) {
+        log('封印槽不足，无法带走传承物。', 'bad')
+        return
+      }
+      extraDaoCost = sealed.daoCost ?? (sealed.kind === 'artifact' ? sealDaoCost(sealed.quality) : 0)
+      if (gain.daoMarks + legacy.daoMarks < extraDaoCost) {
+        log(`封印此物需额外道痕 ${extraDaoCost}，此世道痕不足。`, 'bad')
+        return
+      }
+      nextSealed.push({
+        ...sealed,
+        daoCost: extraDaoCost,
+      })
+    }
+    const netDao = Math.max(0, gain.daoMarks - extraDaoCost)
     const endedYear = get().time.year
     const nextLegacy: LegacyState = {
-      daoMarks: legacy.daoMarks + gain.daoMarks,
+      daoMarks: legacy.daoMarks + netDao,
       reincarnations: legacy.reincarnations + 1,
       bestRealmIndex: Math.max(legacy.bestRealmIndex, realmIndex(player.realm)),
       totalYears: (legacy.totalYears ?? 0) + player.age,
       lastLifeEndYear: endedYear,
+      sealed: nextSealed,
     }
-    log(`此世终结。结算道痕 +${gain.daoMarks}（${gain.desc}）。`, 'gold')
+    log(`此世终结。结算道痕 +${netDao}（${gain.desc}${extraDaoCost ? ` · 封印代价 -${extraDaoCost}` : ''}）。`, 'gold')
+    if (sealed) {
+      log(`封印传承物：「${sealed.name}」，将于下一世苏醒。`, 'gold')
+    }
     log(
       `转生次数 ${nextLegacy.reincarnations}，累计道痕 ${nextLegacy.daoMarks}。` +
         `上一世止于第${endedYear}年（寿龄 ${player.age}）；新一世年号从第 1 年起算，不沿用前世。`,
@@ -2789,6 +3020,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   spouseFarmHelp: () => {
     const { companion, player, time, abode, inventory } = get()
     if (!player || !player.alive || !companion.spouseId) return
+    if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
+      log('道侣重伤未愈，无法代劳。', 'bad')
+      return
+    }
     const key = `${time.year}-${time.month}-${time.day}`
     if (companion.farmHelpOn === key) {
       log('今日道侣已代为打理过灵田。', 'dim')
@@ -2836,6 +3071,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   spousePillHelp: () => {
     const { companion, player, time, inventory } = get()
     if (!player || !player.alive || !companion.spouseId) return
+    if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
+      log('道侣重伤未愈，无法代炼。', 'bad')
+      return
+    }
     const key = `${time.year}-${time.month}-${time.day}`
     if (companion.pillHelpOn === key) {
       log('今日道侣已代炼过丹药。', 'dim')
@@ -3086,22 +3325,67 @@ export const useGameStore = create<GameState>((set, get) => ({
     const item = ITEMS[id]
     if (count <= 0 || !item?.effect) return
     // 突破辅助丹药：冲击壁垒时自动选用并消耗，不可提前服用
-    if (item.effect.breakthroughRate && !item.effect.hp && !item.effect.exp) {
+    if (item.effect.breakthroughRate && !item.effect.hp && !item.effect.exp && !item.effect.energy) {
       log(`「${item.name}」将在冲击壁垒时自动服用（成功率 +${item.effect.breakthroughRate}%）。`, 'dim')
       return
     }
+    // 起步境界门槛
+    if (!itemMinRealmOk(item, player.realm)) {
+      const lo = item.minRealm ? REALMS[item.minRealm]?.name ?? item.minRealm : ''
+      log(`境界不足：「${item.name}」需${lo}以上方可服用。`, 'bad')
+      return
+    }
+    const over = itemOverScope(item, player.realm)
+    const eff = itemEffectWithMarks(item)
     const inv = { ...inventory, [id]: count - 1 }
     if (inv[id] <= 0) delete inv[id]
     const p = { ...player }
-    if (item.effect.hp) p.hp = Math.min(p.maxHp, p.hp + item.effect.hp)
-    if (item.effect.exp) {
-      const gain = id === 'pill_qi' ? pillExp(player.realm) : item.effect.exp
+    const markNote = (item.danMarks ?? 0) > 0 ? `（${item.danMarks}纹药力）` : ''
+    const scopeNote = over ? '（已超适用范围，药效大减）' : ''
+    const scopeMul = over ? 0.25 : 1
+    // 特殊功效
+    if (eff.special === 'full_heal') {
+      p.hp = p.maxHp
+      p.energy = p.maxEnergy
+    }
+    if (eff.special === 'cleanse') {
+      if (p.classId === 'demon' && p.shaqi > 0) {
+        p.shaqi = Math.max(0, p.shaqi - 15)
+      }
+    }
+    if (eff.hp) {
+      const h = Math.floor(eff.hp * scopeMul)
+      p.hp = Math.min(p.maxHp, p.hp + h)
+    }
+    if (eff.energy) {
+      p.energy = Math.min(p.maxEnergy, p.energy + Math.floor(eff.energy * scopeMul))
+    }
+    if (eff.stone) {
+      // 由 useItem 外层 stones 更新
+    }
+    if (eff.exp) {
+      const raw = id.startsWith('pill_qi')
+        ? pillExp(player.realm, item.pillGrade, item.danMarks)
+        : eff.exp
+      const gain = Math.floor(raw * scopeMul)
       p.exp += gain
-      log(`服用 ${item.name}，修为 +${gain}`, 'good')
-    } else if (item.effect.hp) {
-      log(`服用 ${item.name}，气血恢复。`, 'good')
+      log(`服用 ${item.name}${markNote}，修为 +${gain}${scopeNote}`, 'good')
+    } else if (eff.special === 'full_heal') {
+      log(`服用 ${item.name}${markNote}，伤势尽复、灵力回满。`, 'gold')
+    } else if (eff.special === 'cleanse') {
+      log(`服用 ${item.name}${markNote}，心魔杂念为之一清${scopeNote}。`, 'good')
+    } else if (eff.hp || eff.energy) {
+      log(`服用 ${item.name}${markNote}，气血/灵力有所恢复${scopeNote}。`, 'good')
     } else {
-      log(`使用 ${item.name}。`, 'good')
+      log(`使用 ${item.name}${markNote}。`, 'good')
+    }
+    if (eff.stone) {
+      const s = Math.floor(eff.stone * scopeMul)
+      useGameStore.setState({ stones: useGameStore.getState().stones + s })
+      log(`灵石 +${s}`, 'good')
+    }
+    if (item.pillGrade || item.herbTier) {
+      log(`${itemTierText(item)}${itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}`, 'dim')
     }
     set({ player: p, inventory: inv })
     unlockCodex(get, set, 'item', id)
@@ -3121,8 +3405,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已在修习之中。', 'dim')
       return
     }
-    if (!canLearnGongfa(g, player.realm)) {
-      log(`参悟《${g.name}》需先达${gongfaRealmText(g)}，你现为${REALMS[player.realm]?.name}。`, 'bad')
+    if (!canLearnGongfaFull(g, player.realm)) {
+      log(
+        `参悟《${g.name}》需达${gongfaRealmText(g)}且品阶相称（${g.grade} · ${gongfaScopeText(g)}）。`,
+        'bad',
+      )
       return
     }
     const inv = { ...inventory }
@@ -3150,14 +3437,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已臻圆满，进境无可复加。', 'dim')
       return
     }
-    const cost = gongfaAdvanceCost(g, st.stage)
+    // 残卷功法进阶更省
+    const fromSeal = (legacy.sealed ?? []).some((s) => s.kind === 'gongfa' && s.id === id)
+    const cost = Math.floor(gongfaAdvanceCost(g, st.stage) * (fromSeal ? 0.7 : 1))
     if (player.exp < cost) {
       log(`进阶「${GONGFA_STAGE_LABELS[st.stage + 1]}」需消耗修为 ${cost}，当前修为不足。`, 'bad')
       return
     }
     const learned = { ...gongfa.learned, [id]: { stage: st.stage + 1 } }
     const p = recomputeVitals({ ...player, exp: player.exp - cost }, treasures, learned, legacy.daoMarks)
-    log(`修为灌顶，《${g.name}》修至「${GONGFA_STAGE_LABELS[st.stage + 1]}」！`, 'gold')
+    log(
+      `修为灌顶，《${g.name}》修至「${GONGFA_STAGE_LABELS[st.stage + 1]}」！${fromSeal ? '（残卷余韵，消耗降低）' : ''}`,
+      'gold',
+    )
     set({ player: p, gongfa: { learned } })
   },
 
@@ -3324,8 +3616,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       log('此功法已在修习之中。', 'dim')
       return
     }
-    if (!canLearnGongfa(g, player.realm)) {
-      log(`参悟《${g.name}》需先达${gongfaRealmText(g)}，你现为${REALMS[player.realm]?.name}。`, 'bad')
+    if (!canLearnGongfaFull(g, player.realm)) {
+      log(
+        `参悟《${g.name}》需达${gongfaRealmText(g)}且品阶相称（${g.grade} · ${gongfaScopeText(g)}）。`,
+        'bad',
+      )
       return
     }
     const learned = { ...gongfa.learned, [libId]: { stage: 0 } }
@@ -3460,7 +3755,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const hpScale = realm.env.playerHpMul ?? 1
     const actor = makePlayerCombatant(player, treasures, hpScale)
     const spouse = spouseDef(companion)
-    if (spouse) actor.atk = Math.floor(actor.atk * 1.08)
+    const spouseHurt = (companion.spouseHurtUntilDay ?? 0) > dayNumber(get().time)
+    if (spouse && !spouseHurt) actor.atk = Math.floor(actor.atk * 1.08)
     const state = createCombatState(actor, enemy, {
       kind: 'tower',
       title: `秘境 ${realm.name} · 第${tower.floor}层${boss ? '（镇守）' : ''}`,
@@ -3590,6 +3886,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     if (companion.spouseId && companion.spouseId !== id) {
       log('你已有道侣，不宜与他人双修。', 'bad')
+      return
+    }
+    if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
+      log(`${c.name}重伤未愈，无法双修。`, 'bad')
       return
     }
     const key = `${time.year}-${time.month}-${time.day}`

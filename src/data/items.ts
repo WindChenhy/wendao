@@ -36,6 +36,7 @@ export function itemCategory(id: string): ItemCategory {
   if (gongfaByScrollId(id)) return 'gongfa'
   if (id.startsWith('treasure_')) return 'treasure'
   if (id.startsWith('pill_')) return 'pill'
+  if (isHerbLike(id)) return 'herb'
   return 'herb'
 }
 
@@ -52,11 +53,72 @@ export const CATEGORY_LABELS: Record<ItemCategory | 'all', string> = {
 /** 法宝属性加成（store 内 treasureBonus 以此为数据源，勿两处改数） */
 export const TREASURE_BONUS: Record<
   string,
-  { atk?: number; def?: number; hp?: number; breakthrough?: number }
+  { atk?: number; def?: number; hp?: number; breakthrough?: number; cultivate?: number }
 > = itemsDb.treasureBonus
+
+/** 丹纹效果倍率：基础 × (1 + danMarks * 0.15)，5 纹 = 1.75× */
+export function danMarkMul(danMarks: number | undefined): number {
+  return 1 + Math.max(0, Math.min(5, danMarks ?? 0)) * 0.15
+}
+
+/** 境界序号 */
+function ri(realm: RealmId): number {
+  return REALM_ORDER.indexOf(realm)
+}
+
+/** 起步境界是否满足 */
+export function itemMinRealmOk(item: ItemDef, realm: RealmId): boolean {
+  if (!item.minRealm) return true
+  return ri(realm) >= ri(item.minRealm)
+}
+
+/** 是否超出适用上限（超出则药效大幅衰减，不禁止使用） */
+export function itemOverScope(item: ItemDef, realm: RealmId): boolean {
+  if (!item.maxRealm) return false
+  return ri(realm) > ri(item.maxRealm)
+}
+
+/** 丹药/灵物品阶文案 */
+export function itemTierText(item: ItemDef): string {
+  const parts: string[] = []
+  if (item.pillGrade) {
+    parts.push(`${item.pillGrade}品丹`)
+    const d = item.danMarks ?? 0
+    parts.push(d > 0 ? `${d}纹` : '无纹')
+  }
+  if (item.herbTier) parts.push(`${item.herbTier}阶灵物`)
+  if (item.treasureTier) parts.push(`${item.treasureTier}阶法宝`)
+  return parts.join(' · ')
+}
+
+/** 境界适用范围文案 */
+export function itemScopeText(item: ItemDef): string {
+  if (!item.minRealm && !item.maxRealm) return ''
+  const lo = item.minRealm ? (REALMS[item.minRealm]?.name ?? item.minRealm) : '不限'
+  const hi = item.maxRealm ? (REALMS[item.maxRealm]?.name ?? item.maxRealm) : '不设上限'
+  return `适用 ${lo} → ${hi}`
+}
+
+/** 含丹纹的实际效果数值 */
+export function itemEffectWithMarks(item: ItemDef): NonNullable<ItemDef['effect']> {
+  const e = item.effect ?? {}
+  const mul = danMarkMul(item.danMarks)
+  const out: NonNullable<ItemDef['effect']> = { ...e }
+  if (e.hp) out.hp = Math.floor(e.hp * mul)
+  if (e.exp) out.exp = Math.floor(e.exp * mul)
+  if (e.energy) out.energy = Math.floor(e.energy * mul)
+  if (e.stone) out.stone = Math.floor(e.stone * mul)
+  if (e.breakthroughRate) out.breakthroughRate = Math.floor(e.breakthroughRate * (1 + (item.danMarks ?? 0) * 0.04))
+  return out
+}
 
 /** 突破辅助丹药（按成功率从高到低）；冲击壁垒时自动选用背包中最佳一枚 */
 export const BREAKTHROUGH_PILLS: { id: string; rate: number }[] = itemsDb.breakthroughPills
+
+/** 妖材/灵物也归 herb 便于坊市筛选 */
+export function isHerbLike(id: string): boolean {
+  return id.startsWith('herb_') || id.startsWith('mat_') || ['snake_gall', 'fox_core', 'tiger_bone', 'demon_shard'].includes(id)
+}
 
 /** 法宝加成文案，如 "攻击 +25%、突破 +8%" */
 export function treasureEffectText(id: string): string {
@@ -112,10 +174,12 @@ export function materialName(id: string): string {
   return ITEMS[id]?.name ?? id
 }
 
-/** 聚气丹收益随境界 */
-export function pillExp(realm: RealmId): number {
+/** 聚气丹/修为丹收益随境界与品阶；5 纹另有倍率（见 itemEffectWithMarks） */
+export function pillExp(realm: RealmId, grade?: number, danMarks?: number): number {
   const ri = Math.max(0, REALM_ORDER.indexOf(realm))
-  return Math.floor(60 * Math.pow(1.55, ri))
+  const g = Math.max(1, Math.min(9, grade ?? 1))
+  const base = Math.floor(60 * Math.pow(1.55, ri) * (1 + (g - 1) * 0.15))
+  return Math.floor(base * danMarkMul(danMarks))
 }
 
 /** 坊市货架（按分类）；功法只上架坊市秘籍，宗门秘法仅藏经阁产出 */

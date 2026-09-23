@@ -9,7 +9,8 @@
     "price": 180,
     "effect": {
       "hp": 0.08
-    }
+    },
+    "maxRealm": "golden_core"
   },
   {
     "id": "gf_tiegong",
@@ -21,7 +22,8 @@
     "price": 180,
     "effect": {
       "def": 0.08
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "gf_juling",
@@ -33,7 +35,8 @@
     "price": 220,
     "effect": {
       "cultivate": 0.08
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "gf_liufeng",
@@ -57,7 +60,8 @@
     "price": 240,
     "effect": {
       "atk": 0.07
-    }
+    },
+    "maxRealm": "golden_core"
   },
   {
     "id": "gf_panshi",
@@ -70,7 +74,8 @@
     "effect": {
       "def": 0.06,
       "hp": 0.04
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "gf_guyuan",
@@ -83,7 +88,8 @@
     "effect": {
       "cultivate": 0.05,
       "hp": 0.05
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "gf_qingyuan",
@@ -95,7 +101,8 @@
     "price": 700,
     "effect": {
       "atk": 0.1
-    }
+    },
+    "maxRealm": "golden_core"
   },
   {
     "id": "gf_guiyuan",
@@ -107,7 +114,8 @@
     "price": 800,
     "effect": {
       "def": 0.1
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "gf_xuanbing",
@@ -119,7 +127,8 @@
     "price": 750,
     "effect": {
       "cultivate": 0.1
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "gf_liedi",
@@ -131,7 +140,8 @@
     "price": 820,
     "effect": {
       "atk": 0.12
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "gf_yugu",
@@ -155,7 +165,8 @@
     "price": 860,
     "effect": {
       "dodge": 0.06
-    }
+    },
+    "maxRealm": "golden_core"
   },
   {
     "id": "gf_zhenwu",
@@ -168,7 +179,8 @@
     "effect": {
       "atk": 0.08,
       "def": 0.05
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "gf_taixu",
@@ -180,7 +192,8 @@
     "price": 2400,
     "effect": {
       "cultivate": 0.15
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "gf_bengshan",
@@ -192,7 +205,8 @@
     "price": 3000,
     "effect": {
       "atk": 0.18
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "gf_lingxu",
@@ -204,7 +218,8 @@
     "price": 3200,
     "effect": {
       "dodge": 0.08
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "gf_jindanhu",
@@ -216,7 +231,8 @@
     "price": 2800,
     "effect": {
       "def": 0.14
-    }
+    },
+    "maxRealm": "integration"
   },
   {
     "id": "gf_changchun",
@@ -242,7 +258,8 @@
     "effect": {
       "atk": 0.15,
       "dodge": 0.04
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "gf_tatian",
@@ -255,7 +272,8 @@
     "effect": {
       "dodge": 0.07,
       "atk": 0.05
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "gf_yuanying",
@@ -267,7 +285,8 @@
     "price": 4200,
     "effect": {
       "cultivate": 0.18
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "gf_jiuzhuan",
@@ -279,7 +298,8 @@
     "price": 4800,
     "effect": {
       "atk": 0.22
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "gf_buhuai",
@@ -292,7 +312,8 @@
     "effect": {
       "hp": 0.2,
       "def": 0.08
-    }
+    },
+    "maxRealm": "integration"
   },
   {
     "id": "gf_xingyun",
@@ -317,7 +338,8 @@
     "effect": {
       "atk": 0.1,
       "cultivate": 0.18
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "gf_huashen",
@@ -329,7 +351,8 @@
     "price": 9800,
     "effect": {
       "cultivate": 0.22
-    }
+    },
+    "maxRealm": "integration"
   },
   {
     "id": "gf_taixujian",
@@ -341,7 +364,8 @@
     "price": 11000,
     "effect": {
       "atk": 0.24
-    }
+    },
+    "maxRealm": "mahayana"
   },
   {
     "id": "gf_xinghe",
@@ -367,7 +391,8 @@
     "effect": {
       "hp": 0.22,
       "dodge": 0.05
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "gf_xukong",
@@ -379,7 +404,8 @@
     "price": 16000,
     "effect": {
       "cultivate": 0.28
-    }
+    },
+    "maxRealm": "integration"
   },
   {
     "id": "gf_mieshi",
@@ -391,7 +417,8 @@
     "price": 18000,
     "effect": {
       "atk": 0.3
-    }
+    },
+    "maxRealm": "mahayana"
   },
   {
     "id": "gf_lianxu",
@@ -417,7 +444,8 @@
     "effect": {
       "cultivate": 0.32,
       "hp": 0.1
-    }
+    },
+    "maxRealm": "mahayana"
   },
   {
     "id": "gf_yinyang",
@@ -442,12 +470,13 @@
     "effect": {
       "def": 0.25,
       "hp": 0.15
-    }
+    },
+    "maxRealm": "mahayana"
   },
   {
     "id": "gf_dacheng",
     "name": "大乘渡劫心经",
-    "grade": "仙阶",
+    "grade": "天阶",
     "kind": "心法",
     "desc": "大乘正宗心法，预演天劫、夯实道基。",
     "minRealm": "mahayana",
@@ -460,7 +489,7 @@
   {
     "id": "gf_wanxiang",
     "name": "万象归一诀",
-    "grade": "仙阶",
+    "grade": "天阶",
     "kind": "功法",
     "desc": "万法归一，攻防一体的无上妙法。",
     "minRealm": "mahayana",
@@ -474,7 +503,7 @@
   {
     "id": "gf_tiandao",
     "name": "天道剑典",
-    "grade": "仙阶",
+    "grade": "天阶",
     "kind": "攻击法诀",
     "desc": "以天道为剑，一剑既出风云变色。",
     "minRealm": "mahayana",
@@ -486,7 +515,7 @@
   {
     "id": "gf_dujie",
     "name": "渡劫仙经",
-    "grade": "仙阶",
+    "grade": "天阶",
     "kind": "心法",
     "desc": "专为渡劫而创，雷火淬神、道心不灭。",
     "minRealm": "tribulation",
@@ -499,7 +528,7 @@
   {
     "id": "gf_bumie",
     "name": "不灭道体",
-    "grade": "仙阶",
+    "grade": "天阶",
     "kind": "锻体法",
     "desc": "道体不灭，近乎永恒。",
     "minRealm": "tribulation",
@@ -519,7 +548,8 @@
     "price": 0,
     "effect": {
       "atk": 0.1
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "js_xin",
@@ -531,7 +561,8 @@
     "price": 0,
     "effect": {
       "cultivate": 0.08
-    }
+    },
+    "maxRealm": "golden_core"
   },
   {
     "id": "js_jiantai",
@@ -543,7 +574,8 @@
     "price": 0,
     "effect": {
       "atk": 0.2
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "js_taixu",
@@ -568,7 +600,8 @@
     "price": 0,
     "effect": {
       "cultivate": 0.12
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "ty_ti",
@@ -580,7 +613,8 @@
     "price": 0,
     "effect": {
       "hp": 0.15
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "ty_danding",
@@ -593,7 +627,8 @@
     "effect": {
       "cultivate": 0.2,
       "hp": 0.08
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "ty_changsheng",
@@ -618,7 +653,8 @@
     "price": 0,
     "effect": {
       "def": 0.15
-    }
+    },
+    "maxRealm": "nascent_soul"
   },
   {
     "id": "ht_mai",
@@ -630,7 +666,8 @@
     "price": 0,
     "effect": {
       "hp": 0.25
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "ht_shenshen",
@@ -655,7 +692,8 @@
     "price": 0,
     "effect": {
       "atk": 0.18
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "xs_sui",
@@ -667,7 +705,8 @@
     "price": 0,
     "effect": {
       "cultivate": 0.15
-    }
+    },
+    "maxRealm": "void"
   },
   {
     "id": "xs_xuehai",
@@ -704,7 +743,8 @@
     "price": 0,
     "effect": {
       "cultivate": 0.2
-    }
+    },
+    "maxRealm": "spirit_sea"
   },
   {
     "id": "ym_zhanshen",
@@ -730,6 +770,415 @@
     "effect": {
       "cultivate": 0.3,
       "dodge": 0.08
+    }
+  },
+  {
+    "id": "gf_xiaoji",
+    "name": "小还丹功",
+    "grade": "黄阶",
+    "kind": "心法",
+    "desc": "入门心法，适用练气至金丹，过此则效薄。",
+    "minRealm": "qi",
+    "maxRealm": "golden_core",
+    "price": 160,
+    "effect": {
+      "cultivate": 0.06,
+      "hp": 0.04
+    }
+  },
+  {
+    "id": "gf_shihui",
+    "name": "石灰掌",
+    "grade": "黄阶",
+    "kind": "攻击法诀",
+    "desc": "粗浅掌法，练气至筑基尚可用。",
+    "minRealm": "qi",
+    "maxRealm": "foundation",
+    "price": 150,
+    "effect": {
+      "atk": 0.05
+    }
+  },
+  {
+    "id": "gf_yunqi",
+    "name": "云起诀",
+    "grade": "玄阶",
+    "kind": "身法",
+    "desc": "步如云起，适用练气至金丹。",
+    "minRealm": "qi",
+    "maxRealm": "golden_core",
+    "price": 400,
+    "effect": {
+      "dodge": 0.05
+    }
+  },
+  {
+    "id": "gf_jinzhong",
+    "name": "金钟罩",
+    "grade": "玄阶",
+    "kind": "防御法",
+    "desc": "护体罡气，筑基至元婴可恃。",
+    "minRealm": "foundation",
+    "maxRealm": "nascent_soul",
+    "price": 900,
+    "effect": {
+      "def": 0.12,
+      "hp": 0.06
+    }
+  },
+  {
+    "id": "gf_lianyang",
+    "name": "炼阳诀",
+    "grade": "玄阶",
+    "kind": "心法",
+    "desc": "纯阳入门心法，适用筑基至金丹。",
+    "minRealm": "foundation",
+    "maxRealm": "golden_core",
+    "price": 720,
+    "effect": {
+      "cultivate": 0.09
+    }
+  },
+  {
+    "id": "gf_suishou",
+    "name": "碎石手",
+    "grade": "玄阶",
+    "kind": "攻击法诀",
+    "desc": "刚猛掌指功夫，适用筑基至元婴。",
+    "minRealm": "foundation",
+    "maxRealm": "nascent_soul",
+    "price": 880,
+    "effect": {
+      "atk": 0.11
+    }
+  },
+  {
+    "id": "gf_danhuo",
+    "name": "丹火吐纳",
+    "grade": "地阶",
+    "kind": "心法",
+    "desc": "借丹火淬灵，金丹至化神可修。",
+    "minRealm": "golden_core",
+    "maxRealm": "spirit_sea",
+    "price": 2500,
+    "effect": {
+      "cultivate": 0.14,
+      "hp": 0.06
+    }
+  },
+  {
+    "id": "gf_tiebi",
+    "name": "铁臂功",
+    "grade": "地阶",
+    "kind": "锻体法",
+    "desc": "双臂如铁，金丹至炼虚有效。",
+    "minRealm": "golden_core",
+    "maxRealm": "void",
+    "price": 2700,
+    "effect": {
+      "def": 0.13,
+      "hp": 0.1
+    }
+  },
+  {
+    "id": "gf_jianqi2",
+    "name": "截脉剑气",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "剑气截脉，金丹至化神称雄。",
+    "minRealm": "golden_core",
+    "maxRealm": "spirit_sea",
+    "price": 3600,
+    "effect": {
+      "atk": 0.16,
+      "dodge": 0.03
+    }
+  },
+  {
+    "id": "gf_yuanshen",
+    "name": "元神出游法",
+    "grade": "地阶",
+    "kind": "身法",
+    "desc": "元神遁走之速，元婴至炼虚。",
+    "minRealm": "nascent_soul",
+    "maxRealm": "void",
+    "price": 4400,
+    "effect": {
+      "dodge": 0.09
+    }
+  },
+  {
+    "id": "gf_hundun",
+    "name": "混沌初开诀",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "上古残篇，化神至合体可参。",
+    "minRealm": "spirit_sea",
+    "maxRealm": "integration",
+    "price": 12000,
+    "effect": {
+      "cultivate": 0.2,
+      "atk": 0.08
+    }
+  },
+  {
+    "id": "gf_xingchen",
+    "name": "星辰锻体",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "引星光淬体，化神至大乘。",
+    "minRealm": "spirit_sea",
+    "maxRealm": "mahayana",
+    "price": 11500,
+    "effect": {
+      "hp": 0.24,
+      "def": 0.1
+    }
+  },
+  {
+    "id": "gf_zhuque",
+    "name": "朱雀焚天诀",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "南明离火一路，炼虚至大乘。",
+    "minRealm": "void",
+    "maxRealm": "mahayana",
+    "price": 20000,
+    "effect": {
+      "atk": 0.28
+    }
+  },
+  {
+    "id": "gf_xuanwu",
+    "name": "玄武镇海功",
+    "grade": "天阶",
+    "kind": "防御法",
+    "desc": "北冥镇势，炼虚以上护身。",
+    "minRealm": "void",
+    "maxRealm": "ascended",
+    "price": 19000,
+    "effect": {
+      "def": 0.22,
+      "hp": 0.12
+    }
+  },
+  {
+    "id": "gf_taoyi",
+    "name": "太一衍道经",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "推衍大道，大乘以上方可圆满。",
+    "minRealm": "mahayana",
+    "price": 70000,
+    "effect": {
+      "cultivate": 0.36,
+      "atk": 0.1,
+      "dodge": 0.04
+    }
+  },
+  {
+    "id": "gf_mingxiang",
+    "name": "冥想诀",
+    "grade": "黄阶",
+    "kind": "心法",
+    "desc": "最粗浅的入定法，练气至筑基可用。",
+    "minRealm": "qi",
+    "maxRealm": "foundation",
+    "price": 120,
+    "effect": {
+      "cultivate": 0.04,
+      "energy": 0
+    }
+  },
+  {
+    "id": "gf_tuiqi",
+    "name": "退气掌",
+    "grade": "黄阶",
+    "kind": "攻击法诀",
+    "desc": "以气退敌，练气专用。",
+    "minRealm": "qi",
+    "maxRealm": "qi",
+    "price": 100,
+    "effect": {
+      "atk": 0.04
+    }
+  },
+  {
+    "id": "gf_qingxin",
+    "name": "清心咒",
+    "grade": "黄阶",
+    "kind": "心法",
+    "desc": "清心寡欲，练气至金丹。",
+    "minRealm": "qi",
+    "maxRealm": "golden_core",
+    "price": 200,
+    "effect": {
+      "cultivate": 0.05,
+      "dodge": 0.02
+    }
+  },
+  {
+    "id": "gf_niunie",
+    "name": "牛魔大力拳",
+    "grade": "玄阶",
+    "kind": "攻击法诀",
+    "desc": "刚猛拳路，筑基至元婴。",
+    "minRealm": "foundation",
+    "maxRealm": "nascent_soul",
+    "price": 850,
+    "effect": {
+      "atk": 0.1,
+      "hp": 0.05
+    }
+  },
+  {
+    "id": "gf_yanyu",
+    "name": "烟雨步",
+    "grade": "玄阶",
+    "kind": "身法",
+    "desc": "步如烟雨，筑基至金丹。",
+    "minRealm": "foundation",
+    "maxRealm": "golden_core",
+    "price": 700,
+    "effect": {
+      "dodge": 0.055
+    }
+  },
+  {
+    "id": "gf_bingxin",
+    "name": "冰心诀",
+    "grade": "玄阶",
+    "kind": "心法",
+    "desc": "心若冰清，筑基至元婴。",
+    "minRealm": "foundation",
+    "maxRealm": "nascent_soul",
+    "price": 820,
+    "effect": {
+      "cultivate": 0.08,
+      "dodge": 0.02
+    }
+  },
+  {
+    "id": "gf_lieyan",
+    "name": "烈焰刀",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "刀出如焰，金丹至化神。",
+    "minRealm": "golden_core",
+    "maxRealm": "spirit_sea",
+    "price": 3300,
+    "effect": {
+      "atk": 0.17
+    }
+  },
+  {
+    "id": "gf_hundun_ti",
+    "name": "混元锻骨篇",
+    "grade": "地阶",
+    "kind": "锻体法",
+    "desc": "混元锻骨，金丹至炼虚。",
+    "minRealm": "golden_core",
+    "maxRealm": "void",
+    "price": 3000,
+    "effect": {
+      "def": 0.12,
+      "hp": 0.12
+    }
+  },
+  {
+    "id": "gf_shenyou",
+    "name": "神游太虚",
+    "grade": "地阶",
+    "kind": "身法",
+    "desc": "元神太虚一游，元婴至化神。",
+    "minRealm": "nascent_soul",
+    "maxRealm": "spirit_sea",
+    "price": 4600,
+    "effect": {
+      "dodge": 0.08,
+      "cultivate": 0.05
+    }
+  },
+  {
+    "id": "gf_jianyu",
+    "name": "剑雨术",
+    "grade": "地阶",
+    "kind": "攻击法诀",
+    "desc": "万剑如雨，元婴至炼虚。",
+    "minRealm": "nascent_soul",
+    "maxRealm": "void",
+    "price": 5200,
+    "effect": {
+      "atk": 0.2
+    }
+  },
+  {
+    "id": "gf_taiji",
+    "name": "太极养生功",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "阴阳相济，化神至大乘。",
+    "minRealm": "spirit_sea",
+    "maxRealm": "mahayana",
+    "price": 10800,
+    "effect": {
+      "cultivate": 0.16,
+      "hp": 0.1,
+      "dodge": 0.03
+    }
+  },
+  {
+    "id": "gf_zhanxian",
+    "name": "斩仙一剑",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "剑出斩仙，炼虚至大乘。",
+    "minRealm": "void",
+    "maxRealm": "mahayana",
+    "price": 22000,
+    "effect": {
+      "atk": 0.3
+    }
+  },
+  {
+    "id": "gf_liuli2",
+    "name": "琉璃不灭身",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "琉璃法身，合体以上方成。",
+    "minRealm": "integration",
+    "maxRealm": "ascended",
+    "price": 34000,
+    "effect": {
+      "hp": 0.28,
+      "def": 0.14
+    }
+  },
+  {
+    "id": "gf_qiankun",
+    "name": "乾坤挪移",
+    "grade": "天阶",
+    "kind": "身法",
+    "desc": "乾坤挪移，大乘以上可窥。",
+    "minRealm": "mahayana",
+    "price": 68000,
+    "effect": {
+      "dodge": 0.14,
+      "atk": 0.08
+    }
+  },
+  {
+    "id": "gf_hundun_xin",
+    "name": "混沌心经",
+    "grade": "天阶",
+    "kind": "心法",
+    "desc": "混沌未分之意，渡劫方能参详。",
+    "minRealm": "tribulation",
+    "price": 130000,
+    "effect": {
+      "cultivate": 0.4,
+      "atk": 0.12,
+      "hp": 0.1
     }
   }
 ]

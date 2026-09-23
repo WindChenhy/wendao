@@ -1,67 +1,82 @@
-import { SEEDS, SEED_LIST, RECIPE_LIST, expandPlotCost, MAX_PLOTS, type SeedDef } from '../data/abode'
+import { useMemo, useState } from 'react'
+import {
+  SEEDS,
+  SEED_LIST,
+  RECIPE_LIST,
+  FARM_MAX_COUNT,
+  expandColCost,
+  expandRowCost,
+  canExpandFarmCols,
+  canExpandFarmRows,
+  type SeedDef,
+} from '../data/abode'
 import { ITEMS } from '../data/items'
 import { canCraft, craftRate, plotProgress } from '../game/farm'
 import { ArtifactForgePanel } from './ArtifactForgePanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
-function PlotCard({ index }: { index: number }) {
+function PlotTile({
+  index,
+  plantSeedId,
+}: {
+  index: number
+  plantSeedId: string | null
+}) {
   const time = useGameStore((s) => s.time)
   const abode = useGameStore((s) => s.abode)
-  const inventory = useGameStore((s) => s.inventory)
   const plantSeed = useGameStore((s) => s.plantSeed)
   const harvestPlot = useGameStore((s) => s.harvestPlot)
   const plot = abode.plots[index]
-  if (!plot) return null
+  if (!plot) return <div className="aspect-square border border-border/40 bg-ink-2/40" />
 
   const prog = plotProgress(plot, time)
   const seed = plot.seedId ? SEEDS[plot.seedId] : null
+  const ripe = Boolean(seed && prog.ready)
+  const growing = Boolean(seed && !prog.ready)
+
+  const onClick = () => {
+    if (ripe) harvestPlot(index)
+    else if (!seed && plantSeedId) plantSeed(index, plantSeedId)
+  }
+
+  const title = seed
+    ? `${seed.name}${ripe ? ' · 可收获' : ` · 余 ${prog.remain} 日`}`
+    : plantSeedId
+      ? `空地 · 点击种植${SEEDS[plantSeedId]?.name ?? ''}`
+      : '空地 · 先选种子'
 
   return (
-    <div className="border border-border px-3 py-2">
-      <div className="flex justify-between items-center gap-2">
-        <div className="text-sm">
-          灵田 {index + 1}
-          {seed && (
-            <span className="ml-2 text-jade">
-              {seed.name}
-              {prog.ready ? '（可收获）' : `（余 ${prog.remain} 日）`}
-            </span>
-          )}
-          {!seed && <span className="ml-2 text-text-dim">闲置</span>}
-        </div>
-        <div className="flex gap-1 shrink-0">
-          {seed && prog.ready && (
-            <button className="pixel-btn text-xs primary" onClick={() => harvestPlot(index)}>
-              收获
-            </button>
-          )}
-          {!seed && (
-            <div className="flex flex-wrap gap-1 justify-end">
-              {SEED_LIST.map((s) => (
-                <button
-                  key={s.id}
-                  className="pixel-btn text-xs"
-                  disabled={(inventory[s.id] ?? 0) <= 0}
-                  title={s.desc}
-                  onClick={() => plantSeed(index, s.id)}
-                >
-                  种{s.name.replace('种', '')}×{inventory[s.id] ?? 0}
-                </button>
-              ))}
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      disabled={Boolean(seed) && !ripe}
+      className={`w-8 h-8 sm:w-9 sm:h-9 border text-[8px] leading-none p-0 overflow-hidden transition-colors shrink-0 ${
+        ripe
+          ? 'border-gold bg-[#2a2618] text-gold hover:bg-[#3a3420]'
+          : growing
+            ? 'border-jade/50 bg-ink-2 text-jade'
+            : 'border-border bg-ink-2/60 text-text-dim hover:border-gold-dim hover:text-gold'
+      }`}
+    >
+      {seed ? (
+        <div className="h-full w-full flex flex-col items-center justify-center gap-px">
+          <div className="truncate w-full px-0.5">{seed.name.replace('种', '').slice(0, 2)}</div>
+          <div className="text-[8px] opacity-80">{ripe ? '收' : prog.remain}</div>
+          {growing && (
+            <div className="w-full h-0.5 bg-ink">
+              <div
+                className="h-full bg-bamboo"
+                style={{ width: `${Math.min(100, (prog.elapsed / Math.max(1, prog.growDays)) * 100)}%` }}
+              />
             </div>
           )}
         </div>
-      </div>
-      {seed && !prog.ready && (
-        <div className="h-1.5 bg-ink border border-border mt-2">
-          <div
-            className="h-full bg-bamboo"
-            style={{ width: `${Math.min(100, (prog.elapsed / prog.growDays) * 100)}%` }}
-          />
-        </div>
+      ) : (
+        <div className="h-full w-full flex items-center justify-center opacity-60 text-[9px]">田</div>
       )}
-    </div>
+    </button>
   )
 }
 
@@ -74,68 +89,121 @@ export function AbodePanel() {
   const buySeed = useGameStore((s) => s.buySeed)
   const plantAll = useGameStore((s) => s.plantAll)
   const harvestAll = useGameStore((s) => s.harvestAll)
-  const expandPlot = useGameStore((s) => s.expandPlot)
+  const expandFarmCol = useGameStore((s) => s.expandFarmCol)
+  const expandFarmRow = useGameStore((s) => s.expandFarmRow)
   const craftItem = useGameStore((s) => s.craftItem)
   const legacy = useGameStore((s) => s.legacy)
+  const [plantSeedId, setPlantSeedId] = useState<string | null>(null)
 
   if (!player) return null
   const dead = !player.alive || player.realm === 'ascended' || player.ascended
-  const cost = expandPlotCost(abode.plots.length)
-  const canExpand = abode.plots.length < MAX_PLOTS && stones >= cost
+  const cols = abode.farmCols
+  const rows = abode.farmRows
+  const total = abode.plots.length
+  const colCost = expandColCost(cols)
+  const rowCost = expandRowCost(rows)
+  const canCol = canExpandFarmCols(cols) && stones >= colCost
+  const canRow = canExpandFarmRows(rows) && stones >= rowCost
   const readyCount = abode.plots.filter((p) => p.seedId && plotProgress(p, time).ready).length
   const emptyCount = abode.plots.filter((p) => !p.seedId).length
+  const planted = total - emptyCount
+  const seedOptions = useMemo(
+    () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
+    [inventory],
+  )
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl">
       <div className="panel-box p-4">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
           <div className="font-display text-gold">洞府灵田</div>
           <div className="text-xs text-text-dim">
-            {abode.plots.length}/{MAX_PLOTS} 块 · 道痕 {legacy.daoMarks}
+            {cols}×{rows} = {total}/{FARM_MAX_COUNT} 格 · 已种 {planted} · 可收 {readyCount}
           </div>
         </div>
         <p className="text-xs text-text-dim mb-3">
-          种下灵植，待其成熟后收获药材，再入丹炉炼制。种植与收获会推进时间。
+          桃源式方格灵田：点击空地按当前种子播种，点击成熟灵植收获。可向右/向下开拓荒地，直至
+          16×8=128 格。种植与收获会推进时间。
         </p>
-        <div className="space-y-2">
+
+        {/* 选种 */}
+        <div className="flex flex-wrap gap-1 items-center mb-3">
+          <span className="text-xs text-text-dim mr-1">选种：</span>
+          <button
+            type="button"
+            className={`text-[10px] border px-1.5 py-0.5 ${!plantSeedId ? 'border-gold text-gold' : 'border-border text-text-dim'}`}
+            onClick={() => setPlantSeedId(null)}
+          >
+            不种
+          </button>
+          {seedOptions.map((s: SeedDef) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`text-[10px] border px-1.5 py-0.5 ${plantSeedId === s.id ? 'border-gold text-gold' : 'border-border text-text-dim'}`}
+              title={s.desc}
+              onClick={() => setPlantSeedId(s.id)}
+            >
+              {s.name.replace('种', '')}×{inventory[s.id] ?? 0}
+            </button>
+          ))}
+          {seedOptions.length === 0 && (
+            <span className="text-[10px] text-vermilion">没有种子，请先购买</span>
+          )}
+        </div>
+
+        {/* 网格 */}
+        <div
+          className="grid gap-[3px] mb-3 w-fit max-w-full"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 2.25rem))` }}
+        >
           {abode.plots.map((_, i) => (
-            <PlotCard key={i} index={i} />
+            <PlotTile key={i} index={i} plantSeedId={plantSeedId} />
           ))}
         </div>
-        <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
+
+        <div className="mt-1 pt-3 border-t border-border/60 space-y-2">
           <div className="flex flex-wrap gap-2 items-center">
             <button
               className="pixel-btn primary text-xs"
               disabled={dead || readyCount === 0}
               onClick={harvestAll}
             >
-              一键收获{readyCount > 0 ? `（${readyCount} 块可收）` : ''}
+              一键收获{readyCount > 0 ? `（${readyCount}）` : ''}
             </button>
-          </div>
-          <div className="flex flex-wrap gap-1 items-center">
-            <span className="text-xs text-text-dim mr-1">一键播种（闲置灵田 {emptyCount} 块）：</span>
-            {SEED_LIST.map((s: SeedDef) => (
+            {seedOptions.map((s: SeedDef) => (
               <button
                 key={s.id}
                 className="pixel-btn text-xs"
-                disabled={dead || (inventory[s.id] ?? 0) <= 0 || emptyCount === 0}
+                disabled={dead || emptyCount === 0}
                 title={s.desc}
                 onClick={() => plantAll(s.id)}
               >
-                种{s.name.replace('种', '')}×{inventory[s.id] ?? 0}
+                一键种{s.name.replace('种', '')}×{inventory[s.id] ?? 0}
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap gap-2 items-center text-xs">
+            <span className="text-text-dim">改造开拓：</span>
+            <button
+              className="pixel-btn text-xs"
+              disabled={dead || !canCol}
+              onClick={expandFarmCol}
+            >
+              {canExpandFarmCols(cols) ? `向右开拓一列（${formatNum(colCost)} 灵石）` : '横向已满'}
+            </button>
+            <button
+              className="pixel-btn text-xs"
+              disabled={dead || !canRow}
+              onClick={expandFarmRow}
+            >
+              {canExpandFarmRows(rows) ? `向下开拓一行（${formatNum(rowCost)} 灵石）` : '纵向已满'}
+            </button>
+            <span className="text-text-dim">
+              目标 16×8=128 格（当前 {total}）
+            </span>
+          </div>
         </div>
-        {abode.plots.length < MAX_PLOTS && (
-          <button
-            className="pixel-btn mt-3 text-xs"
-            disabled={!canExpand || dead}
-            onClick={expandPlot}
-          >
-            扩建灵田（{formatNum(cost)} 灵石）
-          </button>
-        )}
       </div>
 
       <div className="panel-box p-4">
@@ -146,6 +214,7 @@ export function AbodePanel() {
               key={s.id}
               className="pixel-btn text-xs"
               disabled={dead || stones < s.seedPrice}
+              title={s.desc}
               onClick={() => buySeed(s.id)}
             >
               {s.name} {s.seedPrice}灵石

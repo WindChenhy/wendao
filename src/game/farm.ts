@@ -1,26 +1,74 @@
-import { BASE_PLOTS, RECIPES, SEEDS, type RecipeDef } from '../data/abode'
+import { BASE_PLOTS, RECIPES, SEEDS, FARM_BASE_COLS, FARM_BASE_ROWS, FARM_MAX_COLS, FARM_MAX_ROWS, type RecipeDef } from '../data/abode'
 import type { AbodeState, ClassId, GameTime, PlotState } from '../types'
 import { dayNumber } from './day'
 
+export function emptyPlot(): PlotState {
+  return { seedId: null, plantedDay: 0 }
+}
+
+export function makeFarmGrid(cols: number, rows: number): PlotState[] {
+  return Array.from({ length: Math.max(0, cols * rows) }, () => emptyPlot())
+}
+
+/** 网格重塑：扩大时保留左上原有种植，右侧/下侧补空地 */
+export function remapFarmPlots(
+  old: PlotState[],
+  oldCols: number,
+  oldRows: number,
+  newCols: number,
+  newRows: number,
+): PlotState[] {
+  const out = makeFarmGrid(newCols, newRows)
+  for (let r = 0; r < Math.min(oldRows, newRows); r++) {
+    for (let c = 0; c < Math.min(oldCols, newCols); c++) {
+      const src = old[r * oldCols + c]
+      if (src) out[r * newCols + c] = { seedId: src.seedId ?? null, plantedDay: Number(src.plantedDay) || 0 }
+    }
+  }
+  return out
+}
+
 export function freshAbode(): AbodeState {
+  const cols = FARM_BASE_COLS
+  const rows = FARM_BASE_ROWS
   return {
-    plots: Array.from({ length: BASE_PLOTS }, () => ({ seedId: null, plantedDay: 0 })),
+    plots: makeFarmGrid(cols, rows),
     forgeLevel: 0,
+    farmCols: cols,
+    farmRows: rows,
   }
 }
 
-/** 旧档迁移：补器阁等级 */
+/** 旧档迁移：补齐网格灵田（不足 36 格扩到 6×6；超过则尽量排入网格）+ 器阁等级 */
 export function migrateAbode(raw: unknown): AbodeState {
   const base = freshAbode()
   if (!raw || typeof raw !== 'object') return base
   const r = raw as Partial<AbodeState> & { plots?: PlotState[] }
-  const plots =
-    Array.isArray(r.plots) && r.plots.length > 0
-      ? r.plots.map((p) => ({ seedId: p?.seedId ?? null, plantedDay: Number(p?.plantedDay) || 0 }))
-      : base.plots
+  const oldPlots = Array.isArray(r.plots)
+    ? r.plots.map((p) => ({ seedId: p?.seedId ?? null, plantedDay: Number(p?.plantedDay) || 0 }))
+    : []
+  let cols = Math.max(FARM_BASE_COLS, Math.min(FARM_MAX_COLS, Number(r.farmCols) || FARM_BASE_COLS))
+  let rows = Math.max(FARM_BASE_ROWS, Math.min(FARM_MAX_ROWS, Number(r.farmRows) || FARM_BASE_ROWS))
+  // 旧档只有扁平 plots：按 6 列排入，不够则升到 6×6
+  if (oldPlots.length > cols * rows) {
+    cols = Math.min(FARM_MAX_COLS, Math.ceil(oldPlots.length / rows))
+    if (oldPlots.length > cols * rows) {
+      rows = Math.min(FARM_MAX_ROWS, Math.ceil(oldPlots.length / cols))
+    }
+    if (oldPlots.length > cols * rows) {
+      cols = FARM_MAX_COLS
+      rows = FARM_MAX_ROWS
+    }
+  }
+  const plots = makeFarmGrid(cols, rows)
+  for (let i = 0; i < Math.min(oldPlots.length, plots.length); i++) {
+    plots[i] = oldPlots[i]
+  }
   return {
     plots,
     forgeLevel: Math.max(0, Math.min(3, Number(r.forgeLevel) || 0)),
+    farmCols: cols,
+    farmRows: rows,
   }
 }
 
@@ -59,3 +107,6 @@ export function canCraft(recipe: RecipeDef, inventory: Record<string, number>): 
 export function recipeById(id: string): RecipeDef | null {
   return RECIPES[id] ?? null
 }
+
+// 兼容旧引用
+export { BASE_PLOTS }
