@@ -22,7 +22,8 @@ export function decryptSave(cipher: string): string | null {
     const bytes = CryptoJS.AES.decrypt(payload, APP_SECRET)
     const result = bytes.toString(CryptoJS.enc.Utf8)
     return result || null
-  } catch {
+  } catch (e) {
+      console.warn(e)
     return null
   }
 }

@@ -150,7 +150,3 @@ export function gongfaEffectText(g: GongfaDef, stage: number): string {
   return parts.join('、') || '—'
 }
 
-/** 功法列表中当前境界可研习（品阶+起步门槛） */
-export function gongfaLearnableIn(realm: RealmId): GongfaDef[] {
-  return GONGFA_LIST.filter((g) => canLearnGongfaFull(g, realm))
-}

@@ -1,0 +1,187 @@
+[
+  {
+    "id": "plot_traitor",
+    "type": "sect",
+    "pack": "sect_plot",
+    "title": "叛徒疑云·权谋",
+    "text": "执法堂截获半封密信，笔迹像极了内门某位师兄。长老会看你一眼：严查，还是压下？严查或有伤亡；压下则要从贡献池里抹平风声。",
+    "gates": { "requireSect": true, "minRank": "inner", "minRealm": "foundation" },
+    "weight": 0.8,
+    "actions": [
+      {
+        "id": "investigate",
+        "label": "严查到底",
+        "outcome": {
+          "kind": "combat",
+          "bossId": "demon_guard",
+          "win": {
+            "text": "人赃并获，叛徒伏诛。长老会记你刚正。",
+            "contribution": 40,
+            "repRight": 12,
+            "pool": 20,
+            "exp": 150
+          },
+          "lose": {
+            "text": "对方狡诈走脱，你只毁去半封密信。",
+            "hpPct": 0.2,
+            "contribution": 5
+          }
+        }
+      },
+      {
+        "id": "cover",
+        "label": "压下风声",
+        "outcome": {
+          "kind": "settle",
+          "text": "你示意执法堂再查。贡献池支出一笔封口费，山门恢复平静。",
+          "pool": -50,
+          "contribution": 15,
+          "repRight": -8,
+          "repDemonic": 5
+        }
+      }
+    ]
+  },
+  {
+    "id": "plot_elder_pull",
+    "type": "sect",
+    "pack": "sect_plot",
+    "title": "长老拉拢",
+    "text": "一位长老夜访，袖中滑出账册：与我共进退，日后论功行赏。若应下，可在池中支取活动经费；若周旋，也可只收人情。",
+    "gates": { "requireSect": true, "minRank": "steward" },
+    "weight": 0.75,
+    "actions": [
+      {
+        "id": "join",
+        "label": "入伙分润",
+        "outcome": {
+          "kind": "settle",
+          "text": "你接过账册。池中一笔经费入了袖袋，长老满意颔首。",
+          "contribution": 30,
+          "pool": -40,
+          "repDemonic": 8,
+          "repRight": -5
+        }
+      },
+      {
+        "id": "neutral",
+        "label": "只叙旧情",
+        "outcome": {
+          "kind": "settle",
+          "text": "你只饮茶，不接账册。长老笑着告辞，人情记下了。",
+          "contribution": 10
+        }
+      }
+    ]
+  },
+  {
+    "id": "plot_exam_black",
+    "type": "sect",
+    "pack": "sect_plot",
+    "title": "大比黑幕",
+    "text": "大比前夕，有人塞来名单：谁晋级，都写好了。揭发要花钱平事；沉默则能分润，却有损道义。",
+    "gates": { "requireSect": true, "minRank": "outer" },
+    "weight": 0.85,
+    "actions": [
+      {
+        "id": "expose",
+        "label": "揭发黑幕",
+        "outcome": {
+          "kind": "settle",
+          "text": "你把名单钉在公示栏。执事连夜彻查，池中支出一笔整顿费。",
+          "pool": -30,
+          "repRight": 15,
+          "contribution": 25
+        }
+      },
+      {
+        "id": "silent",
+        "label": "收下封口",
+        "outcome": {
+          "kind": "settle",
+          "text": "你收下名单又撕碎。一笔封口费入袋，道心却蒙了尘。",
+          "contribution": 35,
+          "stones": 80,
+          "repRight": -12,
+          "repDemonic": 6
+        }
+      }
+    ]
+  },
+  {
+    "id": "plot_petition",
+    "type": "sect",
+    "pack": "sect_plot",
+    "title": "外门请愿",
+    "text": "外门弟子跪了一地：月例拖欠三月，请宗门开仓。若开仓，池子见肉疼；若驳回，人心见冷。",
+    "gates": { "requireSect": true, "minRank": "steward" },
+    "weight": 0.8,
+    "actions": [
+      {
+        "id": "open",
+        "label": "开仓放粮",
+        "outcome": {
+          "kind": "settle",
+          "text": "仓门大开，外门欢呼。池子空了一截，人心却满了。",
+          "pool": -80,
+          "repRight": 20,
+          "contribution": 20
+        }
+      },
+      {
+        "id": "reject",
+        "label": "驳回请愿",
+        "outcome": {
+          "kind": "settle",
+          "text": "你以宗门用度为由驳回。人群散去时无人谢恩。",
+          "pool": 10,
+          "repRight": -15,
+          "contribution": 15
+        }
+      }
+    ]
+  },
+  {
+    "id": "plot_coup",
+    "type": "sect",
+    "pack": "sect_plot",
+    "title": "夺权密谋",
+    "text": "密室之中，数位长老摊开山门舆图：宗主老矣。拥立、隐忍、或告发——你站在权力的三岔口。",
+    "gates": { "requireSect": true, "minRank": "elder" },
+    "weight": 0.7,
+    "actions": [
+      {
+        "id": "support",
+        "label": "暗中拥立",
+        "outcome": {
+          "kind": "settle",
+          "text": "你点了头。事成与否未可知，密谋者已把你当自己人，池中军饷先行拨付。",
+          "contribution": 50,
+          "pool": -60,
+          "repDemonic": 12,
+          "repRight": -10
+        }
+      },
+      {
+        "id": "wait",
+        "label": "隐忍观望",
+        "outcome": {
+          "kind": "settle",
+          "text": "你不置可否。密室散场时，所有人都记得你没有反对。",
+          "contribution": 5
+        }
+      },
+      {
+        "id": "report",
+        "label": "密报宗主",
+        "outcome": {
+          "kind": "settle",
+          "text": "宗主连夜布局。你因忠谨受赏，却上了密谋者的黑名单。",
+          "contribution": 80,
+          "repRight": 25,
+          "pool": 40
+        }
+      }
+    ]
+  }
+]

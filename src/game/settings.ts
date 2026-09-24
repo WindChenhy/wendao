@@ -17,7 +17,8 @@ export function loadGameSettings(): GameSettings {
     return {
       skipExploreCombat: Boolean(parsed.skipExploreCombat),
     }
-  } catch {
+  } catch (e) {
+      console.warn(e)
     return { ...defaultGameSettings }
   }
 }
@@ -25,7 +26,8 @@ export function loadGameSettings(): GameSettings {
 export function saveGameSettings(next: GameSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(next))
-  } catch {
+  } catch (e) {
+      console.warn(e)
     // 本地存储不可用时忽略，仅内存生效
   }
 }

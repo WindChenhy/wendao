@@ -11,12 +11,22 @@ import {
 } from '../data/sectQuests'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
+import {
+  SECT_BUILDINGS,
+  buildingLevel,
+  buildingUpgradeCost,
+  describeBuildingEffect,
+  type SectBuildingId,
+} from '../data/sectBuildings'
+import { useCountUp } from '../components/useCountUp'
+import { DONATE_STONES_PER_POOL } from '../data/sectBuildings'
 
 export function SectPanel() {
   const player = useGameStore((s) => s.player)
   const sect = useGameStore((s) => s.sect)
   const gongfa = useGameStore((s) => s.gongfa)
   const inventory = useGameStore((s) => s.inventory)
+  const stones = useGameStore((s) => s.stones)
   const joinSect = useGameStore((s) => s.joinSect)
   const leaveSect = useGameStore((s) => s.leaveSect)
   const sectTask = useGameStore((s) => s.sectTask)
@@ -24,6 +34,11 @@ export function SectPanel() {
   const advanceQuestStep = useGameStore((s) => s.advanceQuestStep)
   const abandonQuestChain = useGameStore((s) => s.abandonQuestChain)
   const upgradeSectBuilding = useGameStore((s) => s.upgradeSectBuilding)
+  const donateToPool = useGameStore((s) => s.donateToPool)
+  const allocateToPool = useGameStore((s) => s.allocateToPool)
+  const upgradeSectBuildingYard = useGameStore((s) => s.upgradeSectBuildingYard)
+  const proposeSectBuilding = useGameStore((s) => s.proposeSectBuilding)
+  const poolDisplay = useCountUp(sect.pool)
   const redeemSectFragment = useGameStore((s) => s.redeemSectFragment)
   const sectExchange = useGameStore((s) => s.sectExchange)
   const sectLearn = useGameStore((s) => s.sectLearn)
@@ -33,6 +48,7 @@ export function SectPanel() {
   const inCombat = Boolean(activeCombat && !activeCombat.finished)
 
   if (!player) return null
+  const dead = !player.alive
   const current = sect.sectId ? SECTS.find((s) => s.id === sect.sectId) : null
   const demonicPref = player.classId === 'demon' || player.repDemonic > player.repRight
   const alignment = demonicPref ? 'demonic' : 'righteous'
@@ -322,6 +338,63 @@ export function SectPanel() {
               >
                 残页参悟
               </button>
+            </div>
+          </div>
+
+          <div className="panel-box p-4">
+            <div className="font-display text-gold mb-3">贡献池 · 宗门建筑</div>
+            <div className="flex flex-wrap items-center gap-2 text-sm mb-3">
+              <span>
+                公共账房 <span className="text-gold">{poolDisplay}</span> 池
+              </span>
+              <span className="text-xs text-text-dim">（委托抽成 10% · {DONATE_STONES_PER_POOL} 灵石=1 池）</span>
+              <button className="pixel-btn text-xs" disabled={dead || stones < 100 || inCombat} onClick={() => donateToPool(100)}>
+                捐 100 灵石
+              </button>
+              <button className="pixel-btn text-xs" disabled={dead || stones < 500 || inCombat} onClick={() => donateToPool(500)}>
+                捐 500 灵石
+              </button>
+              {isMaster && (
+                <button
+                  className="pixel-btn text-xs"
+                  disabled={dead || sect.contribution < 100 || inCombat}
+                  onClick={() => allocateToPool(100)}
+                >
+                  拨款 100 贡献→池
+                </button>
+              )}
+            </div>
+            <div className="space-y-2 text-sm">
+              {SECT_BUILDINGS.map((b) => {
+                const lv = buildingLevel(sect.buildings, b.id)
+                const cost = buildingUpgradeCost(b, lv)
+                const maxed = lv >= b.maxLevel
+                return (
+                  <div key={b.id} className="border border-border px-3 py-2 flex justify-between items-center gap-2">
+                    <div className="min-w-0">
+                      <div>
+                        {b.name} <span className="text-gold">Lv.{lv}/{b.maxLevel}</span>
+                        <span className="text-xs text-jade ml-2">{describeBuildingEffect(b, lv)}</span>
+                      </div>
+                      <div className="text-xs text-text-dim">{b.desc}</div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      {!isMaster && sectRankIndex(sect.rank) >= sectRankIndex('elder') && (
+                        <button className="pixel-btn text-xs" disabled={dead || inCombat} onClick={() => proposeSectBuilding(b.id as SectBuildingId)}>
+                          提议
+                        </button>
+                      )}
+                      <button
+                        className="pixel-btn text-xs primary"
+                        disabled={dead || !isMaster || maxed || sect.pool < cost || inCombat}
+                        onClick={() => upgradeSectBuildingYard(b.id as SectBuildingId)}
+                      >
+                        {maxed ? '已满级' : `升级（池 ${cost}）`}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 

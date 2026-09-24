@@ -299,7 +299,7 @@ export function buildPlayerCombatActor(opts: {
   }
 }
 
-export function buildEnemyCombatActor(enemy: EnemyDef): CombatActor {
+function buildEnemyCombatActor(enemy: EnemyDef): CombatActor {
   const boss = enemy.id.includes('boss') || enemy.name.includes('镇守') || enemy.name.includes('坛主') || enemy.name.includes('王')
   const tier: CombatActor['tier'] = boss ? 'boss' : 'normal'
   const enemySkills: SkillDef[] = []
@@ -387,15 +387,6 @@ export function createCombatState(
       (player.classId === 'alchemy' ? 1 : 0),
     context,
   }
-}
-
-export function playerSkillsAvailable(state: CombatEngineState): SkillDef[] {
-  const p = state.player
-  if (!p.classId) return []
-  return unlockedActiveSkills(p.classId, state.context.enemy.realm, 1).map((s) => {
-    // unlock uses player realm stored on context via enemy realm is wrong — use skill unlock check outside
-    return s
-  })
 }
 
 export function getUnlockedPlayerSkills(
@@ -750,7 +741,7 @@ export function stepCombat(
     p.energy = Math.min(p.maxEnergy, p.energy + gain)
     pushLog(next.log, `你凝神防御，伤害大减，灵力 +${gain}。`, 'player')
   } else if (action.type === 'potion') {
-    if (inventory[action.itemId] !== undefined || true) {
+    {
       const ok = tryPotion(next, action.itemId)
       if (!ok) pushLog(next.log, '无法服用该物品。', 'status')
       // store decrements inventory externally when action accepted
@@ -1029,8 +1020,4 @@ export function defaultAutoAction(
   if (p.energy < minCost) return { type: 'defend' }
 
   return { type: 'attack' }
-}
-
-export function summaryStatusLine(actor: CombatActor): string {
-  return `气血 ${actor.hp}/${actor.maxHp} · ${actor.isDemon ? '魔元' : '灵力'} ${actor.energy}/${actor.maxEnergy} · ${formatStatuses(actor)}`
 }

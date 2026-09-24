@@ -17,7 +17,7 @@ export interface CraftOutcome {
 }
 
 /** 炼器成功率：配方基础 + 器阁 + 器修 + 道痕 */
-export function artifactCraftRate(opts: {
+function artifactCraftRate(opts: {
   recipeId: string
   classId: ClassId
   daoMarks: number
@@ -69,7 +69,7 @@ export function consumeForgeMaterials(
   return { inventory: inv, stones: nextStones }
 }
 
-export function rollCraftQuality(opts: {
+function rollCraftQuality(opts: {
   recipeId: string
   classId: ClassId
   forgeLevel: number

@@ -43,7 +43,7 @@ export interface OfflineSettlement {
 }
 
 /** 离线每小时基准修为：与打坐同源，不含随机波动 */
-export function offlineExpPerHour(
+function offlineExpPerHour(
   classId: ClassId,
   realm: RealmId,
   layer: number,
@@ -55,11 +55,11 @@ export function offlineExpPerHour(
   return Math.max(3, Math.floor(base * rate * multipliers * OFFLINE_EFFICIENCY))
 }
 
-export function offlineCapHours(realm: RealmId): number {
+function offlineCapHours(realm: RealmId): number {
   return OFFLINE_HOUR_CAP[realm] ?? 8
 }
 
-export function offlineDeepenStoneCost(hoursCounted: number, realm: RealmId): number {
+function offlineDeepenStoneCost(hoursCounted: number, realm: RealmId): number {
   const ri = Math.max(0, realmIndex(realm))
   return Math.max(20, Math.ceil(hoursCounted * (20 + ri * 15)))
 }

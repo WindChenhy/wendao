@@ -16,14 +16,19 @@ export function breakthroughRate(classId: ClassId, realm: RealmId): number {
   return Math.max(5, Math.min(92, base + bonus))
 }
 
+/**
+ * 冲击壁垒判定。rateOverride 为含宗门/道侣/法宝/丹药/天劫方案后的最终成功率，
+ * 必须与结算使用同一 rate，避免「成功升级却打出失败文案」。
+ */
 export function attemptBreakthrough(
   classId: ClassId,
   realm: RealmId,
   layer: number,
   roll?: number,
+  rateOverride?: number,
 ): BreakthroughResult {
   const def = REALMS[realm]
-  const rate = breakthroughRate(classId, realm)
+  const rate = rateOverride ?? breakthroughRate(classId, realm)
   const r = roll ?? Math.random() * 100
   const isMajorCross = layer >= def.layers
   const isTribulation = realm === 'tribulation' || realm === 'mahayana'

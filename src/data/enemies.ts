@@ -142,9 +142,7 @@ export function previewEnemy(t: EnemyTemplate, playerRealmIndex: number, playerL
   return scaleEnemyToPlayer(t, playerRealmIndex, playerLayer)
 }
 
-export function enemyRealmLabel(e: EnemyDef): string {
-  return `${REALMS[e.realm]?.name ?? e.realm}${e.layer}层`
-}
+
 
 /** 历练敌人 id 形如 `{template}_{realm}_{layer}`，图鉴按模板 id 记录 */
 export function enemyTemplateId(enemyId: string): string {

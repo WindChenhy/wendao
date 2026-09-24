@@ -23,13 +23,15 @@ export interface EventCost {
 }
 
 export interface EventOutcome {
-  kind?: 'settle' | 'combat' | 'unlock_companion' | 'branch'
+  kind?: 'settle' | 'combat' | 'unlock_companion' | 'unlock_pet' | 'branch'
   /** 覆盖按钮文案的结算说明 */
   text?: string
   bossId?: string
   stones?: number
   exp?: number
   contribution?: number
+  /** v1.1 贡献池增减（正入池 / 负扣池） */
+  pool?: number
   repRight?: number
   repDemonic?: number
   itemId?: string
@@ -38,6 +40,8 @@ export interface EventOutcome {
   hpPct?: number
   flag?: string
   companionId?: string
+  /** v1.2 灵兽认主 */
+  petId?: string
   ending?: 'he' | 'be'
   /** combat 失败时的结算；缺省用 lose 文案 */
   win?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
@@ -163,24 +167,4 @@ export function pickWorldEvent(
     if (roll <= 0) return pool[i]
   }
   return pool[pool.length - 1]
-}
-
-/** 旧签名兼容（仅境界）：内部转完整 ctx */
-export function pickWorldEventByRealm(realm: RealmId, extra: WorldEvent[] = []): WorldEvent | null {
-  return pickWorldEvent(
-    {
-      realm,
-      layer: 1,
-      classId: 'sword',
-      year: 1,
-      repRight: 0,
-      repDemonic: 0,
-      sectId: null,
-      sectRank: 'menial',
-      spouseId: null,
-      affinity: {},
-      flags: [],
-    },
-    extra,
-  )
 }

@@ -26,10 +26,10 @@ export interface SynergyRule {
   flavor?: string
 }
 
-export const SYNERGY_RULES: SynergyRule[] = synergyJson.rules as SynergyRule[]
+const SYNERGY_RULES: SynergyRule[] = synergyJson.rules as SynergyRule[]
 
 /** 功法所属脉系：宗门前缀派生；市井功法为 wandering */
-export function gongfaSchool(id: string): string {
+function gongfaSchool(id: string): string {
   if (id.startsWith('js_')) return 'qingyun'
   if (id.startsWith('ty_')) return 'taiyi'
   if (id.startsWith('ht_')) return 'haoti'
@@ -38,7 +38,7 @@ export function gongfaSchool(id: string): string {
   return 'wandering'
 }
 
-export const SCHOOL_LABEL: Record<string, string> = {
+const SCHOOL_LABEL: Record<string, string> = {
   qingyun: '青云',
   taiyi: '太一',
   haoti: '浩天',

@@ -15,6 +15,7 @@ import { canCraft, craftRate, plotProgress } from '../game/farm'
 import { ArtifactForgePanel } from './ArtifactForgePanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
+import { PETS, petExpNeed, describePet } from '../data/pets'
 
 function PlotTile({
   index,
@@ -92,8 +93,18 @@ export function AbodePanel() {
   const expandFarmCol = useGameStore((s) => s.expandFarmCol)
   const expandFarmRow = useGameStore((s) => s.expandFarmRow)
   const craftItem = useGameStore((s) => s.craftItem)
+  const pet = useGameStore((s) => s.pet)
+  const feedPet = useGameStore((s) => s.feedPet)
+  const breakthroughPet = useGameStore((s) => s.breakthroughPet)
+  const setPetJob = useGameStore((s) => s.setPetJob)
+  const releasePet = useGameStore((s) => s.releasePet)
+  const petFarmAssist = useGameStore((s) => s.petFarmAssist)
   const legacy = useGameStore((s) => s.legacy)
   const [plantSeedId, setPlantSeedId] = useState<string | null>(null)
+  const seedOptions = useMemo(
+    () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
+    [inventory],
+  )
 
   if (!player) return null
   const dead = !player.alive || player.realm === 'ascended' || player.ascended
@@ -107,10 +118,6 @@ export function AbodePanel() {
   const readyCount = abode.plots.filter((p) => p.seedId && plotProgress(p, time).ready).length
   const emptyCount = abode.plots.filter((p) => !p.seedId).length
   const planted = total - emptyCount
-  const seedOptions = useMemo(
-    () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
-    [inventory],
-  )
 
   return (
     <div className="p-4 space-y-4 max-w-3xl">
@@ -221,6 +228,40 @@ export function AbodePanel() {
             </button>
           ))}
         </div>
+      </div>
+
+
+      <div className="panel-box p-4">
+        <div className="font-display text-gold mb-2">灵兽栏</div>
+        {pet ? (
+          <div className="space-y-2 text-sm">
+            <div>
+              {describePet(pet)}
+              <span className="text-xs text-text-dim ml-2">
+                经验 {pet.exp}/{petExpNeed(pet.level)}
+                {pet.restUntilDay > 0 ? ' · 休养中' : ''}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="pixel-btn text-xs" disabled={dead} onClick={feedPet}>喂食</button>
+              <button className="pixel-btn text-xs" disabled={dead || pet.level < 10} onClick={breakthroughPet}>突破</button>
+              <button className="pixel-btn text-xs" disabled={dead} onClick={() => setPetJob('farm')}>灵田协助</button>
+              <button className="pixel-btn text-xs" disabled={dead} onClick={() => setPetJob('guard')}>看家</button>
+              <button className="pixel-btn text-xs" disabled={dead || pet.job !== 'farm'} onClick={petFarmAssist}>今日协助收获</button>
+              <button className="pixel-btn text-xs danger" disabled={dead} onClick={releasePet}>放生</button>
+            </div>
+            <div className="text-xs text-text-dim">协战辅助技随战斗触发；属性加成已计入出战。</div>
+          </div>
+        ) : (
+          <div className="text-xs text-text-dim">
+            灵兽栏空着。筑基后历练或天象中，或有灵兽认主之缘。
+            <div className="mt-2 flex flex-wrap gap-1">
+              {PETS.map((p) => (
+                <span key={p.id} className="border border-border px-1.5 py-0.5 text-[10px] text-text-dim">{p.name}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <ArtifactForgePanel />

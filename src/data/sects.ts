@@ -343,12 +343,6 @@ export interface SectArtInfo {
   sectName: string
 }
 
-export const SECT_ART_MAP: Record<string, SectArtInfo> = Object.fromEntries(
-  SECTS.flatMap((s) =>
-    s.library.map((l) => [l.id, { id: l.id, name: l.name, label: l.desc, sectName: s.name }]),
-  ),
-)
-
 export function sectsFor(
   alignment: 'righteous' | 'demonic',
   realm: RealmId,

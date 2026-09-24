@@ -78,7 +78,7 @@ export function skillsForClass(classId: ClassId): SkillDef[] {
   return SKILL_LIST.filter((s) => s.classId === classId)
 }
 
-export function activeSkillsForClass(classId: ClassId): SkillDef[] {
+function activeSkillsForClass(classId: ClassId): SkillDef[] {
   return skillsForClass(classId).filter((s) => s.type === 'active')
 }
 

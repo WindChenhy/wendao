@@ -1,0 +1,33 @@
+{
+  "buildings": [
+    {
+      "id": "spirit_vein",
+      "name": "灵脉",
+      "desc": "汇聚地脉灵气，全宗修炼事半功倍。",
+      "maxLevel": 5,
+      "costBase": 400,
+      "costGrow": 150,
+      "effects": { "cultivatePerLv": 0.03 }
+    },
+    {
+      "id": "alchemy_lab",
+      "name": "丹房",
+      "desc": "丹火不熄，炼丹成功率随级而升。",
+      "maxLevel": 5,
+      "costBase": 400,
+      "costGrow": 150,
+      "effects": { "craftRatePerLv": 0.02 }
+    },
+    {
+      "id": "sword_grave",
+      "name": "剑冢",
+      "desc": "埋剑养意，杀伐更利；大比台上尤见锋芒。",
+      "maxLevel": 5,
+      "costBase": 400,
+      "costGrow": 150,
+      "effects": { "atkPerLv": 0.02, "examAtkPerLv": 0.01 }
+    }
+  ],
+  "donateStonesPerPool": 10,
+  "commissionPoolCut": 0.1
+}

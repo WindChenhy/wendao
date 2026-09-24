@@ -1,20 +1,21 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { CombatPanel } from '../components/CombatPanel'
 import { EventModal, StoryModal } from '../components/EventModal'
 import { LogPanel } from '../components/LogPanel'
 import { OfflineReturnModal } from '../components/OfflineReturnModal'
 import { SideNav, StatusBar } from '../components/Chrome'
 import { useGameStore } from '../stores/useGameStore'
-import { AbodePanel } from './AbodePanel'
-import { CharacterPanel } from './CharacterPanel'
-import { CompanionPanel } from './CompanionPanel'
-import { SettingsPanel } from './MetaPanels'
-import { CultivatePanel } from './CultivatePanel'
-import { ExplorePanel } from './ExplorePanel'
-import { InventoryPanel } from './InventoryPanel'
-import { MarketPanel } from './MarketPanel'
-import { SecretRealmPanel } from './SecretRealmPanel'
-import { SectPanel } from './SectPanel'
+
+const CultivatePanel = lazy(() => import('./CultivatePanel').then((m) => ({ default: m.CultivatePanel })))
+const CharacterPanel = lazy(() => import('./CharacterPanel').then((m) => ({ default: m.CharacterPanel })))
+const ExplorePanel = lazy(() => import('./ExplorePanel').then((m) => ({ default: m.ExplorePanel })))
+const SecretRealmPanel = lazy(() => import('./SecretRealmPanel').then((m) => ({ default: m.SecretRealmPanel })))
+const InventoryPanel = lazy(() => import('./InventoryPanel').then((m) => ({ default: m.InventoryPanel })))
+const MarketPanel = lazy(() => import('./MarketPanel').then((m) => ({ default: m.MarketPanel })))
+const AbodePanel = lazy(() => import('./AbodePanel').then((m) => ({ default: m.AbodePanel })))
+const SectPanel = lazy(() => import('./SectPanel').then((m) => ({ default: m.SectPanel })))
+const CompanionPanel = lazy(() => import('./CompanionPanel').then((m) => ({ default: m.CompanionPanel })))
+const SettingsPanel = lazy(() => import('./MetaPanels').then((m) => ({ default: m.SettingsPanel })))
 
 export function GameLayout() {
   const activePanel = useGameStore((s) => s.activePanel)
@@ -55,16 +56,18 @@ export function GameLayout() {
           }`}
           aria-hidden={inCombat}
         >
-          {activePanel === 'cultivate' && <CultivatePanel />}
-          {activePanel === 'character' && <CharacterPanel />}
-          {activePanel === 'explore' && <ExplorePanel />}
-          {activePanel === 'secret_realm' && <SecretRealmPanel />}
-          {activePanel === 'inventory' && <InventoryPanel />}
-          {activePanel === 'market' && <MarketPanel />}
-          {activePanel === 'abode' && <AbodePanel />}
-          {activePanel === 'sect' && <SectPanel />}
-          {activePanel === 'companion' && <CompanionPanel />}
-          {activePanel === 'settings' && <SettingsPanel />}
+          <Suspense fallback={<div className="p-4 text-xs text-text-dim">载入中…</div>}>
+            {activePanel === 'cultivate' && <CultivatePanel />}
+            {activePanel === 'character' && <CharacterPanel />}
+            {activePanel === 'explore' && <ExplorePanel />}
+            {activePanel === 'secret_realm' && <SecretRealmPanel />}
+            {activePanel === 'inventory' && <InventoryPanel />}
+            {activePanel === 'market' && <MarketPanel />}
+            {activePanel === 'abode' && <AbodePanel />}
+            {activePanel === 'sect' && <SectPanel />}
+            {activePanel === 'companion' && <CompanionPanel />}
+            {activePanel === 'settings' && <SettingsPanel />}
+          </Suspense>
         </main>
       </div>
       <LogPanel />

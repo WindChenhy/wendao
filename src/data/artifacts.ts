@@ -90,15 +90,8 @@ export function qualityIndex(q: ArtifactQuality): number {
   return QUALITY_ORDER.indexOf(q)
 }
 
-export function qualityLabel(q: ArtifactQuality): string {
+function qualityLabel(q: ArtifactQuality): string {
   return QUALITIES[q]?.name ?? q
-}
-
-export function qualityClass(q: ArtifactQuality): string {
-  if (q === 'immortal') return 'text-gold'
-  if (q === 'treasure') return 'text-vermilion'
-  if (q === 'spirit') return 'text-jade'
-  return 'text-text-dim'
 }
 
 export function forgeLevelDef(level: number): ForgeLevelDef {
@@ -106,7 +99,7 @@ export function forgeLevelDef(level: number): ForgeLevelDef {
   return FORGE_LEVELS[lv]
 }
 
-export function affixLabel(affix: Affix): string {
+function affixLabel(affix: Affix): string {
   return AFFIX_MAP[affix.id]?.desc ?? affix.id
 }
 

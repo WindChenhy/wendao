@@ -83,7 +83,7 @@ export interface ItemDef {
     /** 服用后提升本次/后续突破成功率（百分点）；突破丹药在冲击壁垒时自动消耗 */
     breakthroughRate?: number
     /** 复活/回满等特殊效果标记 */
-    special?: 'full_heal' | 'full_energy' | 'cleanse'
+    special?: 'full_heal' | 'cleanse'
   }
   /** 丹药品阶 1～9（对应大境界） */
   pillGrade?: number

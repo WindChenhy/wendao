@@ -6,7 +6,11 @@
       "pack": "sect_storm",
       "title": "魔修叩山",
       "text": "夜半钟声急响，山门外魔气翻涌。数名魔修结阵叩关，口称「借贵宗灵脉一用」。执事传讯：愿出战者重赏，愿破财者亦可。",
-      "gates": { "requireSect": true, "minRank": "steward", "minRealm": "golden_core" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "steward",
+        "minRealm": "golden_core"
+      },
       "actions": [
         {
           "id": "defend",
@@ -31,7 +35,9 @@
         {
           "id": "bribe",
           "label": "破财消灾",
-          "cost": { "stones": 500 },
+          "cost": {
+            "stones": 500
+          },
           "outcome": {
             "kind": "settle",
             "text": "你奉上灵石，魔修讥笑数声，收阵而去。同门颇有微词。",
@@ -47,7 +53,10 @@
       "pack": "sect_storm",
       "title": "大比风波",
       "text": "宗门大比在即，有人暗中兜售「助威丹」，说是能压过同门一头。你撞见交易，对方笑道：「都是同门，何必较真？」",
-      "gates": { "requireSect": true, "minRank": "outer" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "outer"
+      },
       "actions": [
         {
           "id": "report",
@@ -87,7 +96,11 @@
       "pack": "sect_storm",
       "title": "叛徒疑云",
       "text": "藏经阁守夜弟子失踪，禁制上留下魔功残痕。执事密令你暗查：若真是内鬼，格杀勿论；若是误会，亦不可打草惊蛇。",
-      "gates": { "requireSect": true, "minRank": "inner", "minRealm": "foundation" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "inner",
+        "minRealm": "foundation"
+      },
       "actions": [
         {
           "id": "investigate",
@@ -128,12 +141,17 @@
       "pack": "sect_storm",
       "title": "传承残页",
       "text": "坊间流出一页古卷，笔迹与宗门失传剑典如出一辙。卖家开价不菲，也有人说那是赝品、是陷阱。",
-      "gates": { "requireSect": true, "minRank": "outer" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "outer"
+      },
       "actions": [
         {
           "id": "buy",
           "label": "重金购下",
-          "cost": { "stones": 400 },
+          "cost": {
+            "stones": 400
+          },
           "outcome": {
             "kind": "settle",
             "text": "你以灵石换得残页，呈交藏经阁。长老抚卷良久，记你一功。",
@@ -167,7 +185,10 @@
       "pack": "sect_storm",
       "title": "灵田失窃",
       "text": "宗门药园一夜之间少了几株百年灵草，脚印直通外门杂役房。管事请你拿个主意：严查到底，还是内部消化？",
-      "gates": { "requireSect": true, "minRank": "outer" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "outer"
+      },
       "actions": [
         {
           "id": "investigate",
@@ -208,7 +229,10 @@
       "pack": "sect_storm",
       "title": "执事举荐",
       "text": "山下有一散修少年，根骨不错，却因出身被几家山门拒之门外。执事问你：可愿以自身名声作保，举荐入门？",
-      "gates": { "requireSect": true, "minRank": "steward" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "steward"
+      },
       "actions": [
         {
           "id": "sponsor",
@@ -237,7 +261,10 @@
       "pack": "sect_storm",
       "title": "器殿争执",
       "text": "器殿两位师兄为一炉「准灵器」的归属吵到议事堂。若你肯出面调停，两边都欠你人情；若偏帮一方，则得罪另一方。",
-      "gates": { "requireSect": true, "minRank": "inner" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "inner"
+      },
       "actions": [
         {
           "id": "mediate",
@@ -268,7 +295,11 @@
       "pack": "sect_storm",
       "title": "藏经阁夜盗",
       "text": "三更灯火摇曳，藏经阁顶层有人影掠过。值守长老外出未归，整座山门只你离得最近。",
-      "gates": { "requireSect": true, "minRank": "inner", "minRealm": "foundation" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "inner",
+        "minRealm": "foundation"
+      },
       "actions": [
         {
           "id": "defend",
@@ -308,7 +339,10 @@
       "pack": "sect_storm",
       "title": "宗主召见",
       "text": "宗主于后山石亭召见，只说了一句：「山中风雨欲来，你可愿担一副担子？」亭外云海翻腾，答与不答，皆是抉择。",
-      "gates": { "requireSect": true, "minRank": "elder" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "elder"
+      },
       "actions": [
         {
           "id": "accept",
@@ -338,12 +372,17 @@
       "pack": "sect_storm",
       "title": "山下旱魃",
       "text": "山下村落颗粒无收，村民上山求雨求药。宗门粮草亦紧，执事问：开仓济民，还是封山自守？",
-      "gates": { "requireSect": true, "minRank": "outer" },
+      "gates": {
+        "requireSect": true,
+        "minRank": "outer"
+      },
       "actions": [
         {
           "id": "aid",
           "label": "开仓济民",
-          "cost": { "stones": 200 },
+          "cost": {
+            "stones": 200
+          },
           "outcome": {
             "kind": "settle",
             "text": "你力主开仓，并亲往施药。村民立长生牌位，正道之中口碑大振。",
@@ -370,7 +409,10 @@
       "pack": "faction_war",
       "title": "魔道招揽",
       "text": "月夜，一道传音符落在你掌心：「阁下煞气/剑意不凡，何苦在正道蹉跎？入我血池，三年内必成大器。」署名是一朵血梅。",
-      "gates": { "minRealm": "foundation", "minRepDemonic": 5 },
+      "gates": {
+        "minRealm": "foundation",
+        "minRepDemonic": 5
+      },
       "actions": [
         {
           "id": "decline",
@@ -412,7 +454,10 @@
       "pack": "faction_war",
       "title": "除魔令",
       "text": "正道盟会传下除魔令：血煞坛主屠村三处，凡筑基以上修士皆可领命。赏格丰厚，风险亦高。",
-      "gates": { "minRealm": "foundation", "minRepRight": 15 },
+      "gates": {
+        "minRealm": "foundation",
+        "minRepRight": 15
+      },
       "actions": [
         {
           "id": "accept",
@@ -452,7 +497,9 @@
       "pack": "faction_war",
       "title": "正魔夹缝",
       "text": "官道上，正道巡夜与魔道马队狭路相逢。双方都认得你，也都希望你「站对一边」。风雪扑面，刀已出鞘半寸。",
-      "gates": { "minRealm": "foundation" },
+      "gates": {
+        "minRealm": "foundation"
+      },
       "actions": [
         {
           "id": "side_right",
@@ -510,7 +557,9 @@
       "pack": "faction_war",
       "title": "血祭预警",
       "text": "荒村夜哭。你发觉有人在布血祭大阵，欲以三十六口生魂炼宝。阵眼尚未合拢，尚可一搏；也可拿此事卖魔道一个好。",
-      "gates": { "minRealm": "golden_core" },
+      "gates": {
+        "minRealm": "golden_core"
+      },
       "actions": [
         {
           "id": "fight",
@@ -561,7 +610,9 @@
       "pack": "faction_war",
       "title": "细作风波",
       "text": "你截获一封密信：有人在向魔道递送宗门布防图。字迹像极了你的同门/旧识。信末画了一朵小小血梅。",
-      "gates": { "minRealm": "foundation" },
+      "gates": {
+        "minRealm": "foundation"
+      },
       "actions": [
         {
           "id": "investigate",
@@ -600,7 +651,9 @@
       "pack": "faction_war",
       "title": "悬赏通缉",
       "text": "黑市悬赏榜上，你的画像与一位魔道巨枭并列。有人来递话：「交出那人下落，榜上你的名字就能抹去。」",
-      "gates": { "minRepDemonic": 20 },
+      "gates": {
+        "minRepDemonic": 20
+      },
       "actions": [
         {
           "id": "refuse",
@@ -640,7 +693,10 @@
       "pack": "faction_war",
       "title": "正道盟会",
       "text": "盟会飞帖邀你赴会：共议魔患。席间有人主剿，有人主抚，都想借你的嘴说话。",
-      "gates": { "minRepRight": 25, "minRealm": "foundation" },
+      "gates": {
+        "minRepRight": 25,
+        "minRealm": "foundation"
+      },
       "actions": [
         {
           "id": "hawk",
@@ -680,7 +736,10 @@
       "pack": "faction_war",
       "title": "魔功诱惑",
       "text": "残碑之下压着半卷《血煞魔功》。碑文警告：习之进境极快，亦易遭反噬。风声里似有无数人在咽口水。",
-      "gates": { "minRealm": "foundation", "minRepDemonic": 8 },
+      "gates": {
+        "minRealm": "foundation",
+        "minRepDemonic": 8
+      },
       "actions": [
         {
           "id": "study",
@@ -711,7 +770,10 @@
       "pack": "faction_war",
       "title": "屠村疑云",
       "text": "前方村落火光冲天。赶到时，魔修正在洗劫，却也有人跪地求饶、自称被裹挟。领头者狞笑：「大仙要一起发财么？」",
-      "gates": { "minRealm": "qi", "minLayer": 5 },
+      "gates": {
+        "minRealm": "qi",
+        "minLayer": 5
+      },
       "actions": [
         {
           "id": "fight",
@@ -760,7 +822,9 @@
       "pack": "omen",
       "title": "天劫预兆",
       "text": "连续七夜，紫微垣旁有流星如雨。有老修登高而望：「此乃大能将渡之兆，亦是天道示警。」你灵台微震，似有雷音自识海滚过。",
-      "gates": { "minRealm": "spirit_sea" },
+      "gates": {
+        "minRealm": "spirit_sea"
+      },
       "weight": 0.7,
       "actions": [
         {
@@ -789,7 +853,9 @@
       "pack": "omen",
       "title": "域外天魔",
       "text": "虚空裂开一线，有魔影隔界窥伺，低语如针刺入识海：「小小界中仙，可要一缕超脱？」你道心轰鸣，金丹/元婴都在发烫。",
-      "gates": { "minRealm": "nascent_soul" },
+      "gates": {
+        "minRealm": "nascent_soul"
+      },
       "weight": 0.55,
       "actions": [
         {
@@ -830,7 +896,9 @@
       "pack": "omen",
       "title": "上古洞府",
       "text": "星坠之野裂开古修洞府，禁制上流转的符文远非此界手笔。府门半掩，内有长明灯如豆。",
-      "gates": { "minRealm": "spirit_sea" },
+      "gates": {
+        "minRealm": "spirit_sea"
+      },
       "weight": 0.6,
       "actions": [
         {
@@ -870,7 +938,12 @@
       "pack": "omen",
       "title": "天机有缘",
       "text": "云海尽头有人抚琴，一曲《忘机》。她回首时，眸中星河流转：「道友，可算到了。我等你很久了——不是这一世。」",
-      "gates": { "minRealm": "spirit_sea", "notFlags": ["hidden_companion_unlocked"] },
+      "gates": {
+        "minRealm": "spirit_sea",
+        "notFlags": [
+          "hidden_companion_unlocked"
+        ]
+      },
       "weight": 0.35,
       "actions": [
         {
@@ -890,6 +963,313 @@
           "outcome": {
             "kind": "settle",
             "text": "琴声散入山风。云海依旧，仿佛什么都未发生。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "plot_traitor",
+      "type": "sect",
+      "pack": "sect_plot",
+      "title": "叛徒疑云·权谋",
+      "text": "执法堂截获半封密信，笔迹像极了内门某位师兄。长老会看你一眼：严查，还是压下？严查或有伤亡；压下则要从贡献池里抹平风声。",
+      "gates": {
+        "requireSect": true,
+        "minRank": "inner",
+        "minRealm": "foundation"
+      },
+      "weight": 0.8,
+      "actions": [
+        {
+          "id": "investigate",
+          "label": "严查到底",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "demon_guard",
+            "win": {
+              "text": "人赃并获，叛徒伏诛。长老会记你刚正。",
+              "contribution": 40,
+              "repRight": 12,
+              "pool": 20,
+              "exp": 150
+            },
+            "lose": {
+              "text": "对方狡诈走脱，你只毁去半封密信。",
+              "hpPct": 0.2,
+              "contribution": 5
+            }
+          }
+        },
+        {
+          "id": "cover",
+          "label": "压下风声",
+          "outcome": {
+            "kind": "settle",
+            "text": "你示意执法堂再查。贡献池支出一笔封口费，山门恢复平静。",
+            "pool": -50,
+            "contribution": 15,
+            "repRight": -8,
+            "repDemonic": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "plot_elder_pull",
+      "type": "sect",
+      "pack": "sect_plot",
+      "title": "长老拉拢",
+      "text": "一位长老夜访，袖中滑出账册：与我共进退，日后论功行赏。若应下，可在池中支取活动经费；若周旋，也可只收人情。",
+      "gates": {
+        "requireSect": true,
+        "minRank": "steward"
+      },
+      "weight": 0.75,
+      "actions": [
+        {
+          "id": "join",
+          "label": "入伙分润",
+          "outcome": {
+            "kind": "settle",
+            "text": "你接过账册。池中一笔经费入了袖袋，长老满意颔首。",
+            "contribution": 30,
+            "pool": -40,
+            "repDemonic": 8,
+            "repRight": -5
+          }
+        },
+        {
+          "id": "neutral",
+          "label": "只叙旧情",
+          "outcome": {
+            "kind": "settle",
+            "text": "你只饮茶，不接账册。长老笑着告辞，人情记下了。",
+            "contribution": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "plot_exam_black",
+      "type": "sect",
+      "pack": "sect_plot",
+      "title": "大比黑幕",
+      "text": "大比前夕，有人塞来名单：谁晋级，都写好了。揭发要花钱平事；沉默则能分润，却有损道义。",
+      "gates": {
+        "requireSect": true,
+        "minRank": "outer"
+      },
+      "weight": 0.85,
+      "actions": [
+        {
+          "id": "expose",
+          "label": "揭发黑幕",
+          "outcome": {
+            "kind": "settle",
+            "text": "你把名单钉在公示栏。执事连夜彻查，池中支出一笔整顿费。",
+            "pool": -30,
+            "repRight": 15,
+            "contribution": 25
+          }
+        },
+        {
+          "id": "silent",
+          "label": "收下封口",
+          "outcome": {
+            "kind": "settle",
+            "text": "你收下名单又撕碎。一笔封口费入袋，道心却蒙了尘。",
+            "contribution": 35,
+            "stones": 80,
+            "repRight": -12,
+            "repDemonic": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "plot_petition",
+      "type": "sect",
+      "pack": "sect_plot",
+      "title": "外门请愿",
+      "text": "外门弟子跪了一地：月例拖欠三月，请宗门开仓。若开仓，池子见肉疼；若驳回，人心见冷。",
+      "gates": {
+        "requireSect": true,
+        "minRank": "steward"
+      },
+      "weight": 0.8,
+      "actions": [
+        {
+          "id": "open",
+          "label": "开仓放粮",
+          "outcome": {
+            "kind": "settle",
+            "text": "仓门大开，外门欢呼。池子空了一截，人心却满了。",
+            "pool": -80,
+            "repRight": 20,
+            "contribution": 20
+          }
+        },
+        {
+          "id": "reject",
+          "label": "驳回请愿",
+          "outcome": {
+            "kind": "settle",
+            "text": "你以宗门用度为由驳回。人群散去时无人谢恩。",
+            "pool": 10,
+            "repRight": -15,
+            "contribution": 15
+          }
+        }
+      ]
+    },
+    {
+      "id": "plot_coup",
+      "type": "sect",
+      "pack": "sect_plot",
+      "title": "夺权密谋",
+      "text": "密室之中，数位长老摊开山门舆图：宗主老矣。拥立、隐忍、或告发——你站在权力的三岔口。",
+      "gates": {
+        "requireSect": true,
+        "minRank": "elder"
+      },
+      "weight": 0.7,
+      "actions": [
+        {
+          "id": "support",
+          "label": "暗中拥立",
+          "outcome": {
+            "kind": "settle",
+            "text": "你点了头。事成与否未可知，密谋者已把你当自己人，池中军饷先行拨付。",
+            "contribution": 50,
+            "pool": -60,
+            "repDemonic": 12,
+            "repRight": -10
+          }
+        },
+        {
+          "id": "wait",
+          "label": "隐忍观望",
+          "outcome": {
+            "kind": "settle",
+            "text": "你不置可否。密室散场时，所有人都记得你没有反对。",
+            "contribution": 5
+          }
+        },
+        {
+          "id": "report",
+          "label": "密报宗主",
+          "outcome": {
+            "kind": "settle",
+            "text": "宗主连夜布局。你因忠谨受赏，却上了密谋者的黑名单。",
+            "contribution": 80,
+            "repRight": 25,
+            "pool": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "pet_oath",
+      "type": "omen",
+      "pack": "omen",
+      "title": "灵兽认主",
+      "text": "筑基之后，山中灵息与你相感。一只小兽伏在道旁，眸子清亮——像是等了你很久。四下并无主人。",
+      "gates": {
+        "minRealm": "foundation"
+      },
+      "weight": 0.9,
+      "actions": [
+        {
+          "id": "bind_rabbit",
+          "label": "云月山兔",
+          "outcome": {
+            "kind": "unlock_pet",
+            "petId": "pet_rabbit",
+            "text": "它蹭了蹭你的袖口。自此，灵兽栏里多了一团月白色的影子。",
+            "exp": 50
+          }
+        },
+        {
+          "id": "bind_bird",
+          "label": "青羽云雀",
+          "outcome": {
+            "kind": "unlock_pet",
+            "petId": "pet_bird",
+            "text": "雀儿落在你肩头，哨音清越。灵兽栏为它挂上了小巢。",
+            "exp": 50
+          }
+        },
+        {
+          "id": "bind_turtle",
+          "label": "玄纹石龟",
+          "outcome": {
+            "kind": "unlock_pet",
+            "petId": "pet_turtle",
+            "text": "石龟缓缓点头，壳上玄纹微亮。看家护院，再合适不过。",
+            "exp": 50
+          }
+        },
+        {
+          "id": "bind_fox",
+          "label": "赤瞳灵狐",
+          "outcome": {
+            "kind": "unlock_pet",
+            "petId": "pet_fox",
+            "text": "灵狐嗅了嗅你的药囊，尾巴一卷，算是认了主。",
+            "exp": 50
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "缘法未到",
+          "outcome": {
+            "kind": "settle",
+            "text": "你作揖而过。小兽目送你下山，来日或再相逢。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pet_stray",
+      "type": "misfortune",
+      "pack": "omen",
+      "title": "安抚妖崽",
+      "text": "山道边有只受伤的妖崽，野性未驯。若以灵药安抚，或可结缘；强行捕捉多半要跑。",
+      "gates": {
+        "minRealm": "foundation",
+        "notFlags": [
+          "has_pet"
+        ]
+      },
+      "weight": 0.6,
+      "actions": [
+        {
+          "id": "soothe",
+          "label": "灵药安抚",
+          "cost": {
+            "stones": 30
+          },
+          "outcome": {
+            "kind": "unlock_pet",
+            "petId": "pet_fox",
+            "text": "药香袅袅，妖崽伏低了身子。它愿意跟你走。"
+          }
+        },
+        {
+          "id": "catch",
+          "label": "出手捕捉",
+          "outcome": {
+            "kind": "unlock_pet",
+            "petId": "pet_turtle",
+            "text": "你眼疾手快，将它拢入袖中。小兽挣扎片刻，终是认了。"
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "不招惹",
+          "outcome": {
+            "kind": "settle",
+            "text": "你绕开走了。妖崽一瘸一拐没入草丛。"
           }
         }
       ]

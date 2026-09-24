@@ -1,13 +1,9 @@
-import { BASE_PLOTS, RECIPES, SEEDS, FARM_BASE_COLS, FARM_BASE_ROWS, FARM_MAX_COLS, FARM_MAX_ROWS, type RecipeDef } from '../data/abode'
+import { SEEDS, FARM_BASE_COLS, FARM_BASE_ROWS, FARM_MAX_COLS, FARM_MAX_ROWS, type RecipeDef } from '../data/abode'
 import type { AbodeState, ClassId, GameTime, PlotState } from '../types'
 import { dayNumber } from './day'
 
-export function emptyPlot(): PlotState {
-  return { seedId: null, plantedDay: 0 }
-}
-
 export function makeFarmGrid(cols: number, rows: number): PlotState[] {
-  return Array.from({ length: Math.max(0, cols * rows) }, () => emptyPlot())
+  return Array.from({ length: Math.max(0, cols * rows) }, () => ({ seedId: null, plantedDay: 0 }))
 }
 
 /** 网格重塑：扩大时保留左上原有种植，右侧/下侧补空地 */
@@ -103,10 +99,3 @@ export function craftRate(recipe: RecipeDef, classId: ClassId, daoMarks: number)
 export function canCraft(recipe: RecipeDef, inventory: Record<string, number>): boolean {
   return recipe.inputs.every((i) => (inventory[i.itemId] ?? 0) >= i.count)
 }
-
-export function recipeById(id: string): RecipeDef | null {
-  return RECIPES[id] ?? null
-}
-
-// 兼容旧引用
-export { BASE_PLOTS }

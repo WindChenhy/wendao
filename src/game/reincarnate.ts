@@ -7,13 +7,6 @@ export function isAscended(player: Pick<PlayerState, 'realm' | 'ascended'> | nul
   return player.ascended || player.realm === 'ascended'
 }
 
-/** 一世是否已终局（飞升或道消）——二者互斥，飞升优先 */
-export function isLifeEnded(player: PlayerState | null): boolean {
-  if (!player) return false
-  if (isAscended(player)) return true
-  return !player.alive
-}
-
 export interface ReincarnateGain {
   daoMarks: number
   desc: string
@@ -43,7 +36,6 @@ export function daoBonuses(daoMarks: number) {
     cultivateMul: 1 + Math.min(0.5, daoMarks * 0.004),
     breakthroughBonus: Math.min(15, Math.floor(daoMarks * 0.15)),
     startStones: Math.min(500, 20 + Math.floor(daoMarks * 2)),
-    startPlotsBonus: 0,
   }
 }
 

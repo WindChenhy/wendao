@@ -134,7 +134,7 @@ const DEF_BASE = 20
 const DEF_GROWTH = 3.25
 
 /** 该大境界之前累计层数（用于全局连续层序号） */
-export function layersBeforeRealm(realm: RealmId): number {
+function layersBeforeRealm(realm: RealmId): number {
   const ri = realmIndex(realm)
   if (ri <= 0) return 0
   let sum = 0

@@ -22,7 +22,7 @@ export interface DlcPack {
   balance?: DlcBalancePatch
 }
 
-export const DLC_LIST_KEY = 'wendao-dlc-enabled'
+const DLC_LIST_KEY = 'wendao-dlc-enabled'
 
 export function loadEnabledDlc(): string[] {
   try {
@@ -30,7 +30,8 @@ export function loadEnabledDlc(): string[] {
     if (!raw) return []
     const arr = JSON.parse(raw)
     return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : []
-  } catch {
+  } catch (e) {
+      console.warn(e)
     return []
   }
 }
@@ -47,7 +48,7 @@ export interface RuntimeRules {
   extraEvents: WorldEvent[]
 }
 
-export function defaultRules(): RuntimeRules {
+function defaultRules(): RuntimeRules {
   return {
     cultivateMul: 1,
     breakthroughRateDelta: 0,
