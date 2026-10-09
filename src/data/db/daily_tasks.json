@@ -1,0 +1,23 @@
+{
+  "tasks": [
+    { "id": "meditate", "desc": "打坐修炼 3 次", "target": 3 },
+    { "id": "explore", "desc": "外出历练 2 次", "target": 2 },
+    { "id": "secttask", "desc": "完成宗门委托 1 次", "target": 1 },
+    { "id": "craft", "desc": "炼丹 1 炉（成丹计）", "target": 1 },
+    { "id": "harvest", "desc": "收获灵田 5 块", "target": 5 },
+    { "id": "feed", "desc": "喂食灵兽 1 次", "target": 1 }
+  ],
+  "pickCount": 3,
+  "reward": { "stoneMin": 20, "stoneMax": 50, "expPctOfNeed": 0.03, "expMin": 30 },
+  "allClearBonusStoneMul": 3,
+  "weekGift": { "points": 7, "stones": 400, "expPctOfNeed": 0.1 },
+  "checkin": [
+    { "day": 1, "stones": 50 },
+    { "day": 2, "expPctOfNeed": 0.05 },
+    { "day": 3, "itemId": "seed_qi", "count": 3 },
+    { "day": 4, "stones": 150 },
+    { "day": 5, "pillGradePick": true },
+    { "day": 6, "stones": 300 },
+    { "day": 7, "stones": 500, "itemId": "pill_break", "count": 1 }
+  ]
+}

@@ -9,6 +9,7 @@ import {
 import { applyLayerDown, applyLayerUp, attemptBreakthrough, canBreakthrough } from '../../game/breakthrough'
 import { breakthroughSuccessRate } from '../../game/rules/breakthrough'
 import { gongfaBonuses, treasureBreakthroughTotal } from '../../game/combatStats'
+import { clampWanted } from '../../game/bounty'
 import {
   GAME_DAYS_PER_YEAR,
   advanceTime,
@@ -23,6 +24,7 @@ import { daoBonuses, isAscended, reincarnateGain } from '../../game/reincarnate'
 import { sealDaoCost, sealSlots, type SealedItem } from '../../game/seal'
 import {
   afterProgressSnapshot,
+  bumpDaily,
   cultivateMultipliers,
   currentRules,
   gainCultivate,
@@ -95,6 +97,7 @@ export function createCultivateSlice(
         },
       })
       touchOnline(get, set)
+      bumpDaily(get, set, 'meditate')
 
       const evt = pickEvent(get)
       if (evt) set({ pendingEvent: { event: evt, kind: 'meditate' } })
@@ -135,6 +138,12 @@ export function createCultivateSlice(
       }
 
       const rec = dailyRecover(player.maxHp, player.maxEnergy)
+      // v1.4 闭关 ≥7 日：通缉降一档（风声渐息）
+      let wantedNext = get().wanted
+      if (n >= 7 && wantedNext > 0) {
+        wantedNext = clampWanted(wantedNext - 1)
+        log('闭关日久，风声渐息，通缉降了一档。', 'dim')
+      }
       set({
         time: advanced.time,
         player: {
@@ -145,6 +154,7 @@ export function createCultivateSlice(
           age: aged,
           lifespanLeft: life,
         },
+        wanted: wantedNext,
       })
       touchOnline(get, set)
 
@@ -251,7 +261,7 @@ export function createCultivateSlice(
         log(result.message, 'gold')
         if (usedPlan.id !== 'normal') log(`天劫方案：${usedPlan.name}`, 'gold')
         if (justAscended) {
-          log('霞举飞升，超脱此界。此世修行已圆满，可在修炼页选择转生。', 'gold')
+          log('霞举飞升，超脱此界。仙缘初聚（+50），可在秘境寻访仙机；此世修行已圆满，也可随时转生。', 'gold')
         }
         if (spouse && !spouseHurt) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
         if (breakPill && usedPlan.id !== 'golden_pill')
@@ -270,6 +280,7 @@ export function createCultivateSlice(
         set({
           inventory: inv,
           legacy: legacyNext,
+          favor: justAscended ? get().favor + Math.floor(50 * currentRules().favorMul) : get().favor,
           player: {
             ...vitals,
             realm: next.realm,
@@ -340,7 +351,7 @@ export function createCultivateSlice(
         log('此身尚在修行，无需转生。（需先飞升或道消）', 'dim')
         return
       }
-      const gain = reincarnateGain(player, Boolean(companion.spouseId))
+      const gain = reincarnateGain(player, Boolean(companion.spouseId), get().favor)
       let extraDaoCost = 0
       const nextSealed: SealedItem[] = [...(legacy.sealed ?? [])]
       const slots = sealSlots(legacy.daoMarks + gain.daoMarks)

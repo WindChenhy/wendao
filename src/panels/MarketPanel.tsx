@@ -10,6 +10,7 @@ import {
 } from '../data/gongfa'
 import { realmIndex } from '../data/realms'
 import { formatNum } from '../game/format'
+import { marketPriceOf } from '../game/bounty'
 import { useGameStore } from '../stores/useGameStore'
 
 type Tab = 'all' | 'herb' | 'gongfa' | 'treasure' | 'pill'
@@ -34,7 +35,14 @@ export function MarketPanel() {
   const inventory = useGameStore((s) => s.inventory)
   const learned = useGameStore((s) => s.gongfa.learned)
   const player = useGameStore((s) => s.player)
+  const wanted = useGameStore((s) => s.wanted)
   const buyItem = useGameStore((s) => s.buyItem)
+
+  /** v1.4 成交价：与 buyItem 同一公式（通缉溢价 / 正道名宿九折） */
+  const priceOf = (id: string) => {
+    const base = ITEMS[id]?.price ?? 0
+    return marketPriceOf(base, { wanted, repRight: player?.repRight ?? 0 })
+  }
 
   const ids = TABS.filter((t) => t !== 'all')
     .flatMap((t) => MARKET_STOCK[t])
@@ -48,7 +56,7 @@ export function MarketPanel() {
 
   const requestBuy = (id: string) => {
     const item = ITEMS[id]
-    if (!item || stones < item.price) return
+    if (!item || stones < priceOf(id)) return
     const g = itemCategory(id) === 'gongfa' ? GONGFAS[id.slice('scroll_'.length)] : null
     if (g && learned[g.id]) {
       setPendingBuyId(id)
@@ -143,10 +151,15 @@ export function MarketPanel() {
                 </div>
                 <button
                   className="pixel-btn text-xs shrink-0"
-                  disabled={stones < item.price}
+                  disabled={stones < priceOf(id)}
                   onClick={() => requestBuy(id)}
                 >
-                  {formatNum(item.price)} 灵石
+                  {formatNum(priceOf(id))} 灵石
+                  {priceOf(id) !== item.price && (
+                    <span className="ml-1 text-[10px]">
+                      （原价 {formatNum(item.price)}）
+                    </span>
+                  )}
                 </button>
               </div>
             )
@@ -165,7 +178,7 @@ export function MarketPanel() {
               ，再次购买无法参悟，是否继续购买？
             </p>
             <div className="text-xs text-text-dim mb-4">
-              花费灵石 {formatNum(pendingItem.price)} · 秘籍可转售（约五成半价）
+              花费灵石 {formatNum(priceOf(pendingBuyId))} · 秘籍可转售（约五成半价）
             </div>
             <div className="flex flex-wrap gap-2">
               <button className="pixel-btn primary" onClick={() => setPendingBuyId(null)}>

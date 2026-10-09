@@ -133,6 +133,12 @@ export function processMetaProgress(get: MetaGet, set: MetaSet) {
     towerBest: state.towerBest,
     collection: meta.collection,
     stats,
+    favor: state.favor,
+    enabledDlc: currentRules().enabledIds,
+    wanted: state.wanted,
+    pet: state.pet
+      ? { level: state.pet.level, broken: state.pet.broken, bond: state.pet.bond }
+      : null,
   })
 
   const unlockedSet = new Set(achievements)

@@ -46,6 +46,7 @@ function buildEventContext(s: {
   time: GameTime
   sect: SectState
   companion: CompanionState
+  wanted?: number
 }): EventGateContext | null {
   const p = s.player
   if (!p) return null
@@ -61,6 +62,7 @@ function buildEventContext(s: {
     spouseId: s.companion.spouseId,
     affinity: s.companion.affinity,
     flags: s.companion.flags,
+    wanted: s.wanted ?? 0,
   }
 }
 
@@ -68,7 +70,8 @@ export function pickEvent(get: MetaGet): WorldEvent | null {
   const s = get()
   const ctx = buildEventContext(s)
   if (!ctx) return null
-  return pickWorldEvent(ctx, currentRules().extraEvents)
+  const rules = currentRules()
+  return pickWorldEvent(ctx, rules.extraEvents, rules.enabledIds)
 }
 
 /** 任务链：历练/秘境获胜推进 explore_win 步骤 */

@@ -12,20 +12,30 @@ interface ReincarnateGain {
   desc: string
 }
 
+/** 仙缘折算：每 10 点仙缘 +1 道痕，上限 +30（v1.4 防刷） */
+export const FAVOR_DAO_RATIO = 10
+export const FAVOR_DAO_CAP = 30
+
 /** 本世可获得的道痕 */
-export function reincarnateGain(player: PlayerState, hadSpouse: boolean): ReincarnateGain {
+export function reincarnateGain(
+  player: PlayerState,
+  hadSpouse: boolean,
+  favor = 0,
+): ReincarnateGain {
   const ascended = isAscended(player)
   const ri = ascended ? realmIndex('ascended') : realmIndex(player.realm)
   const realmPart = (ri + 1) * 8
   const agePart = Math.floor(player.age / 20)
   const spousePart = hadSpouse ? 12 : 0
   const ascendPart = ascended ? 40 : 0
-  const daoMarks = realmPart + agePart + spousePart + ascendPart
+  const favorPart = Math.min(FAVOR_DAO_CAP, Math.floor(Math.max(0, favor) / FAVOR_DAO_RATIO))
+  const daoMarks = realmPart + agePart + spousePart + ascendPart + favorPart
   const bits = [
     `境界 ${realmPart}`,
     `寿龄 ${agePart}`,
     spousePart > 0 ? `道缘 ${spousePart}` : null,
     ascendPart > 0 ? `飞升 ${ascendPart}` : null,
+    favorPart > 0 ? `仙缘 +${favorPart}` : null,
   ].filter(Boolean)
   return { daoMarks, desc: bits.join(' · ') }
 }

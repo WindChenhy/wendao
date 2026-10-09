@@ -5,6 +5,8 @@ import { sectRankLabel } from '../data/sects'
 import { isSkillUnlocked, skillsForClass } from '../data/skills'
 import { playerCombatStats } from '../game/combatStats'
 import { formatNum } from '../game/format'
+import { atonementCost, wantedLabel } from '../game/bounty'
+import { reputationTitles } from '../game/reputation'
 import { useGameStore, gongfaBonuses, treasureBonus } from '../stores/useGameStore'
 
 export function CharacterPanel() {
@@ -12,6 +14,10 @@ export function CharacterPanel() {
   const treasures = useGameStore((s) => s.treasures)
   const sect = useGameStore((s) => s.sect)
   const gongfa = useGameStore((s) => s.gongfa)
+  const wanted = useGameStore((s) => s.wanted)
+  const favor = useGameStore((s) => s.favor)
+  const stones = useGameStore((s) => s.stones)
+  const atoneWanted = useGameStore((s) => s.atoneWanted)
   if (!player) return null
   const c = CLASSES[player.classId]
   const gb = gongfaBonuses(gongfa.learned)
@@ -26,6 +32,8 @@ export function CharacterPanel() {
     gb.def * tb.def,
   )
   const power = combatPower(player.realm, player.layer, stats.atk, stats.def, player.maxHp)
+  const titles = reputationTitles(player.repRight, player.repDemonic)
+  const atoneCost = atonementCost(wanted, player.realm)
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
@@ -51,6 +59,15 @@ export function CharacterPanel() {
           <div>煞气：{player.shaqi}</div>
           <div>正道声望：{player.repRight}</div>
           <div>魔道声望：{player.repDemonic}</div>
+          <div className={wanted >= 2 ? 'text-vermilion' : ''}>
+            通缉：{wantedLabel(wanted) || '无'}
+          </div>
+          <div>
+            称号：{titles.righteous ?? titles.demonic
+              ? [titles.righteous, titles.demonic].filter(Boolean).join(' / ')
+              : '无'}
+          </div>
+          {favor > 0 && <div className="text-jade">仙缘：{favor}（转生 10:1 折道痕，上限 +30）</div>}
         </div>
         <div className="flex flex-wrap gap-1 mt-3">
           {c.tags.map((t) => (
@@ -59,6 +76,20 @@ export function CharacterPanel() {
             </span>
           ))}
         </div>
+        {wanted > 0 && (
+          <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between gap-2 text-xs">
+            <span className="text-text-dim">
+              灵石销案（通缉 −1）：需 {formatNum(atoneCost)}（现有 {formatNum(stones)}）
+            </span>
+            <button
+              className="pixel-btn text-[10px] shrink-0"
+              disabled={!player.alive || stones < atoneCost}
+              onClick={atoneWanted}
+            >
+              赎罪
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="panel-box p-4">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BUILTIN_DLC } from '../dlc/builtin'
 import { loadEnabledDlc, saveEnabledDlc } from '../dlc/types'
+import { DLC_ACHIEVEMENT_PACK } from '../data/achievements'
 import { describeExportError, downloadTextFile } from '../game/saveCrypto'
 import { buildSaveFileName, describeSaveTimeline } from '../game/reincarnate'
 import { useGameStore } from '../stores/useGameStore'
@@ -73,6 +74,7 @@ function GeneralSettings() {
   const debugUnlockTowerFloors = useGameStore((s) => s.debugUnlockTowerFloors)
   const [enabled, setEnabled] = useState<string[]>(() => loadEnabledDlc())
   const [exportMsg, setExportMsg] = useState('')
+  const dlcAchievements = useGameStore((s) => s.meta.achievements)
 
   const toggleDlc = (id: string) => {
     const next = enabled.includes(id) ? enabled.filter((x) => x !== id) : [...enabled, id]
@@ -249,6 +251,15 @@ function GeneralSettings() {
                         <li key={f}>{f}</li>
                       ))}
                     </ul>
+                    {DLC_ACHIEVEMENT_PACK[pack.manifest.id] && (
+                      <div className="text-xs mt-1">
+                        <span className="text-gold">成就 </span>
+                        {DLC_ACHIEVEMENT_PACK[pack.manifest.id].filter((id) =>
+                          dlcAchievements.includes(id),
+                        ).length}
+                        /{DLC_ACHIEVEMENT_PACK[pack.manifest.id].length}
+                      </div>
+                    )}
                   </div>
                   <button
                     className={`pixel-btn text-xs shrink-0 ${on ? 'primary' : ''}`}
@@ -278,7 +289,7 @@ function GeneralSettings() {
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">关于</div>
         <p className="text-xs text-text-dim leading-relaxed">
-          《问道》v1.3 · React + TypeScript + Zustand + Tailwind
+          《问道》v1.4 · React + TypeScript + Zustand + Tailwind
           <br />
           战斗职业 · 离线修炼 · 图鉴成就 · 炼器词条 · 跳过战斗 · DLC · 加密存档
         </p>

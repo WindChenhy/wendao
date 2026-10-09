@@ -6,8 +6,10 @@ import type { TribulationPlanId } from '../data/tribulation'
 import type { SealedItem } from '../game/seal'
 import type {
   AbodeState,
+  CheckinState,
   CharacterCreateInput,
   CompanionState,
+  DailyState,
   EnemyDef,
   GamePhase,
   GameTime,
@@ -47,6 +49,14 @@ export interface GameState {
   pet: PetState | null
   /** v1.2 捕捉软保底：连续失败次数（失败 PET_CAPTURE_PITY 次后必得） */
   petCaptureFails: number
+  /** v1.4 日课（按游戏日惰性刷新） */
+  daily: DailyState
+  /** v1.4 现实日签到 */
+  checkin: CheckinState
+  /** v1.4 通缉档位 0–5（魔修专属；击杀正道/魔道事件升档） */
+  wanted: number
+  /** v1.4 仙缘（飞升后长线资源；转生按 10:1 折道痕，上限 +30） */
+  favor: number
   activePanel: PanelId
   exploring: boolean
   lastCombat: { enemy: EnemyDef; win: boolean; log: string[] } | null
@@ -116,6 +126,16 @@ export interface GameState {
   petFarmAssist: () => void
   /** 以 3 张藏经残页参悟一部未习宗门秘法 */
   redeemSectFragment: () => void
+  /** v1.4 惰性刷新当日日课（面板挂载与埋点前调用） */
+  ensureDaily: () => void
+  /** v1.4 领取单条日课奖励（达标后） */
+  claimDailyTask: (id: string) => void
+  /** v1.4 满 7 日课积分兑换周礼包 */
+  claimDailyWeekGift: () => void
+  /** v1.4 现实日签到领取 */
+  claimCheckin: () => void
+  /** v1.4 灵石赎罪：通缉 −1（费用随通缉档与境界上浮） */
+  atoneWanted: () => void
   combatAct: (action: PlayerAction) => void
   toggleCombatAuto: () => void
   runCombatAutoToEnd: () => void

@@ -1280,6 +1280,920 @@
           }
         }
       ]
+    },
+    {
+      "id": "wanted_hunt",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "缉魔令下",
+      "text": "官道上尘烟骤起，一名正道缉魔使按缉魔令拦住去路：「恶迹昭彰，今日便是你的了断之地。」",
+      "gates": {
+        "requireClass": "demon",
+        "minWanted": 2
+      },
+      "weight": 2,
+      "actions": [
+        {
+          "id": "fight",
+          "label": "拔刀相抗",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "bounty_hunter",
+            "win": {
+              "text": "缉魔使力竭而退，你抹去嘴角血迹，通缉之名折了一分。",
+              "stones": 120,
+              "exp": 400,
+              "wanted": -1
+            },
+            "lose": {
+              "text": "你重伤遁走，藏身于一处荒庙。盟会的赏金又涨了。",
+              "hpPct": 0.4,
+              "stones": -80
+            }
+          }
+        },
+        {
+          "id": "flee",
+          "label": "遁走避战",
+          "outcome": {
+            "kind": "settle",
+            "text": "你施展遁术没入林海。缉魔使的冷眼却烙在了背上——江湖处处皆有耳目。",
+            "stones": -30
+          }
+        }
+      ]
+    },
+    {
+      "id": "demonic_blood_oath",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "血誓之邀",
+      "text": "一名黑袍客深夜到访，摊开一卷血色契书：「以血为誓，魔功自成一线。只是……正道的眼睛会盯上你。」",
+      "gates": {
+        "requireClass": "demon",
+        "minRealm": "foundation"
+      },
+      "actions": [
+        {
+          "id": "oath",
+          "label": "刺血立誓",
+          "outcome": {
+            "kind": "settle",
+            "text": "契书燃作血光没入眉心，魔功陡然精进。缉魔令上，你的画像添了一笔。",
+            "expPct": 0.2,
+            "wanted": 1
+          }
+        },
+        {
+          "id": "refuse",
+          "label": "婉言回绝",
+          "outcome": {
+            "kind": "settle",
+            "text": "黑袍客冷笑离去。稳扎稳打虽慢，却不必日日提防刀斧。",
+            "expPct": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "id": "demonic_raid",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "商队过境",
+      "text": "探子来报：一支灵石商队将过黑风峡，护卫不过数人。做或不做，只在你一念之间。",
+      "gates": {
+        "requireClass": "demon",
+        "minRepDemonic": 50
+      },
+      "actions": [
+        {
+          "id": "raid",
+          "label": "劫下商队",
+          "outcome": {
+            "kind": "settle",
+            "text": "黑风峡中一声唿哨，商队货箱尽入你手。魔道中人称颂，盟会的通缉文书却在路上。",
+            "stones": 400,
+            "repDemonic": 8,
+            "wanted": 1
+          }
+        },
+        {
+          "id": "spare",
+          "label": "放行离去",
+          "outcome": {
+            "kind": "settle",
+            "text": "你立于崖顶目送商队远去。道友讥你心慈，你只道：来日方长。",
+            "repDemonic": -5
+          }
+        }
+      ]
+    },
+    {
+      "id": "demonic_purge",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "猎手临门",
+      "text": "连日被缉魔使纠缠，你终于摸清了他们的落脚点。是趁夜灭口，还是破财赎身？",
+      "gates": {
+        "requireClass": "demon",
+        "minWanted": 2
+      },
+      "actions": [
+        {
+          "id": "purge",
+          "label": "趁夜灭口",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "bounty_hunter",
+            "win": {
+              "text": "客栈灯灭。翌日盟会名册上，你那一页被折起——通缉降了一档。",
+              "stones": 150,
+              "wanted": -1
+            },
+            "lose": {
+              "text": "缉魔使早有防备，你负伤突围。此仇且记下。",
+              "hpPct": 0.35,
+              "stones": -60
+            }
+          }
+        },
+        {
+          "id": "atone",
+          "label": "破财赎身",
+          "cost": { "stones": 600 },
+          "outcome": {
+            "kind": "settle",
+            "text": "你托中间人向盟会奉上灵石，缉魔使收队而去。通缉之名消了一分。",
+            "wanted": -1
+          }
+        }
+      ]
+    },
+    {
+      "id": "demonic_offer",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "魔尊之诺",
+      "text": "祭坛血月高悬，魔使传谕：「献上修为根基三成，魔尊赐你大造化。」代价是，你将彻底站在正道的对立面。",
+      "gates": {
+        "requireClass": "demon",
+        "minRealm": "golden_core"
+      },
+      "actions": [
+        {
+          "id": "offer",
+          "label": "登坛献祭",
+          "outcome": {
+            "kind": "settle",
+            "text": "血月吞没你的灵台，再睁眼时，魔元如江河灌体。缉魔令上，你的名字被朱笔圈起。",
+            "expPct": 0.35,
+            "hpPct": 0.2,
+            "wanted": 1
+          }
+        },
+        {
+          "id": "reject",
+          "label": "拂袖下坛",
+          "outcome": {
+            "kind": "settle",
+            "text": "「我的道，不需人赐。」你转身离去，身后血月黯了一分。",
+            "repDemonic": -8
+          }
+        }
+      ]
+    },
+    {
+      "id": "demonic_redeem",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "投案之路",
+      "text": "宗门执法堂递来密信：愿代你向盟会斡旋，只要你自缚双手投案受审——从此与宗门恩断义绝。",
+      "gates": {
+        "requireClass": "demon",
+        "minWanted": 3,
+        "requireSect": true
+      },
+      "actions": [
+        {
+          "id": "surrender",
+          "label": "自缚投案",
+          "outcome": {
+            "kind": "settle",
+            "text": "你卸下法器步入执法堂。盟会念你悔悟，勾去通缉之名；宗门除名文书同日送达。",
+            "wanted": -5,
+            "repRight": 20
+          }
+        },
+        {
+          "id": "run",
+          "label": "撕信遁走",
+          "outcome": {
+            "kind": "settle",
+            "text": "密信化作飞灰。魔修的路，本就无可回头。",
+            "repDemonic": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "hc_pressure",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "hardcore",
+      "title": "天道压制",
+      "text": "灵气紊乱，魔念丛生。硬核法则下，稍有不慎便会道基动摇。",
+      "actions": [
+        {
+          "id": "fight",
+          "label": "强行冲关镇压",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": { "text": "你以杀伐证道，硬压天道余威。修为暴涨，气血翻涌。", "expPct": 0.2, "hpPct": 0.1 },
+            "lose": { "text": "天道之威岂可轻撄，你重伤蛰伏。", "hpPct": 0.35, "stones": -50 }
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "闭锁识海忍耐",
+          "outcome": {
+            "kind": "settle",
+            "text": "你闭关七日锁死识海，硬生生熬过压制。根基愈发沉稳。",
+            "expPct": 0.03
+          }
+        }
+      ]
+    },
+    {
+      "id": "hc_trial",
+      "type": "fortune",
+      "pack": "dlc",
+      "dlcId": "hardcore",
+      "title": "苦修有得",
+      "text": "在严苛法则下打磨根基，虽慢却稳。",
+      "actions": [
+        {
+          "id": "claim",
+          "label": "收取感悟",
+          "outcome": {
+            "kind": "settle",
+            "text": "千锤百炼，感悟自生。",
+            "expPct": 0.12
+          }
+        }
+      ]
+    },
+    {
+      "id": "hc_lean_year",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "hardcore",
+      "title": "灵枯之年",
+      "text": "天地灵气骤然稀薄，同门皆叹苦修如逆水行舟。",
+      "actions": [
+        {
+          "id": "burn_stones",
+          "label": "灵石引灵续修",
+          "cost": { "stones": 300 },
+          "outcome": {
+            "kind": "settle",
+            "text": "灵石化作灵雾护住周身，苦修未曾中断。",
+            "expPct": 0.1
+          }
+        },
+        {
+          "id": "endure",
+          "label": "咬牙硬扛",
+          "outcome": {
+            "kind": "settle",
+            "text": "灵枯之痛如刀绞，却也磨出了一份道心。",
+            "expPct": 0.02,
+            "repRight": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "hc_inner_demon",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "hardcore",
+      "title": "心魔叩关",
+      "text": "入夜后识海中魔念低语：放下执念，便得自在。硬核法则下，心魔亦有三头六臂。",
+      "actions": [
+        {
+          "id": "fight",
+          "label": "持剑斩心魔",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_ghost_king",
+            "win": { "text": "心魔溃散，道基澄澈如洗。", "expPct": 0.22 },
+            "lose": { "text": "心魔反噬，你呕血惊醒。", "hpPct": 0.3 }
+          }
+        },
+        {
+          "id": "sit",
+          "label": "枯坐不动",
+          "outcome": {
+            "kind": "settle",
+            "text": "你枯坐至天明，心魔自去。无得，亦无失。",
+            "hpPct": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "id": "dark_whisper",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "dark",
+      "title": "域外低语",
+      "text": "黑暗中似有存在呢喃：献上一点什么，便可换来力量……",
+      "actions": [
+        {
+          "id": "claim",
+          "label": "聆听并回应",
+          "outcome": {
+            "kind": "settle",
+            "text": "你听见了一段不可名状的道音，修为暗长，心头却多了一丝阴翳。",
+            "expPct": 0.08,
+            "stones": 50
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "当作幻听",
+          "outcome": {
+            "kind": "settle",
+            "text": "低语渐渐远去。你摸了摸胸口，一切如常。",
+            "repRight": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "dark_lifespan_gift",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "dark",
+      "title": "寿元之价",
+      "text": "黑暗中的声音开价了：两年寿元，换一段大造化。",
+      "actions": [
+        {
+          "id": "offer",
+          "label": "献上两年寿元",
+          "outcome": {
+            "kind": "settle",
+            "text": "两年寿元化作乌有，滔天造化涌入四肢百骸。",
+            "lifespan": 2,
+            "expPct": 0.3
+          }
+        },
+        {
+          "id": "refuse",
+          "label": "命比什么都重",
+          "outcome": {
+            "kind": "settle",
+            "text": "「不换。」黑暗沉默了。正道盟会似乎记下了你的坚守。",
+            "repRight": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "dark_black_market",
+      "type": "fortune",
+      "pack": "dlc",
+      "dlcId": "dark",
+      "title": "无名黑市",
+      "text": "巷尾多了一间没有招牌的铺子，柜上摆着一枚来路不明的丹药。",
+      "actions": [
+        {
+          "id": "buy",
+          "label": "重金购下（300 灵石）",
+          "cost": { "stones": 300 },
+          "outcome": {
+            "kind": "settle",
+            "text": "掌柜收钱不语。丹药入手微温，药力却货真价实。",
+            "itemId": "pill_break"
+          }
+        },
+        {
+          "id": "leave",
+          "label": "掉头就走",
+          "outcome": {
+            "kind": "settle",
+            "text": "来路不明的东西，不碰为妙。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dark_evil_seed",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "dark",
+      "title": "域外魔种",
+      "text": "你的洞府角落裂开一道细缝，一粒漆黑种子破土而出，散发着诱人的气息。",
+      "actions": [
+        {
+          "id": "feed",
+          "label": "以气血喂养",
+          "outcome": {
+            "kind": "settle",
+            "text": "种子吸饱气血，结出一枚黑果。服下后修为暴涨，魔道中人多看了你一眼。",
+            "hpPct": 0.15,
+            "expPct": 0.18,
+            "repDemonic": 6
+          }
+        },
+        {
+          "id": "burn",
+          "label": "以真火焚之",
+          "outcome": {
+            "kind": "settle",
+            "text": "真火过处，魔种化为飞灰。黑暗中的低语，似乎记恨上了你。",
+            "repDemonic": -5
+          }
+        }
+      ]
+    },
+    {
+      "id": "dw_blood_pool",
+      "type": "fortune",
+      "pack": "demonic",
+      "dlcId": "demonic_war",
+      "title": "血池机缘",
+      "text": "万魔窟深处现出一方血池，池底沉浮着前人遗骨。以血引血，或有大造化。",
+      "gates": { "requireClass": "demon" },
+      "actions": [
+        {
+          "id": "soak",
+          "label": "跃入血池",
+          "outcome": {
+            "kind": "settle",
+            "text": "血池沸腾，魔元灌体。你爬出来时，浑身毛孔都在滴血。",
+            "hpPct": 0.2,
+            "expPct": 0.3,
+            "wanted": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "绕行离去",
+          "outcome": {
+            "kind": "settle",
+            "text": "血池幽光渐熄。造化诚可贵，性命价更高。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dw_hunt_hunters",
+      "type": "faction",
+      "pack": "demonic",
+      "dlcId": "demonic_war",
+      "title": "围猎缉魔使",
+      "text": "魔道同道递来消息：三名缉魔使孤身入山。魔修杀伐包的规矩——他们猎你，你亦可猎他们。",
+      "gates": { "requireClass": "demon", "minWanted": 1 },
+      "actions": [
+        {
+          "id": "hunt",
+          "label": "设伏围猎",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "bounty_hunter",
+            "win": { "text": "缉魔使折戟山林。盟会的悬赏榜上，你的名字又红了几分。", "stones": 300, "expPct": 0.2 },
+            "lose": { "text": "缉魔使互相策应，你侥幸脱身。", "hpPct": 0.35, "stones": -100 }
+          }
+        },
+        {
+          "id": "share",
+          "label": "通风报信换赏金",
+          "outcome": {
+            "kind": "settle",
+            "text": "你把消息卖给了魔道商会。灵石到账，杀名却落在了别人头上。",
+            "stones": 150
+          }
+        }
+      ]
+    },
+    {
+      "id": "dw_seal_edict",
+      "type": "sect",
+      "pack": "demonic",
+      "dlcId": "demonic_war",
+      "title": "缉魔令加急",
+      "text": "盟会颁下加急缉魔令，各城坊眼线密布。破财，还是顶风？",
+      "gates": { "requireClass": "demon", "minWanted": 2 },
+      "actions": [
+        {
+          "id": "pay",
+          "label": "重金买路（500 灵石）",
+          "cost": { "stones": 500 },
+          "outcome": {
+            "kind": "settle",
+            "text": "坊主收了灵石，将你的画像从缉魔榜上取了下来。",
+            "wanted": -1
+          }
+        },
+        {
+          "id": "endure",
+          "label": "顶着风声走",
+          "outcome": {
+            "kind": "settle",
+            "text": "你蒙面穿城而过。风声愈紧，刀口愈利。",
+            "hpPct": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "dw_oath_blade",
+      "type": "faction",
+      "pack": "demonic",
+      "dlcId": "demonic_war",
+      "title": "血誓同门",
+      "text": "一位魔道剑修邀你歃血为盟：同进同退，共抗缉魔令。誓成，则道途多一臂膀；誓败，则恩断义绝。",
+      "gates": { "requireClass": "demon" },
+      "actions": [
+        {
+          "id": "oath",
+          "label": "歃血立誓",
+          "outcome": {
+            "kind": "settle",
+            "text": "血酒入喉，同门之情自此结下。杀伐路上，多了一份底气。",
+            "stones": 100,
+            "repDemonic": 10
+          }
+        },
+        {
+          "id": "alone",
+          "label": "独来独往",
+          "outcome": {
+            "kind": "settle",
+            "text": "「我的刀，不需要同伴。」剑修大笑离去。",
+            "repDemonic": -3
+          }
+        }
+      ]
+    },
+    {
+      "id": "dw_blood_pill",
+      "type": "fortune",
+      "pack": "demonic",
+      "dlcId": "demonic_war",
+      "title": "血丹之诱",
+      "text": "匣中血丹以生魂炼就，药力霸道。吞，或不吞？",
+      "gates": { "requireClass": "demon", "minRealm": "foundation" },
+      "actions": [
+        {
+          "id": "swallow",
+          "label": "仰头吞下",
+          "outcome": {
+            "kind": "settle",
+            "text": "血丹化开，修为激涨。正道盟会的档案里，你的罪状又添一笔。",
+            "expPct": 0.15,
+            "wanted": 1
+          }
+        },
+        {
+          "id": "destroy",
+          "label": "捏碎血丹",
+          "outcome": {
+            "kind": "settle",
+            "text": "「以魂炼丹，禽兽不如。」你指尖血丹成粉。",
+            "repRight": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "dw_camp_raid",
+      "type": "faction",
+      "pack": "demonic",
+      "dlcId": "demonic_war",
+      "title": "夜袭哨营",
+      "text": "正道盟会哨营就扎在山口，粮草辎重堆积如营。魔修杀伐，就从来二字。",
+      "gates": { "requireClass": "demon" },
+      "actions": [
+        {
+          "id": "raid",
+          "label": "趁夜劫营",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "rogue_sword",
+            "win": { "text": "哨营火起，辎重尽入你手。风声鹤唳中，你扬长而去。", "stones": 350, "expPct": 0.12 },
+            "lose": { "text": "营中伏兵四起，你且战且退。", "hpPct": 0.3, "stones": -60 }
+          }
+        },
+        {
+          "id": "spy",
+          "label": "只探不动",
+          "outcome": {
+            "kind": "settle",
+            "text": "你摸清了哨营布防，画成图交予魔道。人情记下了，灵石也记下了。",
+            "stones": 80,
+            "repDemonic": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "bt_wild_call",
+      "type": "fortune",
+      "pack": "dlc",
+      "dlcId": "beast_taming",
+      "title": "野性呼唤",
+      "text": "山风里传来一声兽鸣，你的灵兽竖起了耳朵——那是同类的召唤。",
+      "gates": { "flags": ["has_pet"] },
+      "actions": [
+        {
+          "id": "follow",
+          "label": "循声探访",
+          "outcome": {
+            "kind": "settle",
+            "text": "灵兽与野兽嬉闹半日，亲昵更甚从前。",
+            "stones": 60
+          }
+        },
+        {
+          "id": "train",
+          "label": "趁机操练",
+          "outcome": {
+            "kind": "settle",
+            "text": "你以兽鸣为号操练阵型，灵兽的成长肉眼可见。",
+            "expPct": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "id": "bt_spirit_fruit",
+      "type": "treasure",
+      "pack": "dlc",
+      "dlcId": "beast_taming",
+      "title": "灵果坠枝",
+      "text": "崖边灵树结果，香气引得你的灵兽直打转。",
+      "gates": { "flags": ["has_pet"] },
+      "actions": [
+        {
+          "id": "pick",
+          "label": "摘给灵兽",
+          "outcome": {
+            "kind": "settle",
+            "text": "灵兽囫囵吞下灵果，毛色都亮了几分，对你的依恋更深了。",
+            "stones": 40
+          }
+        },
+        {
+          "id": "sell",
+          "label": "摘去坊市卖掉",
+          "outcome": {
+            "kind": "settle",
+            "text": "灵果卖出好价钱。灵兽盯着空枝看了很久。",
+            "stones": 150
+          }
+        }
+      ]
+    },
+    {
+      "id": "bt_beast_grudge",
+      "type": "boss",
+      "pack": "dlc",
+      "dlcId": "beast_taming",
+      "title": "妖兽仇怨",
+      "text": "一头老妖兽拦住去路，它的幼崽曾死于修士之手——而你的灵兽，也是妖族。",
+      "gates": { "flags": ["has_pet"] },
+      "actions": [
+        {
+          "id": "fight",
+          "label": "护宠而战",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_tiger",
+            "win": { "text": "老妖兽力竭远遁。灵兽挡在你身前的身影，值得一记。", "expPct": 0.12 },
+            "lose": { "text": "你抱着灵兽仓皇撤退。", "hpPct": 0.3 }
+          }
+        },
+        {
+          "id": "soothe",
+          "label": "让灵兽上前安抚",
+          "outcome": {
+            "kind": "settle",
+            "text": "灵兽低鸣几声，老妖兽竟然缓缓退去。兽语相通，亦是造化。",
+            "expPct": 0.03
+          }
+        }
+      ]
+    },
+    {
+      "id": "bt_den_treasure",
+      "type": "treasure",
+      "pack": "dlc",
+      "dlcId": "beast_taming",
+      "title": "兽穴寻宝",
+      "text": "你的灵兽叼着你的衣角，一路把你拽到一个兽穴前。",
+      "gates": { "flags": ["has_pet"] },
+      "actions": [
+        {
+          "id": "dig",
+          "label": "进穴一探",
+          "outcome": {
+            "kind": "settle",
+            "text": "穴中垫着妖兽珍藏：几块兽骨与一袋灵石。灵兽得意地摇着尾巴。",
+            "itemId": "tiger_bone",
+            "stones": 120
+          }
+        },
+        {
+          "id": "leave",
+          "label": "不去惊扰",
+          "outcome": {
+            "kind": "settle",
+            "text": "你揉了揉灵兽的头：「那是别人的家。」"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bt_feral_plague",
+      "type": "misfortune",
+      "pack": "dlc",
+      "dlcId": "beast_taming",
+      "title": "兽疫蔓延",
+      "text": "山下村庄闹起兽疫，病兽成群。医兽，还是趁乱猎皮？",
+      "actions": [
+        {
+          "id": "heal",
+          "label": "出手医兽",
+          "outcome": {
+            "kind": "settle",
+            "text": "你配制药汤救治病兽，村民感激涕零。灵兽蹲在你身边，若有所思。",
+            "stones": -50,
+            "repRight": 10
+          }
+        },
+        {
+          "id": "hunt",
+          "label": "趁乱猎皮",
+          "outcome": {
+            "kind": "settle",
+            "text": "病兽皮毛虽损，仍值几个灵石。灵兽一路没有看你。",
+            "stones": 130,
+            "repRight": -8
+          }
+        }
+      ]
+    },
+    {
+      "id": "ir_xian_herb",
+      "type": "treasure",
+      "pack": "dlc",
+      "dlcId": "immortal_relic",
+      "title": "仙灵草现",
+      "text": "太虚仙气垂落凡尘，一株九叶仙草在云隙间轻轻摇曳。",
+      "gates": { "minRealm": "ascended" },
+      "actions": [
+        {
+          "id": "pick",
+          "label": "采撷入怀",
+          "outcome": {
+            "kind": "settle",
+            "text": "仙草入手化作清气入体，仙缘又深了一层。",
+            "favor": 20
+          }
+        },
+        {
+          "id": "transplant",
+          "label": "移栽洞府",
+          "outcome": {
+            "kind": "settle",
+            "text": "你以灵泉移栽仙草，静待花开。仙气氤氲，泽被灵田。",
+            "favor": 8,
+            "stones": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "ir_relic_shard",
+      "type": "treasure",
+      "pack": "dlc",
+      "dlcId": "immortal_relic",
+      "title": "仙珍残片",
+      "text": "山崩之后，半枚刻着仙篆的玉珏露了出来。摸上去温润如初雪。",
+      "gates": { "minRealm": "ascended" },
+      "actions": [
+        {
+          "id": "refine",
+          "label": "以仙缘温养",
+          "outcome": {
+            "kind": "settle",
+            "text": "玉珏吸足仙缘，仙篆亮起——里面封存着一段剑诀残意。",
+            "favor": 15,
+            "expPct": 0.1
+          }
+        },
+        {
+          "id": "sell",
+          "label": "卖给坊市",
+          "outcome": {
+            "kind": "settle",
+            "text": "坊市天价收下仙珍。灵石满袋，仙缘却断了一缕。",
+            "stones": 800
+          }
+        }
+      ]
+    },
+    {
+      "id": "ir_immortal_guest",
+      "type": "fortune",
+      "pack": "dlc",
+      "dlcId": "immortal_relic",
+      "title": "仙客对弈",
+      "text": "云头坐着一位青衫客，棋盘上一局残棋已摆了百年。「来，解一解？」",
+      "gates": { "minRealm": "ascended" },
+      "actions": [
+        {
+          "id": "play",
+          "label": "落子对弈",
+          "outcome": {
+            "kind": "settle",
+            "text": "一局棋罢，天已换日。青衫客大笑而去，留下一句「仙路慢慢走」。",
+            "favor": 18,
+            "expPct": 0.08
+          }
+        },
+        {
+          "id": "ask",
+          "label": "执礼求教",
+          "outcome": {
+            "kind": "settle",
+            "text": "青衫客随手一点，你识海中多了一段仙家感悟。",
+            "expPct": 0.15
+          }
+        }
+      ]
+    },
+    {
+      "id": "ir_descend_trail",
+      "type": "omen",
+      "pack": "dlc",
+      "dlcId": "immortal_relic",
+      "title": "仙踪下界",
+      "text": "夜有流光坠野，寻迹而去，只见焦土上一枚足印——五指皆莲纹。",
+      "gates": { "minRealm": "golden_core" },
+      "actions": [
+        {
+          "id": "track",
+          "label": "循迹深探",
+          "outcome": {
+            "kind": "settle",
+            "text": "足印尽头是一缕未散的仙气。你盘坐吸纳，隐隐触到了更高处的风景。",
+            "expPct": 0.1
+          }
+        },
+        {
+          "id": "record",
+          "label": "记录见闻",
+          "outcome": {
+            "kind": "settle",
+            "text": "你把仙踪见闻写进修游札记。也许来日飞升，能再见到这位青衫客。",
+            "stones": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "ir_favor_tribute",
+      "type": "fortune",
+      "pack": "dlc",
+      "dlcId": "immortal_relic",
+      "title": "仙缘供奉",
+      "text": "仙界的祭坛虚影在云海中若隐若现：献上灵石，可换仙缘。",
+      "gates": { "minRealm": "ascended" },
+      "actions": [
+        {
+          "id": "offer",
+          "label": "供奉 500 灵石",
+          "cost": { "stones": 500 },
+          "outcome": {
+            "kind": "settle",
+            "text": "灵石化作流光升入云海，一缕仙缘垂落眉心。",
+            "favor": 25
+          }
+        },
+        {
+          "id": "pray",
+          "label": "空手参拜",
+          "outcome": {
+            "kind": "settle",
+            "text": "你诚心叩首。祭坛微光一闪，像是记下了这份敬意。",
+            "favor": 5
+          }
+        }
+      ]
     }
   ]
 }

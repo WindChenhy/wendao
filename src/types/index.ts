@@ -258,6 +258,28 @@ export interface MetaState {
   lastOnlineAt: number
 }
 
+/** v1.4 单条日课运行时状态 */
+export interface DailyTaskState {
+  id: string
+  progress: number
+  claimed: boolean
+}
+
+/** v1.4 日课（按游戏日惰性刷新；points 累计换周礼包） */
+export interface DailyState {
+  dayKey: string
+  tasks: DailyTaskState[]
+  points: number
+}
+
+/** v1.4 现实日签到（7 日一轮） */
+export interface CheckinState {
+  /** 上次签到日期 YYYY-MM-DD；空串表示从未签到 */
+  lastDate: string
+  /** 连续签到天数（断签重置为 1） */
+  streak: number
+}
+
 // ---------------------------------------------------------------------------
 // 运行时状态层（zustand store / 存档快照）
 // ---------------------------------------------------------------------------
@@ -369,5 +391,13 @@ export interface SlotSnapshot {
   pet?: PetState | null
   /** v1.2 捕捉软保底计数（失败 3 次后必得） */
   petCaptureFails?: number
+  /** v1.4 日课 */
+  daily?: DailyState
+  /** v1.4 现实日签到 */
+  checkin?: CheckinState
+  /** v1.4 通缉档位 0–5 */
+  wanted?: number
+  /** v1.4 仙缘（飞升后长线资源） */
+  favor?: number
   updatedAt: number
 }

@@ -24,6 +24,7 @@ import {
 } from '../../data/items'
 import { REALMS } from '../../data/realms'
 import { addItem, removeItem } from '../../game/inventory'
+import { marketPriceOf } from '../../game/bounty'
 import {
   afterProgressSnapshot,
   log,
@@ -209,13 +210,16 @@ export function createInventorySlice(
     buyItem: (id) => {
       const { inventory, stones, player, treasures } = get()
       const item = ITEMS[id]
-      if (!item || stones < item.price || !player) return
+      if (!item || !player) return
+      // v1.4 成交价：通缉溢价（≥4）与正道名宿九折叠加
+      const price = marketPriceOf(item.price, { wanted: get().wanted, repRight: player.repRight })
+      if (stones < price) return
       const inv = { ...inventory }
       addItem(inv, id)
       // 法宝购入即认主；同类多件全部计入列表，便于背包按 ×N 展示
       const isTreasure = itemCategory(id) === 'treasure'
       const newTreasures = isTreasure ? [...treasures, id] : treasures
-      const bought = { ...get().player!, stones: stones - item.price }
+      const bought = { ...get().player!, stones: stones - price }
       const p = isTreasure ? recomputeVitals(get, bought, newTreasures, get().gongfa.learned, get().legacy.daoMarks, bought.realm) : bought
       let nextArts = get().artifacts
       if (isTreasure) {
@@ -228,10 +232,10 @@ export function createInventorySlice(
         }
         nextArts = [...get().artifacts, inst]
       }
-      log(`购入 ${item.name}，花费灵石 ${item.price}`, 'dim')
+      log(`购入 ${item.name}，花费灵石 ${price}`, 'dim')
       set({
         inventory: inv,
-        stones: stones - item.price,
+        stones: stones - price,
         treasures: newTreasures,
         artifacts: nextArts,
         player: p,

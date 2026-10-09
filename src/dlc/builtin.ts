@@ -1,53 +1,15 @@
 import type { DlcPack } from './types'
-import type { WorldEvent } from '../data/events'
 
-const hardcoreEvents: WorldEvent[] = [
-  {
-    id: 'hc_pressure',
-    type: 'misfortune',
-    title: '天道压制',
-    text: '灵气紊乱，魔念丛生。硬核法则下，稍有不慎便会道基动摇。',
-    actions: [
-      { id: 'fight', label: '强行冲关镇压' },
-      { id: 'ignore', label: '闭锁识海忍耐' },
-    ],
-    payload: { bossId: 'boss_demon_lord', stone: -0 },
-  },
-  {
-    id: 'hc_trial',
-    type: 'fortune',
-    title: '苦修有得',
-    text: '在严苛法则下打磨根基，虽慢却稳。',
-    actions: [{ id: 'claim', label: '收取感悟' }],
-    payload: { exp: 120 },
-  },
-]
-
-const darkEvents: WorldEvent[] = [
-  {
-    id: 'dark_whisper',
-    type: 'misfortune',
-    title: '域外低语',
-    text: '黑暗中似有存在呢喃：献上一点什么，便可换来力量……',
-    actions: [
-      { id: 'claim', label: '聆听并回应' },
-      { id: 'ignore', label: '当作幻听' },
-    ],
-    payload: { exp: 80, stone: 50 },
-  },
-]
-
-/** 内置 DLC：首期仅数据包，可在设置中预览/启停 */
+/** 内置 DLC：仅 manifest + 数值补丁；事件全部在 db/events.json 中带 dlcId 字段（v1.4 数据化） */
 export const BUILTIN_DLC: DlcPack[] = [
   {
     manifest: {
       id: 'hardcore',
       name: '硬核修真',
-      version: '0.1.0',
-      desc: '更严苛的修炼法则：突破更难、寿命更紧，适合追求压力的修士。',
-      features: ['突破率 -8%', '寿命消耗更重', '追加「天道压制」事件'],
+      version: '0.2.0',
+      desc: '更严苛的修炼法则：突破更难、寿命更紧，天道压制与苦修感悟并存。',
+      features: ['突破率 -8%', '寿命消耗更重', '修炼略快（5%）', '追加 4 条「硬核」事件'],
     },
-    extraEvents: hardcoreEvents,
     balance: {
       breakthroughRateDelta: -8,
       lifespanMul: 0.75,
@@ -58,15 +20,52 @@ export const BUILTIN_DLC: DlcPack[] = [
     manifest: {
       id: 'dark',
       name: '黑暗魔改',
-      version: '0.1.0',
+      version: '0.2.0',
       desc: '域外低语渗入此界，机缘与堕落一线之间。',
-      features: ['追加黑暗事件', '历练灵石收益微增', '修炼速度略降'],
+      features: ['追加 4 条「黑暗」事件', '历练灵石收益 +25%', '修炼速度 -8%', '突破率 -2%'],
     },
-    extraEvents: darkEvents,
     balance: {
       exploreStoneMul: 1.25,
       cultivateMul: 0.92,
       breakthroughRateDelta: -2,
+    },
+  },
+  {
+    manifest: {
+      id: 'demonic_war',
+      name: '魔修杀伐',
+      version: '0.1.0',
+      desc: '以杀证道：追杀更密、杀伐更快，血池机缘与缉魔令同行。',
+      features: ['历练灵石收益 +20%', '突破率 -3%', '追加 6 条「魔修杀伐」事件（含通缉联动）'],
+    },
+    balance: {
+      exploreStoneMul: 1.2,
+      breakthroughRateDelta: -3,
+    },
+  },
+  {
+    manifest: {
+      id: 'beast_taming',
+      name: '御兽之道',
+      version: '0.1.0',
+      desc: '灵兽与你共修：喂养事半功倍，日课灵石亦有灵兽一份功劳。',
+      features: ['灵兽喂养经验 +50%', '日课灵石奖励 +10%', '追加 5 条「御兽」事件'],
+    },
+    balance: {
+      petExpMul: 1.5,
+      dailyRewardMul: 1.1,
+    },
+  },
+  {
+    manifest: {
+      id: 'immortal_relic',
+      name: '仙界遗珍',
+      version: '0.1.0',
+      desc: '飞升并非终点：仙缘凝聚更快，仙界遗珍散落人间。',
+      features: ['仙缘获取 +30%', '追加 5 条「仙界遗珍」事件（飞升后触发）'],
+    },
+    balance: {
+      favorMul: 1.3,
     },
   },
 ]

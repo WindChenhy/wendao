@@ -64,6 +64,62 @@
       "reward": { "daoMarks": 40, "title": "飞升者" }
     },
     {
+      "id": "favor_100",
+      "name": "仙缘深厚",
+      "desc": "累计仙缘达到 100。",
+      "category": "challenge",
+      "reward": { "daoMarks": 10 }
+    },
+    {
+      "id": "taixu_clear",
+      "name": "踏破仙阙",
+      "desc": "贯通太虚仙阙全部 99 层。",
+      "category": "challenge",
+      "reward": { "daoMarks": 30, "title": "太虚行者" }
+    },
+    {
+      "id": "dlc_war_kill10",
+      "name": "以杀证道",
+      "desc": "【魔修杀伐】战斗获胜 10 次。",
+      "category": "challenge",
+      "reward": { "stones": 500 }
+    },
+    {
+      "id": "dlc_war_notorious",
+      "name": "恶名远扬",
+      "desc": "【魔修杀伐】通缉达到最高档 Ⅴ。",
+      "category": "challenge",
+      "reward": { "daoMarks": 8 }
+    },
+    {
+      "id": "dlc_pet_lv10",
+      "name": "灵兽有成",
+      "desc": "【御兽之道】灵兽成长至 10 级。",
+      "category": "challenge",
+      "reward": { "stones": 400 }
+    },
+    {
+      "id": "dlc_pet_bond100",
+      "name": "心有灵犀",
+      "desc": "【御兽之道】灵兽亲密度满 100。",
+      "category": "challenge",
+      "reward": { "daoMarks": 5 }
+    },
+    {
+      "id": "dlc_relic_favor50",
+      "name": "仙缘初显",
+      "desc": "【仙界遗珍】累计仙缘达到 50。",
+      "category": "challenge",
+      "reward": { "stones": 600 }
+    },
+    {
+      "id": "dlc_relic_taixu30",
+      "name": "仙阙漫步",
+      "desc": "【仙界遗珍】太虚仙阙抵达 30 层。",
+      "category": "challenge",
+      "reward": { "daoMarks": 10 }
+    },
+    {
       "id": "enemy_5",
       "name": "斩妖初试",
       "desc": "敌人图鉴解锁 5 种。",

@@ -4,11 +4,12 @@ import { freshAbode } from '../game/farm'
 import { loadGameSettings } from '../game/settings'
 import type { GameState } from './gameState'
 import { runPetFarmAssist } from './helpers'
-import { defaultInventory, freshCompanion, freshGongfa, freshLegacy, freshMeta, freshSect } from './saveMigrate'
+import { defaultInventory, freshCheckin, freshCompanion, freshDaily, freshGongfa, freshLegacy, freshMeta, freshSect } from './saveMigrate'
 import { createAbodeSlice } from './slices/abodeSlice'
 import { createCombatSlice } from './slices/combatSlice'
 import { createCompanionSlice } from './slices/companionSlice'
 import { createCultivateSlice } from './slices/cultivateSlice'
+import { createDailySlice } from './slices/dailySlice'
 import { createExploreSlice } from './slices/exploreSlice'
 import { createInventorySlice } from './slices/inventorySlice'
 import { createMetaSlice } from './slices/metaSlice'
@@ -40,6 +41,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   meta: freshMeta(),
   pet: null,
   petCaptureFails: 0,
+  daily: freshDaily(),
+  checkin: freshCheckin(),
+  wanted: 0,
+  favor: 0,
   offlinePending: null,
   activePanel: 'cultivate',
   exploring: false,
@@ -59,6 +64,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   ...createSectSlice(set, get),
   ...createAbodeSlice(set, get),
   ...createPetSlice(set, get),
+  ...createDailySlice(set, get),
   ...createCompanionSlice(set, get),
   ...createInventorySlice(set, get),
   ...createSaveSlice(set, get),

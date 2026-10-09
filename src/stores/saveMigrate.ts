@@ -10,8 +10,11 @@ import { REALM_ORDER, realmIndex } from '../data/realms'
 import { isAscended } from '../game/reincarnate'
 import type { SealedItem } from '../game/seal'
 import type {
+  CheckinState,
   CollectionState,
   CompanionState,
+  DailyState,
+  DailyTaskState,
   GameTime,
   GongfaLearned,
   GongfaState,
@@ -24,6 +27,53 @@ import type {
 
 export function uniqIds(list: string[]): string[] {
   return Array.from(new Set(list.filter(Boolean)))
+}
+
+/** v1.4 日课初始态（dayKey 为空串，首次 ensureDaily 时重掷） */
+export function freshDaily(): DailyState {
+  return { dayKey: '', tasks: [], points: 0 }
+}
+
+export function migrateDaily(raw: unknown): DailyState {
+  if (!raw || typeof raw !== 'object') return freshDaily()
+  const r = raw as Partial<DailyState>
+  const tasks: DailyTaskState[] = Array.isArray(r.tasks)
+    ? r.tasks
+        .filter((t): t is DailyTaskState => Boolean(t) && typeof (t as DailyTaskState).id === 'string')
+        .map((t) => ({
+          id: String(t.id),
+          progress: Math.max(0, Math.floor(Number(t.progress) || 0)),
+          claimed: Boolean(t.claimed),
+        }))
+    : []
+  return {
+    dayKey: typeof r.dayKey === 'string' ? r.dayKey : '',
+    tasks,
+    points: Math.max(0, Math.floor(Number(r.points) || 0)),
+  }
+}
+
+export function freshCheckin(): CheckinState {
+  return { lastDate: '', streak: 0 }
+}
+
+/** v1.4 通缉档位读档收敛（0–5） */
+export function migrateWanted(raw: unknown): number {
+  return Math.max(0, Math.min(5, Math.floor(Number(raw) || 0)))
+}
+
+/** v1.4 仙缘读档收敛（非负整数） */
+export function migrateFavor(raw: unknown): number {
+  return Math.max(0, Math.floor(Number(raw) || 0))
+}
+
+export function migrateCheckin(raw: unknown): CheckinState {
+  if (!raw || typeof raw !== 'object') return freshCheckin()
+  const r = raw as Partial<CheckinState>
+  return {
+    lastDate: typeof r.lastDate === 'string' ? r.lastDate : '',
+    streak: Math.max(0, Math.floor(Number(r.streak) || 0)),
+  }
 }
 
 export function freshSect(): SectState {

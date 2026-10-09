@@ -9,7 +9,7 @@ import {
 } from '../../data/pets'
 import { ITEMS } from '../../data/items'
 import { removeItem } from '../../game/inventory'
-import { log, runPetFarmAssist } from '../helpers'
+import { bumpDaily, currentRules, log, runPetFarmAssist } from '../helpers'
 import type { GameState, MetaGet, MetaSet } from '../gameState'
 import { uniqIds } from '../saveMigrate'
 
@@ -70,7 +70,8 @@ export function createPetSlice(
       }
       const inv = { ...inventory }
       removeItem(inv, foodId)
-      let exp = pet.exp + PET_FEED_EXP
+      // v1.4 御兽之道 DLC：喂养经验倍率
+      let exp = pet.exp + Math.floor(PET_FEED_EXP * currentRules().petExpMul)
       let level = pet.level
       while (level < PET_MAX_LEVEL && exp >= petExpNeed(level)) {
         exp -= petExpNeed(level)
@@ -78,6 +79,7 @@ export function createPetSlice(
       }
       log('喂食 ' + (ITEMS[foodId]?.name ?? foodId) + '，亲密 +2。', 'good')
       set({ inventory: inv, pet: { ...pet, exp, level, bond: Math.min(100, pet.bond + 2) } })
+      bumpDaily(get, set, 'feed')
     },
     breakthroughPet: () => {
       const { pet } = get()
