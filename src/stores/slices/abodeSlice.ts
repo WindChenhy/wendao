@@ -28,6 +28,7 @@ import { isAscended } from '../../game/reincarnate'
 import {
   afterProgressSnapshot,
   artifactCraftDays,
+  bumpDaily,
   log,
   recomputeVitals,
   unlockCodex,
@@ -102,6 +103,7 @@ export function createAbodeSlice(
       const plots = abode.plots.map((p, i) => (i === plotIndex ? { seedId: null, plantedDay: 0 } : p))
       log(`收获「${ITEMS[seed.yieldItemId]?.name ?? seed.yieldItemId}」×${amount}。`, 'gold')
       set({ inventory: inv, abode: { ...abode, plots } })
+      bumpDaily(get, set, 'harvest')
     },
 
     plantAll: (seedId) => {
@@ -156,6 +158,7 @@ export function createAbodeSlice(
           .join('、') || '无'
       log(`一键收获 ${count} 块灵田：${detail}。`, 'gold')
       set({ inventory: inv, abode: { ...abode, plots } })
+      bumpDaily(get, set, 'harvest', count)
     },
 
     expandFarmCol: () => {
@@ -263,6 +266,7 @@ export function createAbodeSlice(
         })
         unlockCodex(get, set, 'item', recipe.outputItemId)
         afterProgressSnapshot(get, set)
+        bumpDaily(get, set, 'craft')
         return
       } else {
         log('炉火失控，药材尽废……', 'bad')

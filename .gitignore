@@ -21,6 +21,7 @@ research/**/findings/_tmp_*
 .vscode/*
 !.vscode/extensions.json
 .idea
+.history/
 .DS_Store
 *.suo
 *.ntvs*

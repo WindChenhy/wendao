@@ -17,12 +17,15 @@ import {
 } from '../../data/sectBuildings'
 import { availableQuestChains, questChainById, questStepMatchesDeliver } from '../../data/sectQuests'
 import { createCombatState } from '../../game/combatEngine'
+import { atonementCost, clampWanted } from '../../game/bounty'
+import { isRighteousParagon, REP_TASK_CONTRIB_MUL } from '../../game/reputation'
 import { advanceTime } from '../../game/day'
 import { addItem, removeItem } from '../../game/inventory'
 import { isAscended } from '../../game/reincarnate'
 import { playBell, playChime } from '../../game/sfx'
 import {
   afterProgressSnapshot,
+  bumpDaily,
   log,
   makePlayerCombatant,
   recomputeVitals,
@@ -54,6 +57,7 @@ export function createSectSlice(
   | 'upgradeSectBuildingYard'
   | 'proposeSectBuilding'
   | 'redeemSectFragment'
+  | 'atoneWanted'
 > {
   return {
     joinSect: (sectId) => {
@@ -93,7 +97,9 @@ export function createSectSlice(
         return
       }
       const rankMul = SECT_RANKS[sect.rank].taskMul
-      const gain = Math.floor((15 + Math.floor(Math.random() * 20)) * rankMul)
+      // v1.4 正道名宿：宗门委托贡献 +10%
+      const paragonMul = isRighteousParagon(player.repRight) ? REP_TASK_CONTRIB_MUL : 1
+      const gain = Math.floor((15 + Math.floor(Math.random() * 20)) * rankMul * paragonMul)
       const poolCut = commissionPoolCutOf(gain)
       const stone = 20 + Math.floor(Math.random() * 30)
       const advanced = advanceTime(time, 1)
@@ -108,6 +114,7 @@ export function createSectSlice(
           lifespanLeft: player.lifespanLeft - advanced.agedYears,
         },
       })
+      bumpDaily(get, set, 'secttask')
     },
 
     sectExchange: (itemId, cost) => {
@@ -562,6 +569,24 @@ export function createSectSlice(
       unlockCodex(get, set, 'gongfa', pick.id)
       unlockCodex(get, set, 'item', 'sect_fragment')
       afterProgressSnapshot(get, set)
+    },
+
+    /** v1.4 通缉赎罪：灵石销案，通缉 −1 */
+    atoneWanted: () => {
+      const { player, stones, wanted } = get()
+      if (!player || !player.alive) return
+      if (wanted <= 0) {
+        log('你并无通缉在身。', 'dim')
+        return
+      }
+      const cost = atonementCost(wanted, player.realm)
+      if (stones < cost) {
+        log(`赎罪需灵石 ${cost}，囊中羞涩。`, 'bad')
+        return
+      }
+      const next = clampWanted(wanted - 1)
+      log(`你托人向盟会奉上灵石 ${cost}，通缉降为 ${next > 0 ? '档 ' + next : '「销案」'}。`, 'good')
+      set({ stones: stones - cost, wanted: next })
     },
   }
 }

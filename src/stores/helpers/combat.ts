@@ -35,6 +35,7 @@ import { clamp } from '../../game/format'
 import { addItem, removeItem } from '../../game/inventory'
 import type { EnemyDef, GameTime, PlayerState } from '../../types'
 import type { MetaGet, MetaSet } from '../gameState'
+import { bumpDaily } from './daily'
 import { log } from './log'
 import { afterProgressSnapshot, unlockCodex } from './progress'
 import {
@@ -43,6 +44,9 @@ import {
   maybeTriggerSpouseStory,
   pickEvent,
 } from './shared'
+import { worldEventById, type WorldEvent } from '../../data/events'
+import { clampWanted, wantedHuntChance, wantedLabel } from '../../game/bounty'
+import { isDemonicChampion, REP_EXPLORE_STONE_MUL } from '../../game/reputation'
 
 export function makePlayerCombatant(get: MetaGet, player: PlayerState, treasures: string[], hpScale = 1): CombatActor {
   const snap = get()
@@ -167,7 +171,9 @@ function settleExploreCombat(args: SettleArgs) {
   if (result.win) {
     const rep = repDeltaOnKill(enemy)
     const dropRate = enemy.loot.dropRate ?? 1
-    const stoneMul = currentRules().exploreStoneMul
+    // v1.4 魔道魁首历练灵石收益 +10%
+    const stoneMul =
+      currentRules().exploreStoneMul * (isDemonicChampion(player.repDemonic) ? REP_EXPLORE_STONE_MUL : 1)
     if (result.itemId && ITEMS[result.itemId] && Math.random() < dropRate) {
       addItem(inv, result.itemId)
       lines.push(`获得「${ITEMS[result.itemId].name}」×1`)
@@ -181,6 +187,12 @@ function settleExploreCombat(args: SettleArgs) {
     log(`修为 +${result.expGain}，灵石 +${stoneGain}`, 'good')
     if (enemy.faction === 'demonic') {
       log(`斩杀魔修：正道声望 +${rep.right}，魔道声望 +${rep.demonic}`, 'dim')
+    }
+    // v1.4 通缉：魔修截杀正道修士升档；魔道魁首免于升档
+    let wantedNext = get().wanted
+    if (player.classId === 'demon' && enemy.faction === 'righteous' && !isDemonicChampion(player.repDemonic)) {
+      wantedNext = clampWanted(wantedNext + 1)
+      log(`你截杀了正道修士，缉魔令上又添一笔（通缉 ${wantedLabel(wantedNext)}）。`, 'bad')
     }
     const meta = get().meta
     nextPlayer = {
@@ -201,6 +213,7 @@ function settleExploreCombat(args: SettleArgs) {
       activeCombat: null,
       lastCombat: { enemy, win: true, log: lines },
       player: nextPlayer,
+      wanted: wantedNext,
       meta: {
         ...meta,
         stats: { ...meta.stats, combatsWon: meta.stats.combatsWon + 1 },
@@ -224,9 +237,24 @@ function settleExploreCombat(args: SettleArgs) {
       },
     })
   }
-  const evt = pickEvent(get)
-  if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+  const huntEvt = maybeWantedHunt(get)
+  if (huntEvt) {
+    set({ pendingEvent: { event: huntEvt, kind: 'explore' } })
+  } else {
+    const evt = pickEvent(get)
+    if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+  }
+  bumpDaily(get, set, 'explore')
   maybeTriggerSpouseStory(get, set)
+}
+
+/** v1.4 通缉追杀：魔修通缉 ≥2 后每次历练有概率被缉魔使拦路（魔道魁首免疫） */
+function maybeWantedHunt(get: MetaGet): WorldEvent | null {
+  const s = get()
+  if (!s.player || s.pendingEvent || s.pendingStory || s.activeCombat) return null
+  if (s.player.classId !== 'demon' || isDemonicChampion(s.player.repDemonic)) return null
+  if (Math.random() >= wantedHuntChance(s.wanted)) return null
+  return worldEventById('wanted_hunt')
 }
 
 function settleTowerCombat(args: SettleArgs) {
@@ -243,16 +271,21 @@ function settleTowerCombat(args: SettleArgs) {
       addItem(inv, result.itemId)
       lines.push(`获得「${ITEMS[result.itemId]?.name}」`)
     }
+    // v1.4 飞升秘境：每通关一层得仙缘 +20（仙界遗珍 DLC 再乘 favorMul）
+    const favorGain =
+      realm.minRealm === 'ascended' ? Math.floor(20 * currentRules().favorMul) : 0
+    if (favorGain > 0) lines.push(`仙机感悟，仙缘 +${favorGain}`)
     const best = Math.max(get().towerBest[realm.id] ?? 0, tower.floor)
     const clearedAll = tower.floor >= realm.floors
     log(
-      `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：修为 +${result.expGain}，灵石 +${result.stoneGain}`,
+      `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：修为 +${result.expGain}，灵石 +${result.stoneGain}${favorGain ? `，仙缘 +${favorGain}` : ''}`,
       'gold',
     )
     const meta = get().meta
     set({
       inventory: inv,
       stones: get().stones + result.stoneGain,
+      favor: get().favor + favorGain,
       activeCombat: null,
       lastCombat: { enemy, win: true, log: lines },
       towerBest: { ...get().towerBest, [realm.id]: best },

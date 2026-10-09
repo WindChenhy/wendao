@@ -10,7 +10,7 @@ import {
   PET_MAP,
   type PetState,
 } from '../../data/pets'
-import { realmIndex } from '../../data/realms'
+import { realmIndex, expNeeded } from '../../data/realms'
 import { canEnterRealm, isBossFloor, towerEnemy, SECRET_REALMS } from '../../data/secretRealms'
 import type { EventOutcome, WorldEventAction } from '../../data/events'
 import {
@@ -20,6 +20,7 @@ import {
   type CombatEngineState,
 } from '../../game/combatEngine'
 import { repDeltaOnKill } from '../../game/combatStats'
+import { clampWanted } from '../../game/bounty'
 import { advanceTime, dailyRecover, dayNumber } from '../../game/day'
 import { addItem, removeItem } from '../../game/inventory'
 import { isAscended } from '../../game/reincarnate'
@@ -152,6 +153,7 @@ export function createExploreSlice(
           addItem(nextInv, oc.itemId)
         }
         if (oc?.exp) p.exp += oc.exp
+        if (oc?.expPct) p.exp += Math.floor(expNeeded(p.realm, p.layer) * oc.expPct)
         if (oc?.repRight) p.repRight += oc.repRight
         if (oc?.repDemonic) p.repDemonic += oc.repDemonic
         if (oc?.lifespan) p.lifespanLeft = Math.max(1, p.lifespanLeft - oc.lifespan)
@@ -172,6 +174,8 @@ export function createExploreSlice(
           inventory: nextInv,
           stones: Math.max(0, stonesAfter),
           legacy: legacyNext,
+          wanted: clampWanted(get().wanted + (oc?.wanted ?? 0)),
+          favor: Math.max(0, get().favor + (oc?.favor ?? 0)),
           sect: { ...sect, contribution: Math.max(0, contrib), pool: Math.max(0, pool) },
           companion: {
             ...companion,
@@ -252,7 +256,11 @@ export function createExploreSlice(
             lastCombat: { enemy, win: true, log: lines },
             player: {
               ...player,
-              exp: player.exp + result.expGain + (extra?.exp ?? 0),
+              exp:
+                player.exp +
+                result.expGain +
+                (extra?.exp ?? 0) +
+                Math.floor(expNeeded(player.realm, player.layer) * (extra?.expPct ?? 0)),
               hp: Math.max(1, result.playerHpLeft),
               energy: result.playerEnergyLeft,
               lifespanLeft: Math.max(
@@ -262,6 +270,7 @@ export function createExploreSlice(
               repRight: player.repRight + rep.right + (extra?.repRight ?? 0),
               repDemonic: player.repDemonic + rep.demonic + (extra?.repDemonic ?? 0),
             },
+            wanted: clampWanted(get().wanted + (extra?.wanted ?? 0)),
             meta: {
               ...metaEvt,
               stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
@@ -302,7 +311,10 @@ export function createExploreSlice(
             companion: { ...get().companion, flags: uniqIds(flags) },
             player: {
               ...player,
-              exp: player.exp + (extra?.exp ?? 0),
+              exp:
+                player.exp +
+                (extra?.exp ?? 0) +
+                Math.floor(expNeeded(player.realm, player.layer) * (extra?.expPct ?? 0)),
               hp: hpFloor,
               energy: result.playerEnergyLeft,
               lifespanLeft: Math.max(
@@ -312,6 +324,7 @@ export function createExploreSlice(
               repRight: player.repRight + (extra?.repRight ?? 0),
               repDemonic: player.repDemonic + (extra?.repDemonic ?? 0),
             },
+            wanted: clampWanted(get().wanted + (extra?.wanted ?? 0)),
           })
           if (extra?.itemId) unlockCodex(get, set, 'item', extra.itemId)
         }
@@ -475,9 +488,14 @@ export function createExploreSlice(
 
     enterTower: (realmId) => {
       const { player, tower } = get()
-      if (!player || !player.alive || isAscended(player) || tower) return
+      if (!player || !player.alive || tower) return
       const realm = SECRET_REALMS.find((r) => r.id === realmId)
       if (!realm) return
+      // v1.4 修复：飞升者仅可进入飞升秘境（太虚仙阙），不再被一刀切拦截
+      if (isAscended(player) && realm.minRealm !== 'ascended') {
+        log('你已飞升，凡界秘境与你无缘。', 'dim')
+        return
+      }
       if (!canEnterRealm(realm, player.realm, player.layer)) {
         log(`境界不足，无法进入「${realm.name}」。`, 'bad')
         return

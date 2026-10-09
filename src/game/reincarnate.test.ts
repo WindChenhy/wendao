@@ -1,5 +1,34 @@
 import { describe, expect, it } from 'vitest'
-import { buildSaveFileName, describeSaveTimeline } from './reincarnate'
+import {
+  buildSaveFileName,
+  describeSaveTimeline,
+  FAVOR_DAO_CAP,
+  FAVOR_DAO_RATIO,
+  reincarnateGain,
+} from './reincarnate'
+import type { PlayerState } from '../types'
+
+function playerOf(realm: PlayerState['realm'], age = 20): PlayerState {
+  return {
+    name: '测试',
+    gender: 'male',
+    classId: 'sword',
+    realm,
+    layer: 1,
+    exp: 0,
+    hp: 1,
+    maxHp: 1,
+    energy: 1,
+    maxEnergy: 1,
+    shaqi: 0,
+    age,
+    lifespanLeft: 10,
+    repRight: 0,
+    repDemonic: 0,
+    alive: true,
+    ascended: realm === 'ascended',
+  }
+}
 
 describe('存档导出文件名', () => {
   it('普通名：存档_名_第X年M月D日.wdsave', () => {
@@ -40,5 +69,33 @@ describe('导出备注 describeSaveTimeline', () => {
     expect(text).toContain('本世寿龄 25')
     expect(text).toContain('历代累计寿龄约 85')
     expect(text).toContain('上一世结束于第12年')
+  })
+})
+
+describe('v1.4 仙缘折算 reincarnateGain', () => {
+  it('每 10 点仙缘 +1 道痕并写入说明', () => {
+    const base = reincarnateGain(playerOf('ascended'), false, 0)
+    const withFavor = reincarnateGain(playerOf('ascended'), false, 100)
+    expect(withFavor.daoMarks - base.daoMarks).toBe(10)
+    expect(withFavor.desc).toContain('仙缘 +10')
+  })
+
+  it('仙缘折道痕上限 +30（防刷）', () => {
+    const gain = reincarnateGain(playerOf('ascended'), false, 999999)
+    expect(FAVOR_DAO_CAP).toBe(30)
+    expect(gain.daoMarks - reincarnateGain(playerOf('ascended'), false, 0).daoMarks).toBe(30)
+    expect(FAVOR_DAO_RATIO).toBe(10)
+  })
+
+  it('仙缘不足 10 不折算；负值安全处理', () => {
+    expect(reincarnateGain(playerOf('ascended'), false, 9).desc).not.toContain('仙缘')
+    expect(reincarnateGain(playerOf('ascended'), false, -50).daoMarks).toBe(
+      reincarnateGain(playerOf('ascended'), false, 0).daoMarks,
+    )
+  })
+
+  it('不传 favor 时与旧签名结果一致（向后兼容）', () => {
+    const p = playerOf('golden_core')
+    expect(reincarnateGain(p, true).daoMarks).toBe(reincarnateGain(p, true, 0).daoMarks)
   })
 })

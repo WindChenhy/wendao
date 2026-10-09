@@ -27,5 +27,6 @@
   { "id": "rogue_boss", "name": "黑煞教主", "faction": "righteous", "tier": "boss", "power": 1.52, "matOffset": 1, "dropRate": 0.5, "flavor": "邪派枭雄，正道悬赏之首。" },
   { "id": "boss_ghost_king", "name": "白骨鬼王", "faction": "abomination", "tier": "boss", "power": 1.48, "matOffset": 1, "dropRate": 0.55, "flavor": "万骨窟之主，白骨为兵。" },
   { "id": "boss_jiaolong", "name": "黑水蛟王", "faction": "beast", "tier": "boss", "power": 1.55, "matOffset": 1, "dropRate": 0.5, "flavor": "深渊蛟龙，翻江倒海。" },
-  { "id": "boss_heaven_demon", "name": "域外天魔", "faction": "abomination", "tier": "boss", "power": 1.62, "matOffset": 1, "dropRate": 0.45, "flavor": "虚空裂缝中窥伺的天魔，觊觎众生道基。" }
+  { "id": "boss_heaven_demon", "name": "域外天魔", "faction": "abomination", "tier": "boss", "power": 1.62, "matOffset": 1, "dropRate": 0.45, "flavor": "虚空裂缝中窥伺的天魔，觊觎众生道基。" },
+  { "id": "bounty_hunter", "name": "正道缉魔使", "faction": "righteous", "tier": "elite", "power": 1.12, "matOffset": 1, "dropRate": 0.4, "flavor": "奉正道盟会缉魔令而行的猎手，专寻恶贯满盈之辈。" }
 ]

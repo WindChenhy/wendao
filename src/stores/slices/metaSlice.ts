@@ -203,6 +203,8 @@ export function createMetaSlice(
         exploring: false,
         autoCombat: false,
         offlinePending: null,
+        wanted: 0,
+        favor: 0,
         meta: {
           ...prevMeta,
           collection: mergeCollection(prevMeta.collection, { realm: ['qi'] }),

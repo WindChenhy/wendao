@@ -59,7 +59,7 @@ export function EventModal() {
         <div className="text-[11px] text-gold mb-1 font-display tracking-widest">
           奇遇 · {TYPE_LABEL[evt.type] ?? '事件'}
           {evt.pack && evt.pack !== 'core' && (
-            <span className="ml-2 text-text-dim">{evt.pack === 'sect_storm' ? '宗门风云' : evt.pack === 'faction_war' ? '正魔争锋' : evt.pack === 'omen' ? '天象' : ''}</span>
+            <span className="ml-2 text-text-dim">{evt.pack === 'sect_storm' ? '宗门风云' : evt.pack === 'faction_war' ? '正魔争锋' : evt.pack === 'omen' ? '天象' : evt.pack === 'demonic' ? '魔道' : ''}</span>
           )}
         </div>
         <h3 className="font-display text-xl text-gold mb-2">{evt.title}</h3>

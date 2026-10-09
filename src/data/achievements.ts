@@ -34,7 +34,7 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
   cycle: '周目',
 }
 
-interface AchievementProgressInput {
+export interface AchievementProgressInput {
   player: {
     realm: string
     layer: number
@@ -63,6 +63,21 @@ interface AchievementProgressInput {
   towerBest: Record<string, number>
   collection: CollectionState
   stats: MetaStats
+  /** v1.4 本世累计仙缘（飞升后长线） */
+  favor?: number
+  /** v1.4 已启用的 DLC id（DLC 专属成就仅在对应包启用时判定） */
+  enabledDlc?: string[]
+  /** v1.4 通缉档位 0–5 */
+  wanted?: number
+  /** v1.4 灵兽概况（无灵兽为 null） */
+  pet?: { level: number; broken: boolean; bond: number } | null
+}
+
+/** DLC 包 id → 专属成就 id 列表（设置页展示进度用；未启用的包成就隐藏） */
+export const DLC_ACHIEVEMENT_PACK: Record<string, string[]> = {
+  demonic_war: ['dlc_war_kill10', 'dlc_war_notorious'],
+  beast_taming: ['dlc_pet_lv10', 'dlc_pet_bond100'],
+  immortal_relic: ['dlc_relic_favor50', 'dlc_relic_taixu30'],
 }
 
 function hasHeartEvent(heartsSeen: Record<string, number>): boolean {
@@ -106,6 +121,24 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
   if (floors.some((f) => f >= 30)) push('tower_30')
   if ((input.towerBest.qingyun ?? 0) >= 30) push('clear_qingyun')
   if ((input.towerBest.ice_cave ?? 0) >= 40) push('clear_ice')
+  // v1.4 飞升终局：仙缘积累与太虚仙阙贯通
+  if ((input.favor ?? 0) >= 100) push('favor_100')
+  if ((input.towerBest.taixu_palace ?? 0) >= 99) push('taixu_clear')
+
+  // v1.4 DLC 专属成就：仅在对应包启用时判定/展示
+  const dlcOn = (id: string) => (input.enabledDlc ?? []).includes(id)
+  if (dlcOn('demonic_war')) {
+    if (input.stats.combatsWon >= 10) push('dlc_war_kill10')
+    if ((input.wanted ?? 0) >= 5) push('dlc_war_notorious')
+  }
+  if (dlcOn('beast_taming') && input.pet) {
+    if (input.pet.level >= 10) push('dlc_pet_lv10')
+    if (input.pet.bond >= 100) push('dlc_pet_bond100')
+  }
+  if (dlcOn('immortal_relic')) {
+    if ((input.favor ?? 0) >= 50) push('dlc_relic_favor50')
+    if ((input.towerBest.taixu_palace ?? 0) >= 30) push('dlc_relic_taixu30')
+  }
 
   if (hasHeartEvent(input.companion.heartsSeen)) push('heart')
   if (input.companion.spouseId) push('marry')

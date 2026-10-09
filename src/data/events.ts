@@ -14,7 +14,7 @@ type WorldEventType =
   | 'companion'
   | 'omen'
 
-type EventPack = 'core' | 'sect_storm' | 'faction_war' | 'omen' | 'dlc'
+type EventPack = 'core' | 'sect_storm' | 'faction_war' | 'omen' | 'dlc' | 'demonic'
 
 interface EventCost {
   stones?: number
@@ -29,6 +29,8 @@ export interface EventOutcome {
   bossId?: string
   stones?: number
   exp?: number
+  /** v1.4 按当前层修为需求比例给修为（如 0.2 = 20%），与 exp 可叠加 */
+  expPct?: number
   contribution?: number
   /** v1.1 贡献池增减（正入池 / 负扣池） */
   pool?: number
@@ -36,6 +38,8 @@ export interface EventOutcome {
   repDemonic?: number
   itemId?: string
   daoMarks?: number
+  /** v1.4 仙缘增减（正入负出） */
+  favor?: number
   lifespan?: number
   hpPct?: number
   flag?: string
@@ -47,6 +51,8 @@ export interface EventOutcome {
   /** captureRate 存在时失败结算的文案 */
   failText?: string
   ending?: 'he' | 'be'
+  /** v1.4 通缉档位增减（正入负出，结算时夹在 0–5） */
+  wanted?: number
   /** combat 失败时的结算；缺省用 lose 文案 */
   win?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
   lose?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
@@ -78,6 +84,8 @@ interface EventGates {
   affinity?: { id: string; min: number }
   flags?: string[]
   notFlags?: string[]
+  /** v1.4 通缉档位门槛（通缉制只对魔修生效） */
+  minWanted?: number
 }
 
 export interface WorldEvent {
@@ -90,6 +98,8 @@ export interface WorldEvent {
   gates?: EventGates
   /** 抽取权重，默认 1 */
   weight?: number
+  /** v1.4 所属 DLC 包 id：仅在对应包启用时入池 */
+  dlcId?: string
   payload?: {
     itemId?: string
     stone?: number
@@ -111,6 +121,8 @@ export interface EventGateContext {
   spouseId: string | null
   affinity: Record<string, number>
   flags: string[]
+  /** v1.4 通缉档位 */
+  wanted: number
 }
 
 function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolean {
@@ -130,6 +142,7 @@ function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolea
   if (gates.spouseId && ctx.spouseId !== gates.spouseId) return false
   if (gates.minYear && ctx.year < gates.minYear) return false
   if (gates.requireClass && ctx.classId !== gates.requireClass) return false
+  if (gates.minWanted != null && ctx.wanted < gates.minWanted) return false
   if (gates.affinity) {
     const aff = ctx.affinity[gates.affinity.id] ?? 0
     if (aff < gates.affinity.min) return false
@@ -154,13 +167,17 @@ const WORLD_EVENT_RATE = 0.12
 
 /**
  * 按门槛过滤后加权抽取。ctx 不完整时退化为仅境界过滤。
+ * enabledDlc：已启用的 DLC id；带 dlcId 的事件仅在其包启用时入池。
  * 返回 null 表示本次未触发奇遇。
  */
 export function pickWorldEvent(
   ctx: EventGateContext,
   extra: WorldEvent[] = [],
+  enabledDlc: string[] = [],
 ): WorldEvent | null {
-  const pool = [...WORLD_EVENTS, ...extra].filter((e) => eventPassesGates(e, ctx))
+  const pool = [...WORLD_EVENTS, ...extra].filter(
+    (e) => (!e.dlcId || enabledDlc.includes(e.dlcId)) && eventPassesGates(e, ctx),
+  )
   if (pool.length === 0) return null
   if (Math.random() > WORLD_EVENT_RATE) return null
   const weights = pool.map((e) => Math.max(0.05, e.weight ?? 1))
@@ -171,4 +188,9 @@ export function pickWorldEvent(
     if (roll <= 0) return pool[i]
   }
   return pool[pool.length - 1]
+}
+
+/** 按 id 取本体事件（v1.4 通缉追杀等显式触发用）；无则 null */
+export function worldEventById(id: string): WorldEvent | null {
+  return WORLD_EVENTS.find((e) => e.id === id) ?? null
 }

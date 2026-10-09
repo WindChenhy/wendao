@@ -22,6 +22,7 @@ import { formatNum } from '../game/format'
 import { daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
 import { sealDaoCost, sealSlots, describeSealed, type SealedItem } from '../game/seal'
 import { TRIBULATION_PLANS, isTribulationMoment, type TribulationPlanId } from '../data/tribulation'
+import { DailyCard } from '../components/DailyCard'
 import { useGameStore } from '../stores/useGameStore'
 import { useState } from 'react'
 
@@ -87,6 +88,7 @@ export function CultivatePanel() {
   const artifacts = useGameStore((s) => s.artifacts)
   const gongfa = useGameStore((s) => s.gongfa)
   const legacy = useGameStore((s) => s.legacy)
+  const favor = useGameStore((s) => s.favor)
   const companion = useGameStore((s) => s.companion)
   const meditate = useGameStore((s) => s.meditate)
   const seclude = useGameStore((s) => s.seclude)
@@ -121,7 +123,7 @@ export function CultivatePanel() {
   const matCount = matId ? inventory[matId] ?? 0 : 0
   const matOk = !matId || matCount > 0
   const options = seclusionYearOptions(player.realm)
-  const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId)) : null
+  const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId), favor) : null
   const synList = activeSynergies(Object.keys(gongfa.learned))
   const synBt = synList.reduce((n, s) => n + (s.rule.effects.breakthrough ?? 0), 0)
   const baseRate = Math.min(
@@ -179,6 +181,7 @@ export function CultivatePanel() {
 
   return (
     <div className="p-4 space-y-4 max-w-2xl">
+      <DailyCard />
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">洞府静修</div>
         <p className="text-xs text-text-dim mb-3">{c.desc}</p>
