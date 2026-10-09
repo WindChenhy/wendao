@@ -1,0 +1,74 @@
+[
+  {
+    "id": "chain_supply",
+    "name": "补给线",
+    "brief": "药堂缺料，外山据点人手紧。走一趟，宗门记你一功。",
+    "align": "any",
+    "minRank": "outer",
+    "steps": [
+      { "type": "deliver", "desc": "交出聚气丹 ×2", "itemId": "pill_qi", "count": 2 },
+      { "type": "explore_win", "desc": "历练获胜 2 次", "count": 2 },
+      { "type": "report", "desc": "回山交令（耗 1 日）" }
+    ],
+    "reward": { "contribution": 55, "stone": 40, "fragmentChance": 0.12, "exp": 80 }
+  },
+  {
+    "id": "chain_patrol",
+    "name": "巡山除妖",
+    "brief": "山道多妖踪，执事点名让你带队清一清。",
+    "align": "any",
+    "minRank": "outer",
+    "minRealm": "qi",
+    "steps": [
+      { "type": "explore_win", "desc": "历练获胜 3 次", "count": 3 },
+      { "type": "deliver", "desc": "交出妖材 ×1（蛇胆/狐核/虎骨）", "itemId": "any_mat", "count": 1 },
+      { "type": "report", "desc": "缴令归档（耗 1 日）" }
+    ],
+    "reward": { "contribution": 70, "stone": 60, "fragmentChance": 0.15, "exp": 120 }
+  },
+  {
+    "id": "chain_heirloom",
+    "name": "残页寻踪",
+    "brief": "藏经阁有缺页线索流出，长老命你暗中寻访。",
+    "align": "any",
+    "minRank": "inner",
+    "minRealm": "foundation",
+    "steps": [
+      { "type": "deliver", "desc": "交出突破材 ×1", "itemId": "any_break", "count": 1 },
+      { "type": "explore_win", "desc": "历练获胜 2 次", "count": 2 },
+      { "type": "stones", "desc": "打点消息费 300 灵石", "stones": 300 },
+      { "type": "report", "desc": "密报长老（耗 1 日）" }
+    ],
+    "reward": { "contribution": 110, "stone": 80, "fragmentChance": 0.35, "exp": 200 }
+  },
+  {
+    "id": "chain_defend",
+    "name": "守山备汛",
+    "brief": "魔患未平，宗门加固外围据点。此行凶险，却也是扬名之机。",
+    "align": "any",
+    "minRank": "steward",
+    "minRealm": "golden_core",
+    "steps": [
+      { "type": "deliver", "desc": "交出突破材 ×1", "itemId": "any_break", "count": 1 },
+      { "type": "explore_win", "desc": "历练/秘境获胜 3 次", "count": 3 },
+      { "type": "stones", "desc": "加固阵基 500 灵石", "stones": 500 },
+      { "type": "report", "desc": "复命守山（耗 1 日）" }
+    ],
+    "reward": { "contribution": 180, "stone": 150, "fragmentChance": 0.28, "exp": 350 }
+  },
+  {
+    "id": "chain_decree",
+    "name": "宗门密令",
+    "brief": "宗主手谕：一桩陈年旧案，交你全权处置。慎之，重之。",
+    "align": "any",
+    "minRank": "elder",
+    "minRealm": "nascent_soul",
+    "steps": [
+      { "type": "stones", "desc": "拨付行动经费 800 灵石", "stones": 800 },
+      { "type": "explore_win", "desc": "历练/秘境获胜 4 次", "count": 4 },
+      { "type": "deliver", "desc": "交出煞气结晶/突破材 ×1", "itemId": "any_special", "count": 1 },
+      { "type": "report", "desc": "密档封存（耗 1 日）" }
+    ],
+    "reward": { "contribution": 280, "stone": 200, "fragmentChance": 0.45, "exp": 500 }
+  }
+]

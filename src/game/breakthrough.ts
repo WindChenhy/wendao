@@ -3,7 +3,7 @@ import { materialName, requiredMaterial } from '../data/items'
 import { REALMS, expNeeded, nextRealm } from '../data/realms'
 import type { ClassId, RealmId } from '../types'
 
-export interface BreakthroughResult {
+interface BreakthroughResult {
   success: boolean
   severity: 'none' | 'minor' | 'major' | 'critical'
   rate: number
@@ -16,18 +16,25 @@ export function breakthroughRate(classId: ClassId, realm: RealmId): number {
   return Math.max(5, Math.min(92, base + bonus))
 }
 
+/**
+ * 冲击壁垒判定。rateOverride 为含宗门/道侣/法宝/丹药/天劫方案后的最终成功率，
+ * 必须与结算使用同一 rate，避免「成功升级却打出失败文案」。
+ */
 export function attemptBreakthrough(
   classId: ClassId,
   realm: RealmId,
   layer: number,
   roll?: number,
+  rateOverride?: number,
 ): BreakthroughResult {
   const def = REALMS[realm]
-  const rate = breakthroughRate(classId, realm)
+  const rate = rateOverride ?? breakthroughRate(classId, realm)
   const r = roll ?? Math.random() * 100
   const isMajorCross = layer >= def.layers
   const isTribulation = realm === 'tribulation' || realm === 'mahayana'
   const mat = isMajorCross ? requiredMaterial(realm, layer) : null
+  // 方案 §2.3-A：魔修突破天劫换皮为心魔劫/煞火焚身
+  const isDemon = classId === 'demon'
 
   if (r < rate) {
     return {
@@ -35,7 +42,9 @@ export function attemptBreakthrough(
       severity: 'none',
       rate,
       message: isMajorCross
-        ? `${mat ? materialName(mat) + '化开，' : ''}雷云散尽，你踏入「${REALMS[nextRealm(realm) ?? realm].name}」！`
+        ? isDemon
+          ? `${mat ? materialName(mat) + '化开，' : ''}心魔退散，煞火焚身而不侵，你踏入「${REALMS[nextRealm(realm) ?? realm].name}」！`
+          : `${mat ? materialName(mat) + '化开，' : ''}雷云散尽，你踏入「${REALMS[nextRealm(realm) ?? realm].name}」！`
         : `灵力贯通，境界稳固于${def.name}${Math.min(def.layers, layer + 1)}层。`,
     }
   }
@@ -45,7 +54,9 @@ export function attemptBreakthrough(
       success: false,
       severity: 'critical',
       rate,
-      message: '天劫反噬，道基崩裂！重伤并损失大量修为。',
+      message: isDemon
+        ? '心魔劫反噬，煞气逆乱，道基崩裂！重伤并损失大量修为。'
+        : '天劫反噬，道基崩裂！重伤并损失大量修为。',
     }
   }
   if (isMajorCross) {
@@ -53,7 +64,9 @@ export function attemptBreakthrough(
       success: false,
       severity: 'major',
       rate,
-      message: `突破${def.name}圆满失败${mat ? `（${materialName(mat)}可保灵力不失）` : ''}，气血逆冲，境界跌落一层。`,
+      message: isDemon
+        ? `突破${def.name}圆满失败${mat ? `（${materialName(mat)}可镇煞护脉）` : ''}，煞气逆冲，境界跌落一层。`
+        : `突破${def.name}圆满失败${mat ? `（${materialName(mat)}可保灵力不失）` : ''}，气血逆冲，境界跌落一层。`,
     }
   }
   return {

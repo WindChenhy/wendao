@@ -7,14 +7,7 @@ export function isAscended(player: Pick<PlayerState, 'realm' | 'ascended'> | nul
   return player.ascended || player.realm === 'ascended'
 }
 
-/** 一世是否已终局（飞升或道消）——二者互斥，飞升优先 */
-export function isLifeEnded(player: PlayerState | null): boolean {
-  if (!player) return false
-  if (isAscended(player)) return true
-  return !player.alive
-}
-
-export interface ReincarnateGain {
+interface ReincarnateGain {
   daoMarks: number
   desc: string
 }
@@ -43,7 +36,6 @@ export function daoBonuses(daoMarks: number) {
     cultivateMul: 1 + Math.min(0.5, daoMarks * 0.004),
     breakthroughBonus: Math.min(15, Math.floor(daoMarks * 0.15)),
     startStones: Math.min(500, 20 + Math.floor(daoMarks * 2)),
-    startPlotsBonus: 0,
   }
 }
 
@@ -58,7 +50,9 @@ export function buildSaveFileName(opts: {
   const rei = Math.max(0, opts.reincarnations)
   const reiTag = rei > 0 ? `_转生${rei}次` : ''
   const yearTag = rei > 0 ? `本世第${opts.year}年` : `第${opts.year}年`
-  return `存档_${opts.name}${reiTag}_${yearTag}${opts.month}月${opts.day}日.wdsave`
+  // 过滤 Windows 文件名非法字符，防止导出失败
+  const safeName = opts.name.replace(/[\\/:*?"<>|]/g, '')
+  return `存档_${safeName}${reiTag}_${yearTag}${opts.month}月${opts.day}日.wdsave`
 }
 
 /** 导出备注：说明转生次数与年纪规则 */

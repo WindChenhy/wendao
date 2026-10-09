@@ -13,6 +13,10 @@ dist-ssr
 docs
 *.local
 
+# 调研临时文件
+_tmp_*
+research/**/findings/_tmp_*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

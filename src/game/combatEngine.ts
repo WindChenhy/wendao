@@ -1,5 +1,5 @@
 import { CLASSES } from '../data/classes'
-import { ITEMS } from '../data/items'
+import { ITEMS, itemCategory } from '../data/items'
 import {
   ATTACK_TREASURES,
   COMBAT_CONFIG,
@@ -12,14 +12,14 @@ import {
 } from '../data/skills'
 import type { ClassId, EnemyDef, RealmId } from '../types'
 
-export type LogKind = 'sys' | 'player' | 'enemy' | 'status' | 'loot' | 'crit' | 'heal'
+type LogKind = 'sys' | 'player' | 'enemy' | 'status' | 'loot' | 'crit' | 'heal'
 
-export interface CombatLogLine {
+interface CombatLogLine {
   text: string
   kind: LogKind
 }
 
-export type CombatStatusId =
+type CombatStatusId =
   | 'sword_intent'
   | 'counter'
   | 'counter_buff'
@@ -32,7 +32,7 @@ export type CombatStatusId =
   | 'regen'
   | 'talisman_charge'
 
-export interface CombatStatus {
+interface CombatStatus {
   id: CombatStatusId | string
   stacks?: number
   turns?: number
@@ -50,6 +50,8 @@ export interface CombatActor {
   maxEnergy: number
   isDemon: boolean
   dmgReduce: number
+  /** 闪避概率（0-1，仅玩家侧由法宝加成注入，封顶 0.25；敌方恒为 0/未定义） */
+  dodge?: number
   statuses: CombatStatus[]
   skillCd: Record<string, number>
   potionsUsed: number
@@ -95,9 +97,11 @@ export interface CombatEngineState {
   blastPillsUsed: string[]
   potionLimit: number
   context: CombatContext
+  /** v1.2 出战灵兽（协战） */
+  pet?: CombatPetInfo
 }
 
-export type CombatContextKind = 'explore' | 'tower' | 'sect_exam' | 'event'
+type CombatContextKind = 'explore' | 'tower' | 'sect_exam' | 'event'
 
 export interface CombatContext {
   kind: CombatContextKind
@@ -106,6 +110,19 @@ export interface CombatContext {
   /** 秘境环境压气血后的战斗内气血（写回时另行换算） */
   hpScale: number
   exploreDay?: boolean
+  /** v1.2 出战灵兽协战参数 */
+  pet?: CombatPetInfo
+}
+
+export interface CombatPetInfo {
+  name: string
+  skillId: 'pet_heal' | 'pet_debuff' | 'pet_shield'
+  skillName: string
+  assistChance: number
+  /** 触发间隔（回合） */
+  cd: number
+  /** 效果强度（相对玩家有效攻击的比例） */
+  power: number
 }
 
 function getStatus(actor: CombatActor, id: string): CombatStatus | undefined {
@@ -252,6 +269,8 @@ export function buildPlayerCombatActor(opts: {
   atk: number
   def: number
   dmgReduce: number
+  /** 法宝闪避概率（0-1，未传为 0） */
+  dodge?: number
   treasures: string[]
   hpScale?: number
 }): CombatActor {
@@ -263,14 +282,14 @@ export function buildPlayerCombatActor(opts: {
     artifactAtkMul = 1 + (treasures.some((t) => ATTACK_TREASURES.has(t)) ? 0.08 : 0)
     artifactDefMul = 1 + (treasures.some((t) => DEF_TREASURES.has(t)) ? 0.08 : 0)
     // 通用共鸣：有任一法宝时轻微提升
-    if (treasures.some((t) => t.startsWith('treasure_'))) {
+    if (treasures.some((t) => itemCategory(t) === 'treasure')) {
       artifactAtkMul *= 1.07
       artifactDefMul *= 1.07
     }
   }
   let maxEnergy = opts.maxEnergy
   if (opts.classId === 'artifact') {
-    maxEnergy += treasures.filter((t) => t.startsWith('treasure_')).length * 5
+    maxEnergy += treasures.filter((t) => itemCategory(t) === 'treasure').length * 5
   }
   const statuses: CombatStatus[] = []
   if (opts.classId === 'talisman') {
@@ -287,6 +306,7 @@ export function buildPlayerCombatActor(opts: {
     maxEnergy,
     isDemon: opts.classId === 'demon',
     dmgReduce: opts.dmgReduce,
+    dodge: opts.dodge ?? 0,
     statuses,
     skillCd: {},
     potionsUsed: 0,
@@ -299,7 +319,7 @@ export function buildPlayerCombatActor(opts: {
   }
 }
 
-export function buildEnemyCombatActor(enemy: EnemyDef): CombatActor {
+function buildEnemyCombatActor(enemy: EnemyDef): CombatActor {
   const boss = enemy.id.includes('boss') || enemy.name.includes('镇守') || enemy.name.includes('坛主') || enemy.name.includes('王')
   const tier: CombatActor['tier'] = boss ? 'boss' : 'normal'
   const enemySkills: SkillDef[] = []
@@ -372,6 +392,9 @@ export function createCombatState(
   if (player.classId === 'artifact') {
     pushLog(log, '法宝共鸣已生效。', 'status')
   }
+  if (context.pet) {
+    pushLog(log, `${context.pet.name} 随你出战，将于每 ${context.pet.cd} 回合施展「${context.pet.skillName}」。`, 'status')
+  }
   return {
     player,
     enemy: e,
@@ -386,16 +409,8 @@ export function createCombatState(
       COMBAT_CONFIG.combatPotionLimit +
       (player.classId === 'alchemy' ? 1 : 0),
     context,
+    pet: context.pet,
   }
-}
-
-export function playerSkillsAvailable(state: CombatEngineState): SkillDef[] {
-  const p = state.player
-  if (!p.classId) return []
-  return unlockedActiveSkills(p.classId, state.context.enemy.realm, 1).map((s) => {
-    // unlock uses player realm stored on context via enemy realm is wrong — use skill unlock check outside
-    return s
-  })
 }
 
 export function getUnlockedPlayerSkills(
@@ -496,6 +511,12 @@ function dealDamage(
   },
 ): number {
   const cfg = COMBAT_CONFIG
+  // 闪避判定（仅玩家侧注入 dodge，敌方恒为 0）；被闪避的攻击不触发反伤/on-hit 被动
+  const dodge = defender.dodge ?? 0
+  if (dodge > 0 && Math.random() < dodge) {
+    pushLog(state.log, `${defender.name}身形一晃，避开了这一击。`, 'player')
+    return 0
+  }
   const critChance = cfg.critBaseChance + (attacker.classId === 'sword' ? 0.05 : 0)
   const atk = effAtk(attacker) * (opts.extraMul ?? 1)
   const { dmg, crit } = rollDamage(
@@ -661,6 +682,29 @@ function demonBacklash(state: CombatEngineState) {
   }
 }
 
+/** v1.2 出战灵兽协战：每 cd 回合按 assistChance 施放一次辅助技 */
+function petAssistTick(state: CombatEngineState) {
+  const pet = state.pet
+  if (!pet || state.finished) return
+  if (pet.cd <= 0 || state.round % pet.cd !== 0) return
+  if (Math.random() >= pet.assistChance) return
+  const p = state.player
+  const e = state.enemy
+  const power = Math.max(1, Math.floor(effAtk(p) * pet.power))
+  if (pet.skillId === 'pet_heal') {
+    const heal = Math.min(p.maxHp - p.hp, power)
+    if (heal <= 0) return
+    p.hp += heal
+    pushLog(state.log, `灵兽·${pet.skillName}：${pet.name} 衔来灵草，为你回复 ${heal} 气血。`, 'heal')
+  } else if (pet.skillId === 'pet_debuff') {
+    addStatus(e, 'weaken', 0, 1, 0.15)
+    pushLog(state.log, `灵兽·${pet.skillName}：${pet.name} 清啸一声，${e.name}陷入虚弱（攻击 −15%）！`, 'status')
+  } else {
+    addStatus(p, 'shield', 0, 2, power)
+    pushLog(state.log, `灵兽·${pet.skillName}：${pet.name} 展开灵盾（可抵 ${power} 伤害）。`, 'status')
+  }
+}
+
 function talismanChargeTick(state: CombatEngineState) {
   const p = state.player
   if (p.classId !== 'talisman') return
@@ -716,9 +760,10 @@ export function stepCombat(
   next.round += 1
   talismanChargeTick(next)
 
-  // tick statuses at round start
+  // tick statuses at round start（先结算旧状态，再触发灵兽协战，保证虚弱/护盾当回合生效）
   tickStatuses(p, next.log, 'player')
   tickStatuses(e, next.log, 'enemy')
+  petAssistTick(next)
 
   const stunP = getStatus(p, 'stun')
   if (stunP?.turns && stunP.turns > 0) {
@@ -750,7 +795,7 @@ export function stepCombat(
     p.energy = Math.min(p.maxEnergy, p.energy + gain)
     pushLog(next.log, `你凝神防御，伤害大减，灵力 +${gain}。`, 'player')
   } else if (action.type === 'potion') {
-    if (inventory[action.itemId] !== undefined || true) {
+    {
       const ok = tryPotion(next, action.itemId)
       if (!ok) pushLog(next.log, '无法服用该物品。', 'status')
       // store decrements inventory externally when action accepted
@@ -1029,8 +1074,4 @@ export function defaultAutoAction(
   if (p.energy < minCost) return { type: 'defend' }
 
   return { type: 'attack' }
-}
-
-export function summaryStatusLine(actor: CombatActor): string {
-  return `气血 ${actor.hp}/${actor.maxHp} · ${actor.isDemon ? '魔元' : '灵力'} ${actor.energy}/${actor.maxEnergy} · ${formatStatuses(actor)}`
 }

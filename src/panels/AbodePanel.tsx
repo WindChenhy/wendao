@@ -8,6 +8,8 @@ import {
   expandRowCost,
   canExpandFarmCols,
   canExpandFarmRows,
+  julingUpgradeCost,
+  JULING_MAX_LEVEL,
   type SeedDef,
 } from '../data/abode'
 import { ITEMS } from '../data/items'
@@ -15,6 +17,7 @@ import { canCraft, craftRate, plotProgress } from '../game/farm'
 import { ArtifactForgePanel } from './ArtifactForgePanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
+import { PETS, petExpNeed, describePet } from '../data/pets'
 
 function PlotTile({
   index,
@@ -92,8 +95,22 @@ export function AbodePanel() {
   const expandFarmCol = useGameStore((s) => s.expandFarmCol)
   const expandFarmRow = useGameStore((s) => s.expandFarmRow)
   const craftItem = useGameStore((s) => s.craftItem)
+  const pet = useGameStore((s) => s.pet)
+  const feedPet = useGameStore((s) => s.feedPet)
+  const breakthroughPet = useGameStore((s) => s.breakthroughPet)
+  const setPetJob = useGameStore((s) => s.setPetJob)
+  const releasePet = useGameStore((s) => s.releasePet)
+  const petFarmAssist = useGameStore((s) => s.petFarmAssist)
+  const renamePet = useGameStore((s) => s.renamePet)
+  const togglePetFight = useGameStore((s) => s.togglePetFight)
   const legacy = useGameStore((s) => s.legacy)
   const [plantSeedId, setPlantSeedId] = useState<string | null>(null)
+  const [petNameDraft, setPetNameDraft] = useState('')
+  const upgradeJuling = useGameStore((s) => s.upgradeJuling)
+  const seedOptions = useMemo(
+    () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
+    [inventory],
+  )
 
   if (!player) return null
   const dead = !player.alive || player.realm === 'ascended' || player.ascended
@@ -107,10 +124,6 @@ export function AbodePanel() {
   const readyCount = abode.plots.filter((p) => p.seedId && plotProgress(p, time).ready).length
   const emptyCount = abode.plots.filter((p) => !p.seedId).length
   const planted = total - emptyCount
-  const seedOptions = useMemo(
-    () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
-    [inventory],
-  )
 
   return (
     <div className="p-4 space-y-4 max-w-3xl">
@@ -223,7 +236,101 @@ export function AbodePanel() {
         </div>
       </div>
 
+
+      <div className="panel-box p-4">
+        <div className="font-display text-gold mb-2">灵兽栏</div>
+        {pet ? (
+          <div className="space-y-2 text-sm">
+            <div>
+              {describePet(pet)}
+              <span className="text-xs text-text-dim ml-2">
+                经验 {pet.exp}/{petExpNeed(pet.level)}
+                {pet.restUntilDay > 0 ? ' · 休养中' : ''}
+                {pet.broken ? ' · 已突破' : ''}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button className="pixel-btn text-xs" disabled={dead} onClick={feedPet}>喂食</button>
+              <button
+                className="pixel-btn text-xs"
+                disabled={dead || pet.level < 10 || pet.broken}
+                onClick={breakthroughPet}
+                title={pet.broken ? '已完成突破' : 'Lv.10 后可突破：属性系数 ×1.15'}
+              >
+                {pet.broken ? '已突破' : '突破'}
+              </button>
+              <button className="pixel-btn text-xs" disabled={dead} onClick={() => setPetJob('farm')}>灵田协助</button>
+              <button className="pixel-btn text-xs" disabled={dead} onClick={() => setPetJob('guard')}>看家</button>
+              <button className="pixel-btn text-xs" disabled={dead || pet.job !== 'farm'} onClick={petFarmAssist}>今日协助收获</button>
+              <button
+                className={`pixel-btn text-xs ${pet.fight ? '' : 'danger'}`}
+                disabled={dead}
+                onClick={togglePetFight}
+                title="出战时提供属性加成与协战辅助技"
+              >
+                {pet.fight ? '出战中' : '歇战'}
+              </button>
+              <button className="pixel-btn text-xs danger" disabled={dead} onClick={releasePet}>放生</button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <input
+                className="bg-black/30 border border-border px-2 py-1 w-32 text-xs"
+                value={petNameDraft}
+                maxLength={8}
+                placeholder="新名字"
+                onChange={(e) => setPetNameDraft(e.target.value)}
+              />
+              <button
+                className="pixel-btn text-xs"
+                disabled={dead || !petNameDraft.trim()}
+                onClick={() => {
+                  renamePet(petNameDraft)
+                  setPetNameDraft('')
+                }}
+              >
+                改名
+              </button>
+              <span className="text-text-dim">
+                {pet.fight ? '协战辅助技与属性加成已生效。' : '歇战中：不提供属性加成与协战。'}
+                {pet.job === 'farm' ? ' 灵田协助于跨日自动收获。' : ''}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-text-dim">
+            灵兽栏空着。筑基后历练或天象中，或有灵兽认主之缘。
+            <div className="mt-2 flex flex-wrap gap-1">
+              {PETS.map((p) => (
+                <span key={p.id} className="border border-border px-1.5 py-0.5 text-[10px] text-text-dim">{p.name}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <ArtifactForgePanel />
+
+      <div className="panel-box p-4">
+        <div className="font-display text-gold mb-2">聚灵阵</div>
+        <p className="text-xs text-text-dim mb-2">
+          洞府阵法，聚拢灵气：修炼与离线收益每级 +5%。布阵需一日。
+        </p>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>
+            当前 <span className="text-gold">{abode.julingLevel ?? 0}</span> / {JULING_MAX_LEVEL} 重
+            （收益 +{((abode.julingLevel ?? 0) * 5)}%）
+          </span>
+          <button
+            className="pixel-btn text-xs"
+            disabled={dead || (abode.julingLevel ?? 0) >= JULING_MAX_LEVEL || stones < julingUpgradeCost(abode.julingLevel ?? 0)}
+            onClick={upgradeJuling}
+          >
+            {(abode.julingLevel ?? 0) >= JULING_MAX_LEVEL
+              ? '已臻圆满'
+              : `扩建至 ${(abode.julingLevel ?? 0) + 1} 重（${julingUpgradeCost(abode.julingLevel ?? 0)} 灵石）`}
+          </button>
+        </div>
+      </div>
 
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">丹房</div>

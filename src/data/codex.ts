@@ -1,21 +1,22 @@
 import { COMPANIONS } from './companions'
+import codexDb from './db/codex.json'
 import { ENEMY_TEMPLATES } from './enemies'
 import { GONGFA_LIST } from './gongfa'
-import { ITEMS } from './items'
+import { ITEMS, itemCategory } from './items'
 import { REALMS, REALM_ORDER } from './realms'
 import { SECRET_REALMS } from './secretRealms'
 import type { CollectionState } from '../types'
 
 export type CodexPageId = 'realm' | 'enemy' | 'gongfa' | 'item' | 'companion' | 'secret'
 
-export interface CodexEntry {
+interface CodexEntry {
   id: string
   name: string
   desc: string
   meta?: string
 }
 
-export interface CodexPageReward {
+interface CodexPageReward {
   stones?: number
   daoMarks?: number
   title?: string
@@ -24,71 +25,14 @@ export interface CodexPageReward {
 /** 各图鉴页集齐进度节点（%）与奖励 */
 export const CODEX_MILESTONES = [25, 50, 75, 100] as const
 
+/** 图鉴页元数据：src/data/db/codex.json */
 export const CODEX_PAGE_META: Record<
   CodexPageId,
   { name: string; desc: string; rewards: Record<number, CodexPageReward> }
-> = {
-  realm: {
-    name: '境界',
-    desc: '曾抵达的大境界',
-    rewards: {
-      25: { stones: 50 },
-      50: { stones: 150, daoMarks: 2 },
-      75: { daoMarks: 6 },
-      100: { daoMarks: 12, title: '天道见证' },
-    },
-  },
-  enemy: {
-    name: '敌人',
-    desc: '历练/秘境遭遇并获胜的敌手',
-    rewards: {
-      25: { stones: 40 },
-      50: { stones: 120 },
-      75: { daoMarks: 3 },
-      100: { daoMarks: 8, title: '百战之身' },
-    },
-  },
-  gongfa: {
-    name: '功法',
-    desc: '曾参悟的功法',
-    rewards: {
-      25: { stones: 80 },
-      50: { stones: 200, daoMarks: 2 },
-      75: { daoMarks: 5 },
-      100: { daoMarks: 10, title: '道藏知音' },
-    },
-  },
-  item: {
-    name: '丹药法宝',
-    desc: '曾持有或服用的丹药、材料与法宝',
-    rewards: {
-      25: { stones: 60 },
-      50: { stones: 160 },
-      75: { daoMarks: 3 },
-      100: { daoMarks: 8, title: '百宝阁主' },
-    },
-  },
-  companion: {
-    name: '道侣',
-    desc: '曾结交的道侣',
-    rewards: {
-      25: { stones: 50 },
-      50: { stones: 120, daoMarks: 2 },
-      75: { daoMarks: 4 },
-      100: { daoMarks: 8, title: '红尘知己' },
-    },
-  },
-  secret: {
-    name: '秘境',
-    desc: '曾踏入的秘境',
-    rewards: {
-      25: { stones: 80 },
-      50: { stones: 200, daoMarks: 2 },
-      75: { daoMarks: 5 },
-      100: { daoMarks: 10, title: '秘境行者' },
-    },
-  },
-}
+> = codexDb as Record<
+  CodexPageId,
+  { name: string; desc: string; rewards: Record<number, CodexPageReward> }
+>
 
 const FACTION_LABEL: Record<string, string> = {
   righteous: '正道',
@@ -126,7 +70,7 @@ export function codexEntries(page: CodexPageId): CodexEntry[] {
       return Object.values(ITEMS)
         .filter(
           (i) =>
-            i.id.startsWith('pill_') || i.id.startsWith('treasure_') || i.id.startsWith('mat_'),
+            i.id.startsWith('pill_') || itemCategory(i.id) === 'treasure' || i.id.startsWith('mat_'),
         )
         .map((i) => ({
           id: i.id,
@@ -134,7 +78,7 @@ export function codexEntries(page: CodexPageId): CodexEntry[] {
           desc: i.desc,
           meta: i.id.startsWith('pill_')
             ? '丹药'
-            : i.id.startsWith('treasure_')
+            : itemCategory(i.id) === 'treasure'
               ? '法宝'
               : '材料',
         }))

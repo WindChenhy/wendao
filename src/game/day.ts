@@ -42,7 +42,8 @@ export function advanceTime(t: GameTime, days: number): { time: GameTime; agedYe
  * 收益随境界缓慢上升，但远慢于 expNeeded 的指数抬升 —— 后期突破更难。
  */
 export function cultivateGain(classId: ClassId, realm: RealmId, layer: number): number {
-  const rate = CLASSES[classId].cultivateRate
+  // classId 来自存档，可能损坏；回退到基础修炼速率
+  const rate = CLASSES[classId]?.cultivateRate ?? 1
   const ri = Math.max(0, realmIndex(realm))
   const base = 12 * Math.pow(1.32, ri) * (1 + (layer - 1) * 0.18)
   const variance = 0.85 + Math.random() * 0.3

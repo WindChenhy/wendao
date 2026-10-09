@@ -357,5 +357,57 @@
       "exp": 120000,
       "energy": 8000
     }
+  },
+  {
+    "id": "herb_moonveil",
+    "name": "太阴玄精",
+    "type": "material",
+    "desc": "六阶灵精。月华凝魄，太阴之精，炼虚丹道奇珍。",
+    "price": 52000,
+    "herbTier": 6,
+    "minRealm": "void",
+    "effect": {
+      "exp": 11000,
+      "energy": 1600
+    }
+  },
+  {
+    "id": "herb_zixiao",
+    "name": "紫霄芝",
+    "type": "material",
+    "desc": "七阶灵芝。芝盖紫气凌霄，合体丹道至品。",
+    "price": 190000,
+    "herbTier": 7,
+    "minRealm": "integration",
+    "effect": {
+      "exp": 38000,
+      "energy": 2800
+    }
+  },
+  {
+    "id": "herb_hundunlian",
+    "name": "混沌青莲",
+    "type": "material",
+    "desc": "八阶灵莲。开于混沌未分之际，一叶可镇一方。",
+    "price": 560000,
+    "herbTier": 8,
+    "minRealm": "mahayana",
+    "effect": {
+      "exp": 130000,
+      "hp": 14000
+    }
+  },
+  {
+    "id": "herb_xianluo",
+    "name": "仙落霞露",
+    "type": "material",
+    "desc": "九阶仙露。仙霞坠地所凝，一滴可续百年法力。",
+    "price": 1600000,
+    "herbTier": 9,
+    "minRealm": "tribulation",
+    "effect": {
+      "exp": 300000,
+      "energy": 16000
+    }
   }
 ]

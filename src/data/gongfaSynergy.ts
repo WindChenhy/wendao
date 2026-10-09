@@ -1,9 +1,9 @@
 import { GONGFAS, type GongfaKind } from './gongfa'
 import synergyJson from './db/gongfa_synergy.json'
 
-export type SynergyType = 'school_count' | 'kind_count' | 'mixed_faction' | 'combo'
+type SynergyType = 'school_count' | 'kind_count' | 'mixed_faction' | 'combo'
 
-export interface SynergyEffects {
+interface SynergyEffects {
   atk?: number
   def?: number
   hp?: number
@@ -13,7 +13,7 @@ export interface SynergyEffects {
   breakthrough?: number
 }
 
-export interface SynergyRule {
+interface SynergyRule {
   id: string
   name: string
   desc: string
@@ -26,10 +26,10 @@ export interface SynergyRule {
   flavor?: string
 }
 
-export const SYNERGY_RULES: SynergyRule[] = synergyJson.rules as SynergyRule[]
+const SYNERGY_RULES: SynergyRule[] = synergyJson.rules as SynergyRule[]
 
 /** 功法所属脉系：宗门前缀派生；市井功法为 wandering */
-export function gongfaSchool(id: string): string {
+function gongfaSchool(id: string): string {
   if (id.startsWith('js_')) return 'qingyun'
   if (id.startsWith('ty_')) return 'taiyi'
   if (id.startsWith('ht_')) return 'haoti'
@@ -38,7 +38,7 @@ export function gongfaSchool(id: string): string {
   return 'wandering'
 }
 
-export const SCHOOL_LABEL: Record<string, string> = {
+const SCHOOL_LABEL: Record<string, string> = {
   qingyun: '青云',
   taiyi: '太一',
   haoti: '浩天',
@@ -50,7 +50,7 @@ export const SCHOOL_LABEL: Record<string, string> = {
 const RIGHT_SCHOOLS = new Set(['qingyun', 'taiyi', 'haoti', 'wandering'])
 const DEMON_SCHOOLS = new Set(['xuesha', 'youming'])
 
-export interface ActiveSynergy {
+interface ActiveSynergy {
   rule: SynergyRule
   /** 激活说明 */
   note: string

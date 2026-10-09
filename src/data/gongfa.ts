@@ -8,10 +8,7 @@ export type GongfaGrade = '黄阶' | '玄阶' | '地阶' | '天阶' | '仙阶'
 /** 功法类型：心法主修行、攻击法诀主攻伐、防御法主护身、身法主遁走、锻体法炼体魄 */
 export type GongfaKind = '心法' | '攻击法诀' | '防御法' | '身法' | '锻体法' | '功法'
 
-/** 修习阶段：入门 → 小成 → 大成 → 圆满 */
-export type GongfaStage = 0 | 1 | 2 | 3
-
-export interface GongfaDef {
+interface GongfaDef {
   id: string
   name: string
   grade: GongfaGrade
@@ -38,7 +35,7 @@ export const GONGFA_GRADE_CLASS: Record<GongfaGrade, string> = {
   仙阶: 'text-gold',
 }
 /** 各品阶进阶基础消耗（修为点） */
-export const GONGFA_GRADE_ADVANCE_BASE: Record<GongfaGrade, number> = {
+const GONGFA_GRADE_ADVANCE_BASE: Record<GongfaGrade, number> = {
   黄阶: 200,
   玄阶: 800,
   地阶: 3000,
@@ -50,7 +47,7 @@ export const GONGFA_GRADE_ADVANCE_BASE: Record<GongfaGrade, number> = {
 export const GONGFA_STAGE_LABELS = ['入门', '小成', '大成', '圆满'] as const
 export const GONGFA_STAGE_MUL = [0.5, 0.75, 1, 1.5] as const
 /** 各级进阶消耗倍率：入门→小成、小成→大成、大成→圆满 */
-export const GONGFA_STAGE_ADVANCE_MUL = [1, 3, 6] as const
+const GONGFA_STAGE_ADVANCE_MUL = [1, 3, 6] as const
 
 /** 把功法从当前阶段推进到下一阶段所需修为 */
 export function gongfaAdvanceCost(g: GongfaDef, stage: number): number {
@@ -134,7 +131,7 @@ export function isMarketGongfa(g: GongfaDef): boolean {
 }
 
 /** 功法在当前阶段的加成倍率（0.5/0.75/1/1.5） */
-export function gongfaStageMul(stage: number): number {
+function gongfaStageMul(stage: number): number {
   return GONGFA_STAGE_MUL[Math.min(GONGFA_STAGE_MUL.length - 1, Math.max(0, stage))]
 }
 
@@ -150,7 +147,3 @@ export function gongfaEffectText(g: GongfaDef, stage: number): string {
   return parts.join('、') || '—'
 }
 
-/** 功法列表中当前境界可研习（品阶+起步门槛） */
-export function gongfaLearnableIn(realm: RealmId): GongfaDef[] {
-  return GONGFA_LIST.filter((g) => canLearnGongfaFull(g, realm))
-}

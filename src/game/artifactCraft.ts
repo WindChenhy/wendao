@@ -2,14 +2,13 @@ import {
   ARTIFACT_RECIPE_MAP,
   createArtifactInstance,
   forgeLevelDef,
-  qualityIndex,
   rollQuality,
   type ArtifactInstance,
   type ArtifactQuality,
 } from '../data/artifacts'
 import type { ClassId } from '../types'
 
-export interface CraftOutcome {
+interface CraftOutcome {
   ok: boolean
   rate: number
   instance?: ArtifactInstance
@@ -17,7 +16,7 @@ export interface CraftOutcome {
 }
 
 /** 炼器成功率：配方基础 + 器阁 + 器修 + 道痕 */
-export function artifactCraftRate(opts: {
+function artifactCraftRate(opts: {
   recipeId: string
   classId: ClassId
   daoMarks: number
@@ -69,7 +68,7 @@ export function consumeForgeMaterials(
   return { inventory: inv, stones: nextStones }
 }
 
-export function rollCraftQuality(opts: {
+function rollCraftQuality(opts: {
   recipeId: string
   classId: ClassId
   forgeLevel: number
@@ -122,10 +121,3 @@ export function performCraft(opts: {
   }
 }
 
-export function maxCraftableQualityText(level: number): string {
-  return forgeLevelDef(level).qualityCap
-}
-
-export function isBetterQuality(a: ArtifactQuality, b: ArtifactQuality): boolean {
-  return qualityIndex(a) > qualityIndex(b)
-}

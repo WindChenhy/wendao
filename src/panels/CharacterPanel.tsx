@@ -3,7 +3,7 @@ import { ITEMS } from '../data/items'
 import { REALMS, combatPower, realmLabel } from '../data/realms'
 import { sectRankLabel } from '../data/sects'
 import { isSkillUnlocked, skillsForClass } from '../data/skills'
-import { playerCombatStats } from '../game/combat'
+import { playerCombatStats } from '../game/combatStats'
 import { formatNum } from '../game/format'
 import { useGameStore, gongfaBonuses, treasureBonus } from '../stores/useGameStore'
 

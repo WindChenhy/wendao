@@ -1,8 +1,6 @@
 import type { Gender, RealmId } from '../types'
 import storiesDb from './db/companion_stories.json'
 
-export type CompanionId = string
-
 export interface StoryChoice {
   id: string
   label: string
@@ -201,7 +199,7 @@ const BASE_COMPANIONS: CompanionDef[] = [
 ]
 
 /** 隐藏道侣：高境界 + 特殊事件解锁 */
-export const HIDDEN_COMPANION: CompanionDef = {
+const HIDDEN_COMPANION: CompanionDef = {
   ...(stories.hidden as HiddenCompanionJson),
   postStory: stories.hidden.postStory ?? [],
 }
@@ -209,7 +207,6 @@ export const HIDDEN_COMPANION: CompanionDef = {
 export const COMPANIONS: CompanionDef[] = [...BASE_COMPANIONS, HIDDEN_COMPANION]
 
 /** 非隐藏（默认展示） */
-export const VISIBLE_COMPANIONS: CompanionDef[] = BASE_COMPANIONS
 
 export function companionById(id: string): CompanionDef | undefined {
   return COMPANIONS.find((c) => c.id === id)

@@ -1,5 +1,6 @@
 import type { EnemyDef, RealmId } from '../types'
 import { REALMS, REALM_ORDER, realmCombatBase } from './realms'
+import enemiesDb from './db/enemies.json'
 
 type EnemyTier = 'minion' | 'normal' | 'elite' | 'boss'
 
@@ -17,28 +18,8 @@ interface EnemyTemplate {
   dropRate?: number
 }
 
-/** 历练模板：只决定形象/阵营/强度档，数值在玩家遭遇时按其大境界重算 */
-export const ENEMY_TEMPLATES: EnemyTemplate[] = [
-  // —— 妖兽 · 杂兵/普通 ——
-  { id: 'wolf', name: '山魈', faction: 'beast', tier: 'minion', power: 0.62, matOffset: 0, flavor: '青云山脚的低阶妖兽，成群出没。' },
-  { id: 'snake', name: '碧鳞蛇', faction: 'beast', tier: 'normal', power: 0.78, matOffset: 0, dropRate: 0.55, flavor: '蛇胆可入药，毒性不弱。' },
-  { id: 'boar', name: '铁背野猪', faction: 'beast', tier: 'normal', power: 0.88, matOffset: 0, dropRate: 0.3, flavor: '皮糙肉厚；腹中或藏突破灵物。' },
-  { id: 'fox', name: '赤目狐', faction: 'beast', tier: 'normal', power: 0.82, matOffset: 0, dropRate: 0.4, flavor: '略通幻术，狡诈异常。' },
-  { id: 'horn', name: '裂角犀', faction: 'beast', tier: 'elite', power: 1.02, matOffset: 0, dropRate: 0.45, flavor: '角裂山岩，冲势惊人。' },
-  { id: 'eagle', name: '九天玄鹰', faction: 'beast', tier: 'elite', power: 1.08, matOffset: 1, dropRate: 0.35, flavor: '搏击长空，爪可裂金。' },
-
-  // —— 魔修 ——
-  { id: 'demon_acolyte', name: '血煞魔徒', faction: 'demonic', tier: 'minion', power: 0.7, matOffset: 0, flavor: '魔道外门，专修血煞之气。' },
-  { id: 'demon_guard', name: '魔门护法', faction: 'demonic', tier: 'normal', power: 0.9, matOffset: 0, dropRate: 0.7, flavor: '奉命巡山，见正道修士便杀。' },
-  { id: 'demon_elite', name: '噬魂魔修', faction: 'demonic', tier: 'elite', power: 1.05, matOffset: 1, dropRate: 0.4, flavor: '以魂魄为食，魔功诡异。' },
-  { id: 'demon_elder', name: '魔道长老', faction: 'demonic', tier: 'boss', power: 1.45, matOffset: 1, dropRate: 0.55, flavor: '魔道宿老，杀伐果断。' },
-
-  // —— BOSS ——
-  { id: 'boss_tiger', name: '裂地虎王', faction: 'beast', tier: 'boss', power: 1.4, matOffset: 1, dropRate: 0.55, flavor: '山林之主，啸声震林。' },
-  { id: 'boss_ape', name: '玄冰魔猿', faction: 'beast', tier: 'boss', power: 1.5, matOffset: 1, dropRate: 0.5, flavor: '寒潭深处的远古凶兽。' },
-  { id: 'boss_demon_lord', name: '血魔坛主', faction: 'demonic', tier: 'boss', power: 1.55, matOffset: 1, dropRate: 0.45, flavor: '魔道坛主，血祭苍生。' },
-  { id: 'boss_devour', name: '吞天古蟒', faction: 'beast', tier: 'boss', power: 1.6, matOffset: 1, dropRate: 0.5, flavor: '上古异种残裔，腹中自成小天地。' },
-]
+/** 历练模板：只决定形象/阵营/强度档，数值在玩家遭遇时按其大境界重算；数据见 src/data/db/enemies.json */
+export const ENEMY_TEMPLATES: EnemyTemplate[] = enemiesDb as EnemyTemplate[]
 
 /** 供图鉴展示（基表；实战数值随玩家境界浮动） */
 export const ENEMIES: EnemyDef[] = ENEMY_TEMPLATES.map((t) => ({
@@ -142,9 +123,7 @@ export function previewEnemy(t: EnemyTemplate, playerRealmIndex: number, playerL
   return scaleEnemyToPlayer(t, playerRealmIndex, playerLayer)
 }
 
-export function enemyRealmLabel(e: EnemyDef): string {
-  return `${REALMS[e.realm]?.name ?? e.realm}${e.layer}层`
-}
+
 
 /** 历练敌人 id 形如 `{template}_{realm}_{layer}`，图鉴按模板 id 记录 */
 export function enemyTemplateId(enemyId: string): string {

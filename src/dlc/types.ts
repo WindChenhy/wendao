@@ -22,7 +22,7 @@ export interface DlcPack {
   balance?: DlcBalancePatch
 }
 
-export const DLC_LIST_KEY = 'wendao-dlc-enabled'
+const DLC_LIST_KEY = 'wendao-dlc-enabled'
 
 export function loadEnabledDlc(): string[] {
   try {
@@ -30,13 +30,19 @@ export function loadEnabledDlc(): string[] {
     if (!raw) return []
     const arr = JSON.parse(raw)
     return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : []
-  } catch {
+  } catch (e) {
+      console.warn(e)
     return []
   }
 }
 
 export function saveEnabledDlc(ids: string[]): void {
-  localStorage.setItem(DLC_LIST_KEY, JSON.stringify(ids))
+  try {
+    localStorage.setItem(DLC_LIST_KEY, JSON.stringify(ids))
+  } catch (e) {
+    console.warn(e)
+    // 本地存储不可用时忽略，仅内存生效
+  }
 }
 
 export interface RuntimeRules {
@@ -47,7 +53,7 @@ export interface RuntimeRules {
   extraEvents: WorldEvent[]
 }
 
-export function defaultRules(): RuntimeRules {
+function defaultRules(): RuntimeRules {
   return {
     cultivateMul: 1,
     breakthroughRateDelta: 0,

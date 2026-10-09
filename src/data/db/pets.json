@@ -1,0 +1,52 @@
+{
+  "pets": [
+    {
+      "id": "pet_rabbit",
+      "name": "云月山兔",
+      "desc": "耳尖一点月白，跑起来像掠过的云影。",
+      "skillId": "pet_heal",
+      "skillName": "衔草",
+      "skillDesc": "每 3 回合为你回复少量气血（约 0.6 次普攻量级）",
+      "jobFlavor": ["farm", "guard"]
+    },
+    {
+      "id": "pet_bird",
+      "name": "青羽云雀",
+      "desc": "哨音能乱敌心神，是天生的扰阵好手。",
+      "skillId": "pet_debuff",
+      "skillName": "清啼",
+      "skillDesc": "每 3 回合使敌虚弱 1 回合（攻击 −15%）",
+      "jobFlavor": ["farm", "guard"]
+    },
+    {
+      "id": "pet_turtle",
+      "name": "玄纹石龟",
+      "desc": "壳上天生纹路，看家护院最是稳当。",
+      "skillId": "pet_shield",
+      "skillName": "负碑",
+      "skillDesc": "每 3 回合为你张开小盾（约 0.5 次普攻）",
+      "jobFlavor": ["guard", "farm"]
+    },
+    {
+      "id": "pet_fox",
+      "name": "赤瞳灵狐",
+      "desc": "瞳色如烬，嗅得出灵植好坏。",
+      "skillId": "pet_debuff",
+      "skillName": "魅影",
+      "skillDesc": "每 3 回合使敌虚弱 1 回合（攻击 −15%）",
+      "jobFlavor": ["farm"]
+    }
+  ],
+  "maxLevel": 20,
+  "breakLevel": 10,
+  "bondMax": 100,
+  "assistTurnCd": 3,
+  "assistDmgMul": 0.6,
+  "attrBonusPerLevel": 0.004,
+  "attrBonusCap": 0.1,
+  "farmAssistMul": 0.25,
+  "guardLossReduce": 0.2,
+  "captureBaseRate": 0.7,
+  "capturePity": 3,
+  "feedExpPerItem": 8
+}

@@ -609,6 +609,106 @@
         }
       ],
       "stoneCost": 150000
+    },
+    {
+      "id": "art_spear",
+      "name": "燎原火戟胚",
+      "itemId": "treasure_spear",
+      "desc": "六阶攻宝，戟出燎原。",
+      "baseRate": 26,
+      "craftDays": 11,
+      "minForgeLevel": 3,
+      "qualityFloor": "treasure",
+      "inputs": [
+        {
+          "itemId": "herb_yinyang",
+          "count": 2
+        },
+        {
+          "itemId": "mat_void",
+          "count": 1
+        },
+        {
+          "itemId": "tiger_bone",
+          "count": 3
+        }
+      ],
+      "stoneCost": 16000
+    },
+    {
+      "id": "art_hammer",
+      "name": "崩岳锤胚",
+      "itemId": "treasure_hammer",
+      "desc": "七阶攻宝，一锤崩岳。",
+      "baseRate": 20,
+      "craftDays": 14,
+      "minForgeLevel": 3,
+      "qualityFloor": "treasure",
+      "inputs": [
+        {
+          "itemId": "mat_yangjade",
+          "count": 1
+        },
+        {
+          "itemId": "mat_integration",
+          "count": 1
+        },
+        {
+          "itemId": "herb_sealroot",
+          "count": 2
+        }
+      ],
+      "stoneCost": 55000
+    },
+    {
+      "id": "art_shield",
+      "name": "周天星盾胚",
+      "itemId": "treasure_shield",
+      "desc": "八阶防宝，星盾周天。",
+      "baseRate": 16,
+      "craftDays": 17,
+      "minForgeLevel": 3,
+      "qualityFloor": "immortal",
+      "inputs": [
+        {
+          "itemId": "herb_starcore",
+          "count": 1
+        },
+        {
+          "itemId": "mat_mahayana",
+          "count": 1
+        },
+        {
+          "itemId": "herb_taowu",
+          "count": 1
+        }
+      ],
+      "stoneCost": 160000
+    },
+    {
+      "id": "art_blade",
+      "name": "斩仙飞刀胚",
+      "itemId": "treasure_immortal_blade",
+      "desc": "九阶攻宝，仙人亦斩。",
+      "baseRate": 13,
+      "craftDays": 20,
+      "minForgeLevel": 3,
+      "qualityFloor": "immortal",
+      "inputs": [
+        {
+          "itemId": "herb_xianluo",
+          "count": 1
+        },
+        {
+          "itemId": "mat_tribulation",
+          "count": 1
+        },
+        {
+          "itemId": "herb_tribflower",
+          "count": 1
+        }
+      ],
+      "stoneCost": 260000
     }
   ]
 }

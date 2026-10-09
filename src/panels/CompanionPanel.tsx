@@ -1,5 +1,5 @@
 import { COMPANIONS, companionById, nextStoryBeat, storyEndingLabel } from '../data/companions'
-import { ITEMS } from '../data/items'
+import { ITEMS, itemCategory } from '../data/items'
 import { useGameStore } from '../stores/useGameStore'
 
 export function CompanionPanel() {
@@ -19,7 +19,7 @@ export function CompanionPanel() {
   const dead = !player.alive
   const spouse = companion.spouseId ? companionById(companion.spouseId) : null
   const giftCandidates = Object.entries(inventory).filter(
-    ([id, n]) => n > 0 && !id.startsWith('treasure_') && ITEMS[id],
+    ([id, n]) => n > 0 && itemCategory(id) !== 'treasure' && ITEMS[id],
   )
   const dayKey = `${time.year}-${time.month}-${time.day}`
   const storyBeat = spouse ? nextStoryBeat(spouse, companion.postStage[spouse.id] ?? 0) : null
