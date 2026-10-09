@@ -1,8 +1,6 @@
 import type { Gender, RealmId } from '../types'
 import storiesDb from './db/companion_stories.json'
 
-export type CompanionId = string
-
 export interface StoryChoice {
   id: string
   label: string

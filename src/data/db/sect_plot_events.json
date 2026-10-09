@@ -114,7 +114,7 @@
     "pack": "sect_plot",
     "title": "外门请愿",
     "text": "外门弟子跪了一地：月例拖欠三月，请宗门开仓。若开仓，池子见肉疼；若驳回，人心见冷。",
-    "gates": { "requireSect": true, "minRank": "steward" },
+    "gates": { "requireSect": true },
     "weight": 0.8,
     "actions": [
       {

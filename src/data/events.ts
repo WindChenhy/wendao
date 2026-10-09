@@ -3,7 +3,7 @@ import { sectRankIndex, type SectRank } from './sects'
 import type { ClassId, RealmId } from '../types'
 import eventsDb from './db/events.json'
 
-export type WorldEventType =
+type WorldEventType =
   | 'secret_realm'
   | 'treasure'
   | 'boss'
@@ -14,9 +14,9 @@ export type WorldEventType =
   | 'companion'
   | 'omen'
 
-export type EventPack = 'core' | 'sect_storm' | 'faction_war' | 'omen' | 'dlc'
+type EventPack = 'core' | 'sect_storm' | 'faction_war' | 'omen' | 'dlc'
 
-export interface EventCost {
+interface EventCost {
   stones?: number
   contribution?: number
   items?: Record<string, number>
@@ -42,6 +42,10 @@ export interface EventOutcome {
   companionId?: string
   /** v1.2 灵兽认主 */
   petId?: string
+  /** v1.2 安抚/捕捉灵兽的成功率；缺省表示必定获得 */
+  captureRate?: number
+  /** captureRate 存在时失败结算的文案 */
+  failText?: string
   ending?: 'he' | 'be'
   /** combat 失败时的结算；缺省用 lose 文案 */
   win?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
@@ -55,7 +59,7 @@ export interface WorldEventAction {
   outcome?: EventOutcome
 }
 
-export interface EventGates {
+interface EventGates {
   minRealm?: RealmId
   minLayer?: number
   maxRealm?: RealmId
@@ -135,7 +139,7 @@ function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolea
   return true
 }
 
-export function eventPassesGates(evt: WorldEvent, ctx: EventGateContext): boolean {
+function eventPassesGates(evt: WorldEvent, ctx: EventGateContext): boolean {
   // 兼容旧 payload.minRealm
   const legacyMin = evt.payload?.minRealm
   if (legacyMin && realmIndex(ctx.realm) < realmIndex(legacyMin)) return false
@@ -143,10 +147,10 @@ export function eventPassesGates(evt: WorldEvent, ctx: EventGateContext): boolea
 }
 
 /** 本体事件池（含 v0.9 主题包）；DLC 追加事件由 rules.extraEvents 合并 */
-export const WORLD_EVENTS: WorldEvent[] = eventsDb.events as WorldEvent[]
+const WORLD_EVENTS: WorldEvent[] = eventsDb.events as WorldEvent[]
 
 /** 奇遇触发率：约 12% */
-export const WORLD_EVENT_RATE = 0.12
+const WORLD_EVENT_RATE = 0.12
 
 /**
  * 按门槛过滤后加权抽取。ctx 不完整时退化为仅境界过滤。

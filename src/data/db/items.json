@@ -1017,133 +1017,6 @@
       }
     },
     {
-      "id": "herb_spiritgrass",
-      "name": "养神草",
-      "type": "material",
-      "desc": "一阶灵草。安神定志，可炼清心丹。",
-      "price": 35,
-      "herbTier": 1,
-      "minRealm": "qi",
-      "effect": {
-        "energy": 20
-      }
-    },
-    {
-      "id": "herb_frost",
-      "name": "寒霜叶",
-      "type": "material",
-      "desc": "二阶灵叶。性寒清热，解毒良材。",
-      "price": 130,
-      "herbTier": 2,
-      "minRealm": "qi",
-      "effect": {
-        "hp": 60,
-        "energy": 30
-      }
-    },
-    {
-      "id": "herb_flame",
-      "name": "赤焰花",
-      "type": "material",
-      "desc": "二阶灵花。性烈如火，可炼回灵之丹。",
-      "price": 160,
-      "herbTier": 2,
-      "minRealm": "foundation",
-      "effect": {
-        "energy": 50
-      }
-    },
-    {
-      "id": "herb_cloud",
-      "name": "云母芝",
-      "type": "material",
-      "desc": "三阶灵芝。云气缠绕，养气第一。",
-      "price": 900,
-      "herbTier": 3,
-      "minRealm": "golden_core",
-      "effect": {
-        "exp": 350,
-        "energy": 80
-      }
-    },
-    {
-      "id": "herb_ghoul",
-      "name": "阴魂草",
-      "type": "material",
-      "desc": "三阶阴草。鬼修所喜，亦可炼魂丹。",
-      "price": 750,
-      "herbTier": 3,
-      "minRealm": "golden_core",
-      "effect": {
-        "exp": 280
-      }
-    },
-    {
-      "id": "herb_auroraleaf",
-      "name": "极光叶",
-      "type": "material",
-      "desc": "四阶灵叶。叶脉流光，明目清神。",
-      "price": 4000,
-      "herbTier": 4,
-      "minRealm": "nascent_soul",
-      "effect": {
-        "energy": 220,
-        "exp": 700
-      }
-    },
-    {
-      "id": "herb_thunder",
-      "name": "雷纹木心",
-      "type": "material",
-      "desc": "五阶雷木之心。内蕴一丝劫雷。",
-      "price": 16000,
-      "herbTier": 5,
-      "minRealm": "spirit_sea",
-      "effect": {
-        "exp": 3500,
-        "hp": 900
-      }
-    },
-    {
-      "id": "herb_iceheart",
-      "name": "冰心玉髓",
-      "type": "material",
-      "desc": "六阶玉髓。寒玉之心，镇火安神。",
-      "price": 55000,
-      "herbTier": 6,
-      "minRealm": "void",
-      "effect": {
-        "energy": 1200,
-        "exp": 12000
-      }
-    },
-    {
-      "id": "herb_goldlotus",
-      "name": "金莲子",
-      "type": "material",
-      "desc": "七阶金莲所结。佛道双修皆重。",
-      "price": 180000,
-      "herbTier": 7,
-      "minRealm": "integration",
-      "effect": {
-        "exp": 35000,
-        "hp": 8000
-      }
-    },
-    {
-      "id": "herb_starcore",
-      "name": "星核",
-      "type": "material",
-      "desc": "八阶星骸精华。一点星光可开山。",
-      "price": 550000,
-      "herbTier": 8,
-      "minRealm": "mahayana",
-      "effect": {
-        "exp": 120000,
-        "energy": 8000
-      }
-    },
-    {
       "id": "mat_panacea",
       "name": "万应灵液",
       "type": "material",
@@ -1223,6 +1096,174 @@
       "price": 880000,
       "treasureTier": 8,
       "minRealm": "mahayana"
+    },
+    {
+      "id": "pill_core_heal",
+      "name": "玉露续脉散",
+      "type": "consumable",
+      "desc": "三品丹·一纹。玉露续脉，断裂经脉亦可温养。",
+      "price": 3000,
+      "pillGrade": 3,
+      "danMarks": 1,
+      "minRealm": "golden_core",
+      "maxRealm": "spirit_sea",
+      "effect": {
+        "hp": 900,
+        "energy": 200
+      }
+    },
+    {
+      "id": "pill_void_heal",
+      "name": "锁魂固元丹",
+      "type": "consumable",
+      "desc": "六品丹·二纹。锁魂固元，炼虚恶战后的保命丹。",
+      "price": 150000,
+      "pillGrade": 6,
+      "danMarks": 2,
+      "minRealm": "void",
+      "maxRealm": "mahayana",
+      "effect": {
+        "hp": 30000,
+        "energy": 2500
+      }
+    },
+    {
+      "id": "pill_maha_heal",
+      "name": "道元续命丹",
+      "type": "consumable",
+      "desc": "八品丹·三纹。道元续命，形神俱损亦可挽回。",
+      "price": 700000,
+      "pillGrade": 8,
+      "danMarks": 3,
+      "minRealm": "mahayana",
+      "effect": {
+        "hp": 130000,
+        "energy": 12000
+      }
+    },
+    {
+      "id": "pill_trib_heal",
+      "name": "仙元护命丹",
+      "type": "consumable",
+      "desc": "九品丹·四纹。仙元护命，天劫之下多一分生机。",
+      "price": 2400000,
+      "pillGrade": 9,
+      "danMarks": 4,
+      "minRealm": "tribulation",
+      "effect": {
+        "hp": 380000,
+        "energy": 30000
+      }
+    },
+    {
+      "id": "pill_mana9_w5",
+      "name": "劫雷洗髓丹·五纹",
+      "type": "consumable",
+      "desc": "九品丹·五纹。五纹洗髓，劫雷亦为己用。",
+      "price": 9000000,
+      "pillGrade": 9,
+      "danMarks": 5,
+      "minRealm": "tribulation",
+      "effect": {
+        "energy": 200000,
+        "exp": 200000
+      }
+    },
+    {
+      "id": "pill_maha_cleanse",
+      "name": "太清涤尘丹",
+      "type": "consumable",
+      "desc": "八品丹·二纹。太清道气涤荡心尘，魔染心魔一扫而空。",
+      "price": 560000,
+      "pillGrade": 8,
+      "danMarks": 2,
+      "minRealm": "mahayana",
+      "effect": {
+        "exp": 60000,
+        "energy": 6000,
+        "special": "cleanse"
+      }
+    },
+    {
+      "id": "pill_huanhun",
+      "name": "九转还魂丹",
+      "type": "consumable",
+      "desc": "九品丹·五纹。九转逆命，气绝之境亦可还魂复生。",
+      "price": 4800000,
+      "pillGrade": 9,
+      "danMarks": 5,
+      "minRealm": "tribulation",
+      "effect": {
+        "hp": 500000,
+        "special": "full_heal"
+      }
+    },
+    {
+      "id": "pill_maha_w3",
+      "name": "大乘道丹·三纹",
+      "type": "consumable",
+      "desc": "八品丹·三纹。三纹道环，服之如闻大乘妙音。",
+      "price": 1650000,
+      "pillGrade": 8,
+      "danMarks": 3,
+      "minRealm": "mahayana",
+      "effect": {
+        "exp": 480000
+      }
+    },
+    {
+      "id": "treasure_copper_bell",
+      "name": "辟邪铜铃",
+      "type": "material",
+      "desc": "一阶法宝·防。铃音清越，辟邪护身。",
+      "price": 800,
+      "treasureTier": 1,
+      "minRealm": "qi"
+    },
+    {
+      "id": "treasure_spear",
+      "name": "燎原火戟",
+      "type": "material",
+      "desc": "六阶法宝·攻。戟出燎原，焚敌千里。",
+      "price": 125000,
+      "treasureTier": 6,
+      "minRealm": "void"
+    },
+    {
+      "id": "treasure_hammer",
+      "name": "崩岳锤",
+      "type": "material",
+      "desc": "七阶法宝·攻。一锤崩岳，山川变色。",
+      "price": 360000,
+      "treasureTier": 7,
+      "minRealm": "integration"
+    },
+    {
+      "id": "treasure_shield",
+      "name": "周天星盾",
+      "type": "material",
+      "desc": "八阶法宝·防。星盾周天，万法不侵。",
+      "price": 950000,
+      "treasureTier": 8,
+      "minRealm": "mahayana"
+    },
+    {
+      "id": "treasure_immortal_blade",
+      "name": "斩仙飞刀",
+      "type": "material",
+      "desc": "九阶法宝·攻。飞刀出手，仙人亦斩。",
+      "price": 3200000,
+      "treasureTier": 9,
+      "minRealm": "tribulation"
+    },
+    {
+      "id": "treasure_dao_lotus",
+      "name": "道韵青莲",
+      "type": "material",
+      "desc": "九阶法宝·修。青莲绽道韵，冲击壁垒稳如磐石。",
+      "price": 2800000,
+      "treasureTier": 9,
+      "minRealm": "tribulation"
     }
   ],
   "treasureBonus": {
@@ -1294,6 +1335,28 @@
       "cultivate": 0.15,
       "breakthrough": 8,
       "dodge": 0.04
+    },
+    "treasure_copper_bell": {
+      "def": 0.1,
+      "hp": 0.05
+    },
+    "treasure_spear": {
+      "atk": 0.42
+    },
+    "treasure_hammer": {
+      "atk": 0.45,
+      "hp": 0.08
+    },
+    "treasure_shield": {
+      "def": 0.38,
+      "hp": 0.15
+    },
+    "treasure_immortal_blade": {
+      "atk": 0.55
+    },
+    "treasure_dao_lotus": {
+      "breakthrough": 12,
+      "cultivate": 0.18
     }
   },
   "breakthroughPills": [
@@ -1384,7 +1447,15 @@
       "pill_mana8",
       "pill_mana8_w5",
       "pill_mana9",
-      "pill_stone"
+      "pill_stone",
+      "pill_core_heal",
+      "pill_void_heal",
+      "pill_maha_heal",
+      "pill_trib_heal",
+      "pill_mana9_w5",
+      "pill_maha_cleanse",
+      "pill_huanhun",
+      "pill_maha_w3"
     ],
     "herb": [
       "herb_qi",
@@ -1426,7 +1497,11 @@
       "mat_panacea",
       "mat_thunderwood",
       "mat_starsteel",
-      "mat_yangjade"
+      "mat_yangjade",
+      "herb_moonveil",
+      "herb_zixiao",
+      "herb_hundunlian",
+      "herb_xianluo"
     ],
     "treasure": [
       "treasure_sword",
@@ -1447,7 +1522,13 @@
       "treasure_ropes",
       "treasure_umbrella",
       "treasure_pagoda9",
-      "treasure_qin"
+      "treasure_qin",
+      "treasure_copper_bell",
+      "treasure_spear",
+      "treasure_hammer",
+      "treasure_shield",
+      "treasure_immortal_blade",
+      "treasure_dao_lotus"
     ]
   }
 }

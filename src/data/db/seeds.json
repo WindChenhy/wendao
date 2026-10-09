@@ -168,5 +168,105 @@
     "yieldMin": 1,
     "yieldMax": 1,
     "seedPrice": 150000
+  },
+  {
+    "id": "seed_ghoul",
+    "name": "阴魂草种",
+    "desc": "阴气滋养，廿六日成。三阶。",
+    "growDays": 26,
+    "yieldItemId": "herb_ghoul",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 560
+  },
+  {
+    "id": "seed_nightjade",
+    "name": "夜光玉髓草种",
+    "desc": "夜光入土，四十二日成。四阶。",
+    "growDays": 42,
+    "yieldItemId": "herb_nightjade",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 2900
+  },
+  {
+    "id": "seed_starfern",
+    "name": "星霜蕨种",
+    "desc": "星霜沃土，六十八日成蕨。五阶。",
+    "growDays": 68,
+    "yieldItemId": "herb_starfern",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 11000
+  },
+  {
+    "id": "seed_yinyang",
+    "name": "阴阳藤种",
+    "desc": "双色缠生，八十五日成藤。六阶。",
+    "growDays": 85,
+    "yieldItemId": "herb_yinyang",
+    "yieldMin": 1,
+    "yieldMax": 2,
+    "seedPrice": 35000
+  },
+  {
+    "id": "seed_iceheart",
+    "name": "冰心玉髓种",
+    "desc": "寒玉之心，八十八日凝成。六阶。",
+    "growDays": 88,
+    "yieldItemId": "herb_iceheart",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 40000
+  },
+  {
+    "id": "seed_sealroot",
+    "name": "封灵根种",
+    "desc": "百五日锁灵成根。七阶。",
+    "growDays": 105,
+    "yieldItemId": "herb_sealroot",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 105000
+  },
+  {
+    "id": "seed_hundunlian",
+    "name": "混沌青莲种",
+    "desc": "混沌莲子，百三十五日开莲。八阶。",
+    "growDays": 135,
+    "yieldItemId": "herb_hundunlian",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 420000
+  },
+  {
+    "id": "seed_taowu",
+    "name": "桃悟枝插",
+    "desc": "悟道桃枝入土，百廿五日抽芽。八阶。",
+    "growDays": 125,
+    "yieldItemId": "herb_taowu",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 360000
+  },
+  {
+    "id": "seed_tribflower",
+    "name": "渡劫花种",
+    "desc": "雷云散后播种，百五十日开花。九阶。",
+    "growDays": 150,
+    "yieldItemId": "herb_tribflower",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 900000
+  },
+  {
+    "id": "seed_xianluo",
+    "name": "仙落霞露种",
+    "desc": "承仙霞之种，百五十五日凝露。九阶。",
+    "growDays": 155,
+    "yieldItemId": "herb_xianluo",
+    "yieldMin": 1,
+    "yieldMax": 1,
+    "seedPrice": 1200000
   }
 ]

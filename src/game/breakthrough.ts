@@ -3,7 +3,7 @@ import { materialName, requiredMaterial } from '../data/items'
 import { REALMS, expNeeded, nextRealm } from '../data/realms'
 import type { ClassId, RealmId } from '../types'
 
-export interface BreakthroughResult {
+interface BreakthroughResult {
   success: boolean
   severity: 'none' | 'minor' | 'major' | 'critical'
   rate: number
@@ -33,6 +33,8 @@ export function attemptBreakthrough(
   const isMajorCross = layer >= def.layers
   const isTribulation = realm === 'tribulation' || realm === 'mahayana'
   const mat = isMajorCross ? requiredMaterial(realm, layer) : null
+  // 方案 §2.3-A：魔修突破天劫换皮为心魔劫/煞火焚身
+  const isDemon = classId === 'demon'
 
   if (r < rate) {
     return {
@@ -40,7 +42,9 @@ export function attemptBreakthrough(
       severity: 'none',
       rate,
       message: isMajorCross
-        ? `${mat ? materialName(mat) + '化开，' : ''}雷云散尽，你踏入「${REALMS[nextRealm(realm) ?? realm].name}」！`
+        ? isDemon
+          ? `${mat ? materialName(mat) + '化开，' : ''}心魔退散，煞火焚身而不侵，你踏入「${REALMS[nextRealm(realm) ?? realm].name}」！`
+          : `${mat ? materialName(mat) + '化开，' : ''}雷云散尽，你踏入「${REALMS[nextRealm(realm) ?? realm].name}」！`
         : `灵力贯通，境界稳固于${def.name}${Math.min(def.layers, layer + 1)}层。`,
     }
   }
@@ -50,7 +54,9 @@ export function attemptBreakthrough(
       success: false,
       severity: 'critical',
       rate,
-      message: '天劫反噬，道基崩裂！重伤并损失大量修为。',
+      message: isDemon
+        ? '心魔劫反噬，煞气逆乱，道基崩裂！重伤并损失大量修为。'
+        : '天劫反噬，道基崩裂！重伤并损失大量修为。',
     }
   }
   if (isMajorCross) {
@@ -58,7 +64,9 @@ export function attemptBreakthrough(
       success: false,
       severity: 'major',
       rate,
-      message: `突破${def.name}圆满失败${mat ? `（${materialName(mat)}可保灵力不失）` : ''}，气血逆冲，境界跌落一层。`,
+      message: isDemon
+        ? `突破${def.name}圆满失败${mat ? `（${materialName(mat)}可镇煞护脉）` : ''}，煞气逆冲，境界跌落一层。`
+        : `突破${def.name}圆满失败${mat ? `（${materialName(mat)}可保灵力不失）` : ''}，气血逆冲，境界跌落一层。`,
     }
   }
   return {

@@ -1,6 +1,7 @@
 import { formatOfflineDuration } from '../game/offline'
 import { formatNum } from '../game/format'
-import { useGameStore, type OfflinePending } from '../stores/useGameStore'
+import type { OfflinePending } from '../types'
+import { useGameStore } from '../stores/useGameStore'
 
 export function OfflineReturnModal() {
   const pending = useGameStore((s) => s.offlinePending)

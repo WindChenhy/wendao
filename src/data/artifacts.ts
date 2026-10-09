@@ -1,12 +1,12 @@
 import artifactDb from './db/artifact_recipes.json'
-import { ITEMS } from './items'
+import { ITEMS, itemCategory } from './items'
 import type { ClassId } from '../types'
 
 export type ArtifactQuality = 'mortal' | 'spirit' | 'treasure' | 'immortal'
 
-export type AffixKind = 'combat' | 'cultivate' | 'battle'
+type AffixKind = 'combat' | 'cultivate' | 'battle'
 
-export interface AffixDef {
+interface AffixDef {
   id: string
   name: string
   desc: string
@@ -24,7 +24,7 @@ export interface AffixDef {
   skillMul?: number
 }
 
-export interface Affix {
+interface Affix {
   id: string
 }
 
@@ -42,7 +42,7 @@ export interface ArtifactInstance {
   recipeId?: string
 }
 
-export interface ArtifactRecipeDef {
+interface ArtifactRecipeDef {
   id: string
   name: string
   itemId: string
@@ -55,14 +55,14 @@ export interface ArtifactRecipeDef {
   stoneCost: number
 }
 
-export interface QualityDef {
+interface QualityDef {
   id: ArtifactQuality
   name: string
   affixCount: number
   weight: number
 }
 
-export interface ForgeLevelDef {
+interface ForgeLevelDef {
   level: number
   name: string
   desc?: string
@@ -74,19 +74,19 @@ export interface ForgeLevelDef {
 
 const QUALITY_ORDER: ArtifactQuality[] = ['mortal', 'spirit', 'treasure', 'immortal']
 
-export const QUALITIES: Record<ArtifactQuality, QualityDef> = artifactDb.qualities as Record<
+const QUALITIES: Record<ArtifactQuality, QualityDef> = artifactDb.qualities as Record<
   ArtifactQuality,
   QualityDef
 >
-export const AFFIXES: AffixDef[] = artifactDb.affixes as AffixDef[]
-export const AFFIX_MAP: Record<string, AffixDef> = Object.fromEntries(AFFIXES.map((a) => [a.id, a]))
-export const FORGE_LEVELS: ForgeLevelDef[] = artifactDb.forgeLevels as ForgeLevelDef[]
+const AFFIXES: AffixDef[] = artifactDb.affixes as AffixDef[]
+const AFFIX_MAP: Record<string, AffixDef> = Object.fromEntries(AFFIXES.map((a) => [a.id, a]))
+const FORGE_LEVELS: ForgeLevelDef[] = artifactDb.forgeLevels as ForgeLevelDef[]
 export const ARTIFACT_RECIPES: ArtifactRecipeDef[] = artifactDb.recipes as ArtifactRecipeDef[]
 export const ARTIFACT_RECIPE_MAP: Record<string, ArtifactRecipeDef> = Object.fromEntries(
   ARTIFACT_RECIPES.map((r) => [r.id, r]),
 )
 
-export function qualityIndex(q: ArtifactQuality): number {
+function qualityIndex(q: ArtifactQuality): number {
   return QUALITY_ORDER.indexOf(q)
 }
 
@@ -189,8 +189,8 @@ export function makeArtifactUid(): string {
 export function artifactDisplayName(itemId: string, fallback?: string): string {
   const item = ITEMS[itemId]?.name
   if (item) return item
-  // 兜底：历史脏数据里 name 存了 id 时也不展示 treasure_xxx
-  if (fallback && fallback !== itemId && !fallback.startsWith('treasure_') && !fallback.startsWith('art_')) {
+  // 兜底：历史脏数据里 name 存了 id 时也不展示 treasure_xxx / art_xxx
+  if (fallback && fallback !== itemId && itemCategory(fallback) !== 'treasure' && !fallback.startsWith('art_')) {
     return fallback
   }
   return fallback && fallback !== itemId ? fallback : itemId

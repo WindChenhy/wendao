@@ -11,6 +11,7 @@ import {
 } from '../data/sectQuests'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
+import { useState } from 'react'
 import {
   SECT_BUILDINGS,
   buildingLevel,
@@ -22,6 +23,7 @@ import { useCountUp } from '../components/useCountUp'
 import { DONATE_STONES_PER_POOL } from '../data/sectBuildings'
 
 export function SectPanel() {
+  const [customDonation, setCustomDonation] = useState('')
   const player = useGameStore((s) => s.player)
   const sect = useGameStore((s) => s.sect)
   const gongfa = useGameStore((s) => s.gongfa)
@@ -353,6 +355,30 @@ export function SectPanel() {
               </button>
               <button className="pixel-btn text-xs" disabled={dead || stones < 500 || inCombat} onClick={() => donateToPool(500)}>
                 捐 500 灵石
+              </button>
+              <input
+                type="number"
+                min={10}
+                className="bg-black/30 border border-border px-2 py-1 w-20 text-xs"
+                value={customDonation}
+                placeholder="自定义"
+                onChange={(e) => setCustomDonation(e.target.value)}
+              />
+              <button
+                className="pixel-btn text-xs"
+                disabled={
+                  dead ||
+                  inCombat ||
+                  !customDonation ||
+                  Math.floor(Number(customDonation)) < 10 ||
+                  stones < Math.floor(Number(customDonation))
+                }
+                onClick={() => {
+                  donateToPool(Math.floor(Number(customDonation)))
+                  setCustomDonation('')
+                }}
+              >
+                捐入池
               </button>
               {isMaster && (
                 <button

@@ -639,5 +639,219 @@
     "outputCount": 1,
     "craftDays": 3,
     "baseRate": 26
+  },
+  {
+    "id": "craft_pill_core_heal",
+    "name": "炼玉露续脉散",
+    "desc": "云母芝携月华入炉，续脉之散。",
+    "inputs": [
+      {
+        "itemId": "herb_cloud",
+        "count": 1
+      },
+      {
+        "itemId": "herb_moon",
+        "count": 2
+      }
+    ],
+    "outputItemId": "pill_core_heal",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 46
+  },
+  {
+    "id": "craft_pill_god_heal",
+    "name": "炼莲身丹",
+    "desc": "莲瓣淬以雷霜星露，可炼莲身。",
+    "inputs": [
+      {
+        "itemId": "herb_godpetal",
+        "count": 1
+      },
+      {
+        "itemId": "herb_thunder",
+        "count": 1
+      },
+      {
+        "itemId": "herb_starfern",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_god_heal",
+    "outputCount": 1,
+    "craftDays": 7,
+    "baseRate": 36
+  },
+  {
+    "id": "craft_pill_void_heal",
+    "name": "炼锁魂固元丹",
+    "desc": "冰心锁魂，虚空晶固元。",
+    "inputs": [
+      {
+        "itemId": "herb_iceheart",
+        "count": 1
+      },
+      {
+        "itemId": "herb_yinyang",
+        "count": 1
+      },
+      {
+        "itemId": "mat_void",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_void_heal",
+    "outputCount": 1,
+    "craftDays": 9,
+    "baseRate": 30
+  },
+  {
+    "id": "craft_pill_mana8",
+    "name": "炼大道灵犀丹",
+    "desc": "星核映金莲，一点即通。",
+    "inputs": [
+      {
+        "itemId": "herb_starcore",
+        "count": 1
+      },
+      {
+        "itemId": "herb_goldlotus",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana8",
+    "outputCount": 1,
+    "craftDays": 12,
+    "baseRate": 26
+  },
+  {
+    "id": "craft_pill_maha_heal",
+    "name": "炼道元续命丹",
+    "desc": "混沌青莲为君，道种为引。",
+    "inputs": [
+      {
+        "itemId": "herb_hundunlian",
+        "count": 1
+      },
+      {
+        "itemId": "herb_starcore",
+        "count": 1
+      },
+      {
+        "itemId": "mat_mahayana",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_maha_heal",
+    "outputCount": 1,
+    "craftDays": 13,
+    "baseRate": 24
+  },
+  {
+    "id": "craft_pill_maha_cleanse",
+    "name": "炼太清涤尘丹",
+    "desc": "冰心佐道果，涤尘明道。",
+    "inputs": [
+      {
+        "itemId": "herb_iceheart",
+        "count": 1
+      },
+      {
+        "itemId": "herb_daofruit",
+        "count": 1
+      },
+      {
+        "itemId": "mat_mahayana",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_maha_cleanse",
+    "outputCount": 1,
+    "craftDays": 12,
+    "baseRate": 26
+  },
+  {
+    "id": "craft_pill_rebirth",
+    "name": "炼还魂丹",
+    "desc": "极光兰为引，还魂吊命。",
+    "inputs": [
+      {
+        "itemId": "herb_aurora",
+        "count": 2
+      },
+      {
+        "itemId": "herb_goldlotus",
+        "count": 1
+      },
+      {
+        "itemId": "mat_integration",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_rebirth",
+    "outputCount": 1,
+    "craftDays": 12,
+    "baseRate": 22
+  },
+  {
+    "id": "craft_pill_mana9",
+    "name": "炼劫雷洗髓丹",
+    "desc": "渡劫花承仙露，洗髓伐毛。",
+    "inputs": [
+      {
+        "itemId": "herb_tribflower",
+        "count": 1
+      },
+      {
+        "itemId": "herb_xianluo",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_mana9",
+    "outputCount": 1,
+    "craftDays": 15,
+    "baseRate": 22
+  },
+  {
+    "id": "craft_pill_trib_heal",
+    "name": "炼仙元护命丹",
+    "desc": "仙露养仙胎，护命一丹。",
+    "inputs": [
+      {
+        "itemId": "herb_xianluo",
+        "count": 1
+      },
+      {
+        "itemId": "herb_xiantai",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_trib_heal",
+    "outputCount": 1,
+    "craftDays": 16,
+    "baseRate": 20
+  },
+  {
+    "id": "craft_pill_maha_w3",
+    "name": "炼三纹大乘道丹",
+    "desc": "三味同炉，养纹如养道。",
+    "inputs": [
+      {
+        "itemId": "herb_daofruit",
+        "count": 1
+      },
+      {
+        "itemId": "herb_taowu",
+        "count": 1
+      },
+      {
+        "itemId": "herb_hundunlian",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_maha_w3",
+    "outputCount": 1,
+    "craftDays": 15,
+    "baseRate": 20
   }
 ]

@@ -1180,5 +1180,192 @@
       "atk": 0.12,
       "hp": 0.1
     }
+  },
+  {
+    "id": "gf_shifu",
+    "name": "石肤诀",
+    "grade": "黄阶",
+    "kind": "防御法",
+    "desc": "凝气成肤，坚如顽石，练气护身第一课。",
+    "minRealm": "qi",
+    "maxRealm": "foundation",
+    "price": 190,
+    "effect": {
+      "def": 0.07
+    }
+  },
+  {
+    "id": "gf_yuanying_gang",
+    "name": "元婴护身罡",
+    "grade": "地阶",
+    "kind": "防御法",
+    "desc": "元婴罡气护体，恶战可恃。",
+    "minRealm": "nascent_soul",
+    "maxRealm": "integration",
+    "price": 4300,
+    "effect": {
+      "def": 0.15,
+      "hp": 0.08
+    }
+  },
+  {
+    "id": "gf_xujing_lianxing",
+    "name": "虚境炼形篇",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "以虚空之境淬炼形体，炼虚以上方成。",
+    "minRealm": "void",
+    "maxRealm": "ascended",
+    "price": 21000,
+    "effect": {
+      "hp": 0.26,
+      "def": 0.1
+    }
+  },
+  {
+    "id": "gf_jieyun_dun",
+    "name": "劫云遁",
+    "grade": "天阶",
+    "kind": "身法",
+    "desc": "遁入劫云之间，雷火难沾其身。",
+    "minRealm": "void",
+    "maxRealm": "tribulation",
+    "price": 18500,
+    "effect": {
+      "dodge": 0.1,
+      "cultivate": 0.04
+    }
+  },
+  {
+    "id": "gf_zhoutian_hu",
+    "name": "周天护身箓",
+    "grade": "天阶",
+    "kind": "防御法",
+    "desc": "周天星力书箓护身，合体以上可恃。",
+    "minRealm": "integration",
+    "maxRealm": "ascended",
+    "price": 32000,
+    "effect": {
+      "def": 0.26,
+      "hp": 0.12
+    }
+  },
+  {
+    "id": "gf_xiumi_bu",
+    "name": "须弥芥子步",
+    "grade": "天阶",
+    "kind": "身法",
+    "desc": "芥子纳须弥，一步缩千山。",
+    "minRealm": "integration",
+    "price": 30000,
+    "effect": {
+      "dodge": 0.12,
+      "hp": 0.06
+    }
+  },
+  {
+    "id": "gf_yunxing_zhi",
+    "name": "陨星指",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "指落如陨星坠空，一击开山。",
+    "minRealm": "integration",
+    "maxRealm": "tribulation",
+    "price": 34000,
+    "effect": {
+      "atk": 0.3,
+      "dodge": 0.05
+    }
+  },
+  {
+    "id": "gf_hunyuan_zhao",
+    "name": "混元道罩",
+    "grade": "天阶",
+    "kind": "防御法",
+    "desc": "混元一气成罩，大乘以下难破。",
+    "minRealm": "mahayana",
+    "price": 72000,
+    "effect": {
+      "def": 0.28,
+      "hp": 0.16
+    }
+  },
+  {
+    "id": "gf_wanjie_bumo",
+    "name": "万劫不磨体",
+    "grade": "天阶",
+    "kind": "锻体法",
+    "desc": "万劫磨砺而不损，道体近乎不灭。",
+    "minRealm": "mahayana",
+    "maxRealm": "ascended",
+    "price": 78000,
+    "effect": {
+      "hp": 0.32,
+      "def": 0.16
+    }
+  },
+  {
+    "id": "gf_mieji_lei",
+    "name": "灭劫神雷指",
+    "grade": "天阶",
+    "kind": "攻击法诀",
+    "desc": "引劫雷于一指，渡劫期攻伐之冠。",
+    "minRealm": "tribulation",
+    "price": 140000,
+    "effect": {
+      "atk": 0.46
+    }
+  },
+  {
+    "id": "gf_jinguang_zhou",
+    "name": "金光护道咒",
+    "grade": "天阶",
+    "kind": "防御法",
+    "desc": "金光咒成，护道周全，天劫亦难侵。",
+    "minRealm": "tribulation",
+    "price": 135000,
+    "effect": {
+      "def": 0.3,
+      "hp": 0.2
+    }
+  },
+  {
+    "id": "gf_suodi_cun",
+    "name": "缩地成寸",
+    "grade": "天阶",
+    "kind": "身法",
+    "desc": "缩地成寸，千里一瞬，遁术之极。",
+    "minRealm": "tribulation",
+    "price": 125000,
+    "effect": {
+      "dodge": 0.15,
+      "atk": 0.06
+    }
+  },
+  {
+    "id": "gf_wangqing",
+    "name": "太上忘情录",
+    "grade": "仙阶",
+    "kind": "心法",
+    "desc": "传世仙经。太上忘情，道心通明，修行一日千里。",
+    "minRealm": "mahayana",
+    "price": 1600000,
+    "effect": {
+      "cultivate": 0.5,
+      "hp": 0.15
+    }
+  },
+  {
+    "id": "gf_zhuxian",
+    "name": "诛仙剑典",
+    "grade": "仙阶",
+    "kind": "攻击法诀",
+    "desc": "传世仙经。剑成可诛仙伐神，锋芒盖世。",
+    "minRealm": "tribulation",
+    "price": 2200000,
+    "effect": {
+      "atk": 0.55,
+      "dodge": 0.05
+    }
   }
 ]

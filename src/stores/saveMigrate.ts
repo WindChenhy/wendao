@@ -2,22 +2,25 @@ import { emptyCollection } from '../data/codex'
 import { GONGFAS, gongfaByScrollId, isMarketGongfa } from '../data/gongfa'
 import { questChainById, type SectQuestState } from '../data/sectQuests'
 import { PET_MAP, type PetState, type PetJob } from '../data/pets'
+import { itemCategory } from '../data/items'
+import { artifactDisplayName, createArtifactInstance, type ArtifactInstance, type ArtifactQuality } from '../data/artifacts'
+import { decryptSave } from '../game/saveCrypto'
 import type { SectRank } from '../data/sects'
 import { REALM_ORDER, realmIndex } from '../data/realms'
 import { isAscended } from '../game/reincarnate'
 import type { SealedItem } from '../game/seal'
 import type {
   CollectionState,
+  CompanionState,
+  GameTime,
+  GongfaLearned,
+  GongfaState,
   LegacyState,
   MetaState,
   PlayerState,
-} from '../types'
-import type {
-  CompanionState,
-  GongfaLearned,
-  GongfaState,
   SectState,
-} from './gameStateTypes'
+  SlotSnapshot,
+} from '../types'
 
 export function uniqIds(list: string[]): string[] {
   return Array.from(new Set(list.filter(Boolean)))
@@ -290,7 +293,7 @@ export function deriveCollectionFromState(s: {
 
   const itemIds = [
     ...Object.keys(s.inventory).filter(
-      (id) => id.startsWith('pill_') || id.startsWith('treasure_') || id.startsWith('mat_'),
+      (id) => id.startsWith('pill_') || itemCategory(id) === 'treasure' || id.startsWith('mat_'),
     ),
     ...s.treasures,
   ]
@@ -348,5 +351,117 @@ export function migratePet(raw: unknown): PetState | null {
     jobOn: typeof r.jobOn === 'string' ? r.jobOn : '',
     restUntilDay: Math.max(0, Number(r.restUntilDay) || 0),
     captureFails: Math.max(0, Number(r.captureFails) || 0),
+    broken: r.broken === true,
+    fight: r.fight !== false,
   }
+}
+
+function finiteOr(v: unknown, fallback: number, min?: number, max?: number): number {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return fallback
+  let out = n
+  if (min != null) out = Math.max(min, out)
+  if (max != null) out = Math.min(max, out)
+  return out
+}
+
+/** v1.3 读档最小 schema 校验：时间字段收敛（1年=12月×30日） */
+function sanitizeTime(raw: unknown): GameTime {
+  const t = (raw ?? {}) as Partial<GameTime>
+  return {
+    year: Math.max(1, Math.floor(finiteOr(t.year, 1, 1))),
+    month: Math.max(1, Math.min(12, Math.floor(finiteOr(t.month, 1, 1)))),
+    day: Math.max(1, Math.min(30, Math.floor(finiteOr(t.day, 1, 1)))),
+  }
+}
+
+/** v1.3 顶层灵石收敛 */
+function sanitizeStones(raw: unknown): number {
+  return Math.max(0, Math.floor(finiteOr(raw, 0)))
+}
+
+/**
+ * v1.3 角色数值字段收敛：损坏档的缺失/非数值字段回退到安全值，
+ * 防止 NaN 经 maxHp 计算等路径传播导致白屏。
+ */
+function sanitizePlayerNumbers(raw: PlayerState): PlayerState {
+  return {
+    ...raw,
+    exp: finiteOr(raw.exp, 0),
+    hp: finiteOr(raw.hp, 1, 0),
+    maxHp: finiteOr(raw.maxHp, 1, 1),
+    energy: finiteOr(raw.energy, 0),
+    maxEnergy: finiteOr(raw.maxEnergy, 1, 1),
+    shaqi: finiteOr(raw.shaqi, 0),
+    age: finiteOr(raw.age, 16, 0),
+    lifespanLeft: finiteOr(raw.lifespanLeft, 1, 1),
+    repRight: finiteOr(raw.repRight, 0),
+    repDemonic: finiteOr(raw.repDemonic, 0),
+  }
+}
+
+/** v1.3 捕捉软保底计数收敛 */
+export function sanitizePetCaptureFails(raw: unknown): number {
+  return Math.max(0, Math.floor(finiteOr(raw, 0)))
+}
+
+/**
+ * 存档字符串 → 快照：解密（兼容明文 JSON）→ 解析 → player 存在性校验 →
+ * 时间/灵石/角色数值收敛。任何一步失败返回 null。
+ * 读档（loadFromSlot）与导入（importSave）共用此入口。
+ */
+export function decryptSnapshotJson(text: string): SlotSnapshot | null {
+  const raw = text.trim()
+  if (!raw) return null
+  const json = decryptSave(raw) ?? (raw.startsWith('{') ? raw : null)
+  if (!json) return null
+  try {
+    const snap = JSON.parse(json) as SlotSnapshot
+    if (!snap?.player) return null
+    // v1.3 最小 schema 校验：数值收敛，防损坏档 NaN 传播
+    snap.time = sanitizeTime(snap.time)
+    snap.stones = sanitizeStones(snap.stones)
+    snap.player = sanitizePlayerNumbers(snap.player)
+    return snap
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 旧档法宝迁移：优先按存的 artifacts 列表重建实例；
+ * 无列表时把旧版 treasures 迁成凡品实例，同类首件出战。
+ */
+export function migrateArtifacts(rawArtifacts: unknown, treasures: string[]): ArtifactInstance[] {
+  const list: ArtifactInstance[] = Array.isArray(rawArtifacts)
+    ? (rawArtifacts as Array<Record<string, unknown>>).map((a) => ({
+        uid: String(a.uid),
+        itemId: String(a.itemId ?? ''),
+        name: artifactDisplayName(String(a.itemId), String(a.name ?? '')),
+        quality: (a.quality as ArtifactQuality) ?? 'mortal',
+        affixes: Array.isArray(a.affixes)
+          ? a.affixes.map((x) =>
+              typeof x === 'string' ? { id: String(x) } : { id: String((x as { id?: string })?.id ?? x) },
+            )
+          : [],
+        equipped: Boolean(a.equipped),
+        recipeId: a.recipeId as string | undefined,
+      }))
+    : []
+  if (list.length > 0) return list.filter((a) => a.itemId)
+  // 旧档 treasures 迁成凡品实例，同类首件出战
+  const seen = new Set<string>()
+  return treasures.map((id) => {
+    const first = !seen.has(id)
+    seen.add(id)
+    return {
+      ...createArtifactInstance({
+        itemId: id,
+        quality: 'mortal',
+        qualityCap: 'mortal',
+      }),
+      equipped: first,
+      affixes: [] as { id: string }[],
+    }
+  })
 }

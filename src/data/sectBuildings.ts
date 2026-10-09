@@ -3,7 +3,7 @@ import db from './db/sect_buildings.json'
 
 export type SectBuildingId = 'spirit_vein' | 'alchemy_lab' | 'sword_grave'
 
-export interface SectBuildingDef {
+interface SectBuildingDef {
   id: SectBuildingId
   name: string
   desc: string
@@ -18,7 +18,7 @@ export interface SectBuildingDef {
   }
 }
 
-export interface SectBuildingDb {
+interface SectBuildingDb {
   buildings: SectBuildingDef[]
   donateStonesPerPool: number
   commissionPoolCut: number
@@ -32,10 +32,6 @@ export const SECT_BUILDING_MAP: Record<string, SectBuildingDef> = Object.fromEnt
 )
 export const DONATE_STONES_PER_POOL = data.donateStonesPerPool
 export const COMMISSION_POOL_CUT = data.commissionPoolCut
-
-export function emptyBuildings(): Record<SectBuildingId, number> {
-  return { spirit_vein: 0, alchemy_lab: 0, sword_grave: 0 }
-}
 
 export function buildingLevel(
   buildings: Record<string, number> | undefined,

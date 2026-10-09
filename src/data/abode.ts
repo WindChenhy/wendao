@@ -72,3 +72,16 @@ export function canExpandFarmCols(cols: number): boolean {
 export function canExpandFarmRows(rows: number): boolean {
   return rows < FARM_MAX_ROWS
 }
+
+/** v1.3 聚灵阵：洞府阵法，修炼/离线效率加成（DESIGN_v0.6 §6.4） */
+export const JULING_MAX_LEVEL = 3
+
+/** 升级到下一级所需灵石（当前等级 level → level+1） */
+export function julingUpgradeCost(level: number): number {
+  return Math.floor(800 * Math.pow(2.2, Math.max(0, level)))
+}
+
+/** 每级 +5% 修炼与离线收益 */
+export function julingCultivateBonus(level: number): number {
+  return 1 + 0.05 * Math.max(0, Math.min(JULING_MAX_LEVEL, level))
+}

@@ -37,7 +37,8 @@ export function itemCategory(id: string): ItemCategory {
   if (id.startsWith('treasure_')) return 'treasure'
   if (id.startsWith('pill_')) return 'pill'
   if (isHerbLike(id)) return 'herb'
-  return 'herb'
+  // 其余（如藏经残页 sect_fragment）归「其他」；此前误归 herb，导致 misc 分支不可达
+  return 'misc'
 }
 
 /** 分类显示名 */
@@ -53,7 +54,15 @@ export const CATEGORY_LABELS: Record<ItemCategory | 'all', string> = {
 /** 法宝属性加成（store 内 treasureBonus 以此为数据源，勿两处改数） */
 export const TREASURE_BONUS: Record<
   string,
-  { atk?: number; def?: number; hp?: number; breakthrough?: number; cultivate?: number }
+  {
+    atk?: number
+    def?: number
+    hp?: number
+    breakthrough?: number
+    cultivate?: number
+    /** 闪避概率（0-1 加算；消费端封顶 0.25） */
+    dodge?: number
+  }
 > = itemsDb.treasureBonus
 
 /** 丹纹效果倍率：基础 × (1 + danMarks * 0.15)，5 纹 = 1.75× */
@@ -113,10 +122,10 @@ export function itemEffectWithMarks(item: ItemDef): NonNullable<ItemDef['effect'
 }
 
 /** 突破辅助丹药（按成功率从高到低）；冲击壁垒时自动选用背包中最佳一枚 */
-export const BREAKTHROUGH_PILLS: { id: string; rate: number }[] = itemsDb.breakthroughPills
+const BREAKTHROUGH_PILLS: { id: string; rate: number }[] = itemsDb.breakthroughPills
 
 /** 妖材/灵物也归 herb 便于坊市筛选 */
-export function isHerbLike(id: string): boolean {
+function isHerbLike(id: string): boolean {
   return id.startsWith('herb_') || id.startsWith('mat_') || ['snake_gall', 'fox_core', 'tiger_bone', 'demon_shard'].includes(id)
 }
 
@@ -160,7 +169,7 @@ export function bestBreakthroughPill(
 }
 
 /** 大境界突破材料表 */
-export const BREAKTHROUGH_MATERIALS: Partial<Record<RealmId, string>> =
+const BREAKTHROUGH_MATERIALS: Partial<Record<RealmId, string>> =
   itemsDb.breakthroughMaterials as Partial<Record<RealmId, string>>
 
 /** 大境界满层时所需材料 */

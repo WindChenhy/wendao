@@ -30,6 +30,7 @@ export function freshAbode(): AbodeState {
   return {
     plots: makeFarmGrid(cols, rows),
     forgeLevel: 0,
+    julingLevel: 0,
     farmCols: cols,
     farmRows: rows,
   }
@@ -63,6 +64,7 @@ export function migrateAbode(raw: unknown): AbodeState {
   return {
     plots,
     forgeLevel: Math.max(0, Math.min(3, Number(r.forgeLevel) || 0)),
+    julingLevel: Math.max(0, Math.min(3, Number(r.julingLevel) || 0)),
     farmCols: cols,
     farmRows: rows,
   }

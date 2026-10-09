@@ -1,5 +1,5 @@
 /** v1.0 周目传承物：转生封印 */
-export type SealedKind = 'gongfa' | 'artifact'
+type SealedKind = 'gongfa' | 'artifact'
 
 export interface SealedItem {
   kind: SealedKind

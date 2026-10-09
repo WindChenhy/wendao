@@ -37,7 +37,12 @@ export function loadEnabledDlc(): string[] {
 }
 
 export function saveEnabledDlc(ids: string[]): void {
-  localStorage.setItem(DLC_LIST_KEY, JSON.stringify(ids))
+  try {
+    localStorage.setItem(DLC_LIST_KEY, JSON.stringify(ids))
+  } catch (e) {
+    console.warn(e)
+    // 本地存储不可用时忽略，仅内存生效
+  }
 }
 
 export interface RuntimeRules {

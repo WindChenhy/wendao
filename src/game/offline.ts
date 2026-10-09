@@ -1,4 +1,5 @@
 import { CLASSES } from '../data/classes'
+import { ITEMS } from '../data/items'
 import { realmIndex } from '../data/realms'
 import type { ClassId, RealmId } from '../types'
 
@@ -19,13 +20,24 @@ export const OFFLINE_HOUR_CAP: Record<RealmId, number> = {
 /** 低于该时长不弹结算（毫秒） */
 export const OFFLINE_MIN_MS = 5 * 60 * 1000
 /** 离线相对打坐的效率 */
-export const OFFLINE_EFFICIENCY = 0.85
+const OFFLINE_EFFICIENCY = 0.85
 /** 灵石加深额外收益比例 */
 export const OFFLINE_STONE_BONUS = 0.5
 /** 丹药加深额外收益比例 */
 export const OFFLINE_PILL_BONUS = 0.25
-/** 可用于加深闭关的丹药（有 exp 效果的消耗品） */
-export const OFFLINE_PILL_IDS = ['pill_qi', 'pill_great', 'snake_gall', 'fox_core']
+/**
+ * 可用于加深闭关的丹药（有 exp 效果的消耗品）。
+ * 由 ITEMS 数据派生：所有 effect.exp>0 的丹药（pill_*）自动入围，新丹药无需再登记；
+ * 另显式保留旧白名单中的两枚可直接服用的 exp 妖材（snake_gall/fox_core，非 pill_* 命名，
+ * 不满足丹药派生条件，为兼容旧行为保留）。其余带 exp 的材料/灵药（demon_shard、herb_*
+ * 炼丹材料等）不入围，与旧表「只吃丹药」的语义一致。
+ * 派生序沿用 ITEMS 顺序，旧 4 id 的相对优先级不变（pill_qi 最先）。
+ */
+export const OFFLINE_PILL_IDS: string[] = Object.keys(ITEMS).filter((id) => {
+  if ((ITEMS[id]?.effect?.exp ?? 0) <= 0) return false
+  if (id.startsWith('pill_')) return true
+  return id === 'snake_gall' || id === 'fox_core'
+})
 
 export interface OfflineSettlement {
   active: boolean

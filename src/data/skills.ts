@@ -2,9 +2,9 @@ import type { ClassId, RealmId } from '../types'
 import { realmIndex } from './realms'
 import skillsDb from './db/skills.json'
 
-export type SkillType = 'passive' | 'active'
+type SkillType = 'passive' | 'active'
 
-export interface SkillEffect {
+interface SkillEffect {
   type: string
   status?: string
   stacks?: number
@@ -49,7 +49,7 @@ export interface SkillDef {
   effects?: SkillEffect[]
 }
 
-export interface CombatConfig {
+interface CombatConfig {
   maxRounds: number
   defendDmgReduce: number
   defendEnergyRegen: number
@@ -62,13 +62,11 @@ export interface CombatConfig {
   shaQiMax: number
   demonLifesteal: number
   enemySkillChance: Record<string, number>
-  autoDefaultExplore: boolean
-  autoDefaultSect: boolean
 }
 
 export const COMBAT_CONFIG: CombatConfig = skillsDb.combatConfig
 
-export const SKILL_LIST: SkillDef[] = skillsDb.skills as SkillDef[]
+const SKILL_LIST: SkillDef[] = skillsDb.skills as SkillDef[]
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries(
   SKILL_LIST.map((s) => [s.id, s]),

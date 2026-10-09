@@ -1175,7 +1175,10 @@
       "title": "灵兽认主",
       "text": "筑基之后，山中灵息与你相感。一只小兽伏在道旁，眸子清亮——像是等了你很久。四下并无主人。",
       "gates": {
-        "minRealm": "foundation"
+        "minRealm": "foundation",
+        "notFlags": [
+          "has_pet"
+        ]
       },
       "weight": 0.9,
       "actions": [
@@ -1252,6 +1255,8 @@
           "outcome": {
             "kind": "unlock_pet",
             "petId": "pet_fox",
+            "captureRate": 0.7,
+            "failText": "妖崽警觉地挣开了你的手，一瘸一拐没入草丛。",
             "text": "药香袅袅，妖崽伏低了身子。它愿意跟你走。"
           }
         },
@@ -1261,6 +1266,8 @@
           "outcome": {
             "kind": "unlock_pet",
             "petId": "pet_turtle",
+            "captureRate": 0.4,
+            "failText": "小兽猛地窜了出去，反手在你腕上留了一道抓痕。",
             "text": "你眼疾手快，将它拢入袖中。小兽挣扎片刻，终是认了。"
           }
         },

@@ -7,7 +7,7 @@ export function isAscended(player: Pick<PlayerState, 'realm' | 'ascended'> | nul
   return player.ascended || player.realm === 'ascended'
 }
 
-export interface ReincarnateGain {
+interface ReincarnateGain {
   daoMarks: number
   desc: string
 }
@@ -50,7 +50,9 @@ export function buildSaveFileName(opts: {
   const rei = Math.max(0, opts.reincarnations)
   const reiTag = rei > 0 ? `_转生${rei}次` : ''
   const yearTag = rei > 0 ? `本世第${opts.year}年` : `第${opts.year}年`
-  return `存档_${opts.name}${reiTag}_${yearTag}${opts.month}月${opts.day}日.wdsave`
+  // 过滤 Windows 文件名非法字符，防止导出失败
+  const safeName = opts.name.replace(/[\\/:*?"<>|]/g, '')
+  return `存档_${safeName}${reiTag}_${yearTag}${opts.month}月${opts.day}日.wdsave`
 }
 
 /** 导出备注：说明转生次数与年纪规则 */

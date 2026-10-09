@@ -8,6 +8,18 @@ import { AchievementSection, CodexSection } from './CodexPanels'
 
 type SettingsTab = 'general' | 'codex' | 'achievement'
 
+/** 开发调试菜单开关（方案 §2.7 MVP#8）：URL 带 ?debug=1 或 localStorage 标记时显示 */
+const DEBUG_ENABLED = (() => {
+  try {
+    return (
+      new URLSearchParams(window.location.search).has('debug') ||
+      localStorage.getItem('wendao-debug') === '1'
+    )
+  } catch {
+    return false
+  }
+})()
+
 export function SettingsPanel() {
   const [tab, setTab] = useState<SettingsTab>('general')
   const achievements = useGameStore((s) => s.meta.achievements)
@@ -53,6 +65,12 @@ function GeneralSettings() {
   const legacy = useGameStore((s) => s.legacy)
   const skipExploreCombat = useGameStore((s) => s.skipExploreCombat)
   const setSkipExploreCombat = useGameStore((s) => s.setSkipExploreCombat)
+  const autoCombatDefault = useGameStore((s) => s.autoCombatDefault)
+  const setAutoCombatDefault = useGameStore((s) => s.setAutoCombatDefault)
+  const advanceDays = useGameStore((s) => s.advanceDays)
+  const debugAddExp = useGameStore((s) => s.debugAddExp)
+  const debugFillExp = useGameStore((s) => s.debugFillExp)
+  const debugUnlockTowerFloors = useGameStore((s) => s.debugUnlockTowerFloors)
   const [enabled, setEnabled] = useState<string[]>(() => loadEnabledDlc())
   const [exportMsg, setExportMsg] = useState('')
 
@@ -116,7 +134,35 @@ function GeneralSettings() {
             </span>
           </span>
         </label>
+        <label className="flex items-start gap-2 text-sm cursor-pointer select-none mt-3">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={autoCombatDefault}
+            onChange={(e) => setAutoCombatDefault(e.target.checked)}
+          />
+          <span>
+            新战斗默认托管自动出招
+            <span className="block text-xs text-text-dim mt-1">
+              开启后：历练、秘境、宗门大比、奇遇等进入战斗面板时自动托管出招，战斗中可随时切回手动。
+            </span>
+          </span>
+        </label>
       </div>
+
+      {DEBUG_ENABLED && (
+        <div className="panel-box p-4 border-dashed">
+          <div className="font-display text-gold mb-2">调试菜单（开发用）</div>
+          <div className="flex flex-wrap gap-2">
+            <button className="pixel-btn text-xs" onClick={() => advanceDays(1)}>跳过 1 日</button>
+            <button className="pixel-btn text-xs" onClick={() => advanceDays(30)}>跳过 30 日</button>
+            <button className="pixel-btn text-xs" onClick={() => debugAddExp(1000)}>修为 +1000</button>
+            <button className="pixel-btn text-xs" onClick={debugFillExp}>修为充满</button>
+            <button className="pixel-btn text-xs" onClick={debugUnlockTowerFloors}>秘境层数全开</button>
+          </div>
+          <p className="text-xs text-text-dim mt-2">URL 带 ?debug=1 时显示；跳过天劫可用「修为充满 + 托管自动战斗」替代。</p>
+        </div>
+      )}
 
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-3">转生与年纪</div>
@@ -232,7 +278,7 @@ function GeneralSettings() {
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">关于</div>
         <p className="text-xs text-text-dim leading-relaxed">
-          《问道》v1.1 · React + TypeScript + Zustand + Tailwind
+          《问道》v1.3 · React + TypeScript + Zustand + Tailwind
           <br />
           战斗职业 · 离线修炼 · 图鉴成就 · 炼器词条 · 跳过战斗 · DLC · 加密存档
         </p>

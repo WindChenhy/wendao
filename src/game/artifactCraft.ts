@@ -2,14 +2,13 @@ import {
   ARTIFACT_RECIPE_MAP,
   createArtifactInstance,
   forgeLevelDef,
-  qualityIndex,
   rollQuality,
   type ArtifactInstance,
   type ArtifactQuality,
 } from '../data/artifacts'
 import type { ClassId } from '../types'
 
-export interface CraftOutcome {
+interface CraftOutcome {
   ok: boolean
   rate: number
   instance?: ArtifactInstance
@@ -122,10 +121,3 @@ export function performCraft(opts: {
   }
 }
 
-export function maxCraftableQualityText(level: number): string {
-  return forgeLevelDef(level).qualityCap
-}
-
-export function isBetterQuality(a: ArtifactQuality, b: ArtifactQuality): boolean {
-  return qualityIndex(a) > qualityIndex(b)
-}

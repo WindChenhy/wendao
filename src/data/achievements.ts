@@ -5,13 +5,13 @@ import achievementsJson from './db/achievements.json'
 
 export type AchievementCategory = 'milestone' | 'collect' | 'challenge' | 'story' | 'cycle'
 
-export interface AchievementReward {
+interface AchievementReward {
   stones?: number
   daoMarks?: number
   title?: string
 }
 
-export interface AchievementDef {
+interface AchievementDef {
   id: string
   name: string
   desc: string
@@ -34,7 +34,7 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
   cycle: '周目',
 }
 
-export interface AchievementProgressInput {
+interface AchievementProgressInput {
   player: {
     realm: string
     layer: number

@@ -11,9 +11,7 @@
     "shaQiPerStack": 0.03,
     "shaQiMax": 8,
     "demonLifesteal": 0.12,
-    "enemySkillChance": { "minion": 0.2, "normal": 0.28, "elite": 0.4, "boss": 0.55 },
-    "autoDefaultExplore": false,
-    "autoDefaultSect": false
+    "enemySkillChance": { "minion": 0.2, "normal": 0.28, "elite": 0.4, "boss": 0.55 }
   },
   "skills": [
     {

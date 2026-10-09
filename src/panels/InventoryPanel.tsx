@@ -41,7 +41,7 @@ export function InventoryPanel() {
     const map = new Map<string, number>()
     for (const id of treasures) map.set(id, (map.get(id) ?? 0) + 1)
     for (const [id, n] of Object.entries(inventory)) {
-      if (!id.startsWith('treasure_') || n <= 0) continue
+      if (itemCategory(id) !== 'treasure' || n <= 0) continue
       map.set(id, Math.max(map.get(id) ?? 0, n))
     }
     return [...map.entries()]
