@@ -55,7 +55,7 @@ export function EventModal() {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="panel-box w-full max-w-md p-5 border-gold">
+      <div className="panel-box w-full max-w-md p-5 border-gold max-h-[85dvh] overflow-y-auto scroll-thin">
         <div className="text-[11px] text-gold mb-1 font-display tracking-widest">
           奇遇 · {TYPE_LABEL[evt.type] ?? '事件'}
           {evt.pack && evt.pack !== 'core' && (
@@ -92,7 +92,7 @@ export function StoryModal() {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="panel-box w-full max-w-md p-5 border-gold">
+      <div className="panel-box w-full max-w-md p-5 border-gold max-h-[85dvh] overflow-y-auto scroll-thin">
         <div className="text-[11px] text-gold mb-1 font-display tracking-widest">
           红尘缘法 · 结缘后
         </div>

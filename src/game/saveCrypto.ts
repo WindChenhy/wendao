@@ -10,6 +10,7 @@ import AES from 'crypto-js/aes'
 import Sha256 from 'crypto-js/sha256'
 import Hex from 'crypto-js/enc-hex'
 import Utf8 from 'crypto-js/enc-utf8'
+import { isNativeApp, saveTextFileNative } from '../platform/native'
 
 /** 应用固定密钥（仅本地单机混淆，非服务端鉴权） */
 const APP_SECRET = 'wendao-2024-taoyuan-secret'
@@ -61,7 +62,11 @@ export function isEncryptedSave(text: string): boolean {
   return /^[A-Za-z0-9+/=]+$/.test(t) && t.length > 32
 }
 
-export function downloadTextFile(filename: string, text: string): void {
+export async function downloadTextFile(filename: string, text: string): Promise<void> {
+  if (isNativeApp()) {
+    await saveTextFileNative(filename, text)
+    return
+  }
   const blob = new Blob([text], { type: 'application/octet-stream' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

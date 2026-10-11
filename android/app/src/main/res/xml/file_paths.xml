@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 存档导出走 Filesystem(Directory.Documents) → /storage/emulated/0/Documents，最小授权仅放行该目录 -->
+    <external-path name="wendao_documents" path="Documents/" />
+    <!-- 分享插件临时文件落在应用缓存目录 -->
+    <cache-path name="wendao_share_cache" path="." />
+</paths>

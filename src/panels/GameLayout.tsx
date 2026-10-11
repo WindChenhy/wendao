@@ -4,6 +4,7 @@ import { EventModal, StoryModal } from '../components/EventModal'
 import { LogPanel } from '../components/LogPanel'
 import { OfflineReturnModal } from '../components/OfflineReturnModal'
 import { SideNav, StatusBar } from '../components/Chrome'
+import { isNativeApp } from '../platform/native'
 import { useGameStore } from '../stores/useGameStore'
 
 const CultivatePanel = lazy(() => import('./CultivatePanel').then((m) => ({ default: m.CultivatePanel })))
@@ -26,10 +27,27 @@ export function GameLayout() {
   // 回到前台时结算离线闭关；隐藏时不刷新锚点，让切出时长计入离线
   useEffect(() => {
     if (phase !== 'play') return
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        useGameStore.getState().recheckOffline()
+    const recheck = () => useGameStore.getState().recheckOffline()
+
+    // 原生壳内 visibilitychange 不可靠（系统挂起不派发事件），改订阅 App resume
+    if (isNativeApp()) {
+      let disposed = false
+      let sub: { remove: () => Promise<void> } | null = null
+      void import('@capacitor/app').then(({ App }) => {
+        if (disposed) return
+        void App.addListener('resume', recheck).then((handle) => {
+          if (disposed) void handle.remove()
+          else sub = handle
+        })
+      })
+      return () => {
+        disposed = true
+        void sub?.remove()
       }
+    }
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') recheck()
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)

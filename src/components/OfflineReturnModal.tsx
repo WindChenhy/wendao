@@ -22,7 +22,7 @@ function OfflineInner({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="panel-box w-full max-w-md p-5 border-gold">
+      <div className="panel-box w-full max-w-md p-5 border-gold max-h-[85dvh] overflow-y-auto scroll-thin">
         <div className="text-[11px] text-gold mb-1 font-display tracking-widest">闭关归来</div>
         <h3 className="font-display text-xl text-gold mb-2">山中无甲子</h3>
         <p className="text-sm text-text mb-3 leading-relaxed">

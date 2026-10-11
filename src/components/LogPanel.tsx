@@ -10,7 +10,7 @@ export function LogPanel() {
   }, [entries])
 
   return (
-    <div className="border-t border-border bg-ink-2 h-36 md:h-40 flex flex-col">
+    <div className="border-t border-border bg-ink-2 h-[104px] md:h-40 flex flex-col">
       <div className="px-3 py-1 text-[11px] text-text-dim border-b border-border/50 font-display">
         修行手记
       </div>
