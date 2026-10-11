@@ -28,3 +28,12 @@ research/**/findings/_tmp_*
 *.njsproj
 *.sln
 *.sw?
+
+# Android / Capacitor 构建产物（android/ 工程本身按惯例入库）
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+# 自签发布用密钥库不入库
+*.keystore
+*.jks

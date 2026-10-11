@@ -167,8 +167,8 @@ export function AbodePanel() {
 
         {/* 网格 */}
         <div
-          className="grid gap-[3px] mb-3 w-fit max-w-full"
-          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 2.25rem))` }}
+          className="grid gap-[3px] mb-3 w-fit max-w-full overflow-x-auto scroll-thin"
+          style={{ gridTemplateColumns: `repeat(${cols}, 2.25rem)` }}
         >
           {abode.plots.map((_, i) => (
             <PlotTile key={i} index={i} plantSeedId={plantSeedId} />

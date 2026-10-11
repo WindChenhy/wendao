@@ -4,6 +4,7 @@ import { loadEnabledDlc, saveEnabledDlc } from '../dlc/types'
 import { DLC_ACHIEVEMENT_PACK } from '../data/achievements'
 import { describeExportError, downloadTextFile } from '../game/saveCrypto'
 import { buildSaveFileName, describeSaveTimeline } from '../game/reincarnate'
+import { isNativeApp } from '../platform/native'
 import { useGameStore } from '../stores/useGameStore'
 import { AchievementSection, CodexSection } from './CodexPanels'
 
@@ -103,14 +104,15 @@ function GeneralSettings() {
       })
     : ''
 
-  const handleExportFile = () => {
+  const handleExportFile = async () => {
     if (!player) return
     try {
       const cipher = exportSaveEncrypted()
       const fname = buildFileName()
-      downloadTextFile(fname, cipher)
+      await downloadTextFile(fname, cipher)
+      const done = isNativeApp() ? `已保存「${fname}」，可在分享面板转存到本机` : `已下载「${fname}」`
       setExportMsg(
-        `已下载「${fname}」。\n${timelineNote}\n说明：文件名中的年号为「本世」年号；转生后从第 1 年重新起算，不会沿用上一世年号。转生次数见文件名中的「转生N次」。`,
+        `${done}。\n${timelineNote}\n说明：文件名中的年号为「本世」年号；转生后从第 1 年重新起算，不会沿用上一世年号。转生次数见文件名中的「转生N次」。`,
       )
     } catch (e) {
       setExportMsg(describeExportError(e))
@@ -206,7 +208,7 @@ function GeneralSettings() {
           ))}
         </div>
         <div className="mt-4">
-          <button className="pixel-btn text-xs" disabled={!player} onClick={handleExportFile}>
+          <button className="pixel-btn text-xs" disabled={!player} onClick={() => void handleExportFile()}>
             导出存档
           </button>
         </div>

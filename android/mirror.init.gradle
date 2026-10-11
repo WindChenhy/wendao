@@ -1,0 +1,32 @@
+// 本机 Java 到 dl.google.com / repo.maven.apache.org 的 TLS 握手会被中间设备掐断（Node/浏览器同地址正常）。
+// 构建时带 `-I mirror.init.gradle` 即可把工程与各依赖模块（含 node_modules 里的 capacitor-android）
+// 声明的官方仓库就地改写到可达镜像，不改任何 build.gradle 语义。
+def rewrites = [
+  'https://dl.google.com/dl/android/maven2/' : 'https://maven.aliyun.com/repository/google',
+  'https://maven.google.com/'                : 'https://maven.aliyun.com/repository/google',
+  'https://repo.maven.apache.org/maven2/'    : 'https://maven.aliyun.com/repository/public',
+  'https://repo1.maven.org/maven2/'          : 'https://maven.aliyun.com/repository/public',
+]
+
+def rewriteHandler = { handler ->
+  handler.all { repo ->
+    if (repo.hasProperty('url')) {
+      def text = repo.url?.toString()
+      if (text == null) return
+      rewrites.each { from, to ->
+        if (text.startsWith(from)) {
+          repo.url = to
+        }
+      }
+    }
+  }
+}
+
+gradle.settingsEvaluated { settings ->
+  rewriteHandler(settings.pluginManagement.repositories)
+}
+
+gradle.allprojects { project ->
+  rewriteHandler(project.buildscript.repositories)
+  rewriteHandler(project.repositories)
+}

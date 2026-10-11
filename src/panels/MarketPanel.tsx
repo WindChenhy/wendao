@@ -169,7 +169,7 @@ export function MarketPanel() {
 
       {pendingBuyId && pendingItem && pendingG && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="panel-box w-full max-w-md p-5 border-gold">
+          <div className="panel-box w-full max-w-md p-5 border-gold max-h-[85dvh] overflow-y-auto scroll-thin">
             <div className="text-[11px] text-gold mb-1 font-display tracking-widest">坊市 · 购买确认</div>
             <h3 className="font-display text-xl text-gold mb-2">《{pendingG.name}》秘籍</h3>
             <p className="text-sm text-text mb-4 leading-relaxed">
