@@ -3,7 +3,7 @@ import codexDb from './db/codex.json'
 import { ENEMY_TEMPLATES } from './enemies'
 import { GONGFA_LIST } from './gongfa'
 import { ITEMS, itemCategory } from './items'
-import { REALMS, REALM_ORDER } from './realms'
+import { ASCENSION_REALM, REALMS, REALM_ORDER } from './realms'
 import { SECRET_REALMS } from './secretRealms'
 import type { CollectionState } from '../types'
 
@@ -22,23 +22,41 @@ interface CodexPageReward {
   title?: string
 }
 
-/** 各图鉴页集齐进度节点（%）与奖励 */
-export const CODEX_MILESTONES = [25, 50, 75, 100] as const
-
-/** 图鉴页元数据：src/data/db/codex.json */
+/**
+ * 图鉴页元数据：src/data/db/codex.json
+ *
+ * R-17：奖励节点按各页条目数差异化——条目少的页（境界 10、秘境 12、道侣约 10）
+ * 仅 3~4 档薄赏；条目多的页（敌人 27、丹药法宝近 80、功法 103）设 5 档、
+ * 集齐道痕更厚，使「集齐难度」与条目数成正比。milestones 必须升序且末档为 100。
+ */
 export const CODEX_PAGE_META: Record<
   CodexPageId,
-  { name: string; desc: string; rewards: Record<number, CodexPageReward> }
+  {
+    name: string
+    desc: string
+    milestones: number[]
+    rewards: Record<number, CodexPageReward>
+  }
 > = codexDb as Record<
   CodexPageId,
-  { name: string; desc: string; rewards: Record<number, CodexPageReward> }
+  {
+    name: string
+    desc: string
+    milestones: number[]
+    rewards: Record<number, CodexPageReward>
+  }
 >
 
-const FACTION_LABEL: Record<string, string> = {
+/**
+ * 阵营中文标签（图鉴展示用）。
+ * 新增 Faction 值时必须同步此表，否则图鉴会直接显示英文枚举名。
+ */
+export const FACTION_LABEL: Record<string, string> = {
   righteous: '正道',
   demonic: '魔道',
   beast: '妖兽',
   abomination: '异类',
+  rogue: '邪修',
 }
 
 export function codexEntries(page: CodexPageId): CodexEntry[] {
@@ -48,8 +66,8 @@ export function codexEntries(page: CodexPageId): CodexEntry[] {
         id,
         name: REALMS[id].name,
         desc:
-          id === 'ascended'
-            ? '超脱此界，举霞飞升。'
+          id === ASCENSION_REALM
+            ? '超脱此界，举霞飞升。修为已满，此后只余仙缘可聚。'
             : `共 ${REALMS[id].layers} 层，突破后寿元约 ${REALMS[id].lifespan} 年。`,
       }))
     case 'enemy':
@@ -80,7 +98,7 @@ export function codexEntries(page: CodexPageId): CodexEntry[] {
             ? '丹药'
             : itemCategory(i.id) === 'treasure'
               ? '法宝'
-              : '材料',
+              : '灵材',
         }))
     case 'companion': {
       const base = COMPANIONS.map((c) => ({
@@ -171,7 +189,7 @@ export function pendingCodexRewards(
   const out: { page: CodexPageId; pct: number; reward: CodexPageReward }[] = []
   for (const page of CODEX_PAGE_IDS) {
     const { percent } = collectionProgress(page, collection)
-    for (const pct of CODEX_MILESTONES) {
+    for (const pct of CODEX_PAGE_META[page].milestones) {
       if (percent >= pct && !claimed.includes(codexRewardKey(page, pct))) {
         const reward = CODEX_PAGE_META[page].rewards[pct]
         if (reward) out.push({ page, pct, reward })

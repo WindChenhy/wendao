@@ -9,7 +9,7 @@ import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
 type Tab = 'all' | ItemCategory
-const TABS: Tab[] = ['all', 'herb', 'gongfa', 'treasure', 'pill']
+const TABS: Tab[] = ['all', 'pill', 'herb', 'material', 'gongfa', 'treasure', 'misc']
 
 export function InventoryPanel() {
   const [tab, setTab] = useState<Tab>('all')

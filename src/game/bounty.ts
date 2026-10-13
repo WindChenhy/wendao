@@ -24,10 +24,13 @@ export function marketPremiumMul(wanted: number): number {
   return wanted >= WANTED_PREMIUM_THRESHOLD ? 1 + WANTED_MARKET_PREMIUM : 1
 }
 
-/** 坊市实际成交价：基础价 × 溢价 × 正道名宿折扣 */
-export function marketPriceOf(basePrice: number, opts: { wanted: number; repRight: number }): number {
+/** 坊市实际成交价：基础价 × 溢价 × 正道名宿折扣（正魔称号互斥，需传入魔道声望） */
+export function marketPriceOf(
+  basePrice: number,
+  opts: { wanted: number; repRight: number; repDemonic?: number },
+): number {
   let mul = marketPremiumMul(opts.wanted)
-  if (isRighteousParagon(opts.repRight)) mul *= REP_MARKET_DISCOUNT
+  if (isRighteousParagon(opts.repRight, opts.repDemonic ?? 0)) mul *= REP_MARKET_DISCOUNT
   return Math.max(1, Math.floor(basePrice * mul))
 }
 

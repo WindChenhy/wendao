@@ -1,31 +1,71 @@
-[
-  {
-    "id": "normal",
-    "name": "常规冲关",
-    "desc": "稳妥应劫，按当前成功率与混合惩罚规则。",
-    "rateDelta": 0
-  },
-  {
-    "id": "golden_pill",
-    "name": "金丹护道",
-    "desc": "多耗一枚渡劫金丹：成功率 +8%，失败惩罚降低一档。",
-    "rateDelta": 8,
-    "softenFail": true,
-    "costItemId": "pill_break_trib",
-    "costCount": 1
-  },
-  {
-    "id": "spouse",
-    "name": "道侣护法",
-    "desc": "道侣在侧护持心脉：成功率 +6%；若失败道侣重伤，数日无法助战/代劳。",
-    "rateDelta": 6,
-    "spouseRisk": true
-  },
-  {
-    "id": "force",
-    "name": "强行冲关",
-    "desc": "逆天而行：成功率 -10%，成功则额外道痕 +3。",
-    "rateDelta": -10,
-    "extraDao": 3
-  }
-]
+{
+  "plans": [
+    {
+      "id": "normal",
+      "name": "常规冲关",
+      "desc": "稳妥应劫，按当前成功率与混合惩罚规则。",
+      "rateDelta": 0
+    },
+    {
+      "id": "golden_pill",
+      "name": "金丹护道",
+      "desc": "多耗一枚渡劫金丹：成功率 +8%，失败惩罚降低一档。",
+      "rateDelta": 8,
+      "softenFail": true,
+      "costItemId": "pill_break_trib",
+      "costCount": 1
+    },
+    {
+      "id": "spouse",
+      "name": "道侣护法",
+      "desc": "道侣在侧护持心脉：成功率 +6%；若失败道侣重伤，数日无法助战/代劳。",
+      "rateDelta": 6,
+      "spouseRisk": true
+    },
+    {
+      "id": "force",
+      "name": "强行冲关",
+      "desc": "逆天而行：成功率 -10%，成功则额外道痕 +3。",
+      "rateDelta": -10,
+      "extraDao": 3
+    }
+  ],
+  "calamities": [
+    {
+      "id": "lei",
+      "name": "雷灾",
+      "desc": "紫电缠身，一击千钧。",
+      "solutionItemId": "treasure_mirror",
+      "solutionName": "护心镜",
+      "rateDelta": 6,
+      "minRealmIndex": 0
+    },
+    {
+      "id": "huo",
+      "name": "火灾",
+      "desc": "天火焚身，灼及道基。",
+      "solutionItemId": "treasure_umbrella",
+      "solutionName": "避火宝伞",
+      "rateDelta": 5,
+      "minRealmIndex": 0
+    },
+    {
+      "id": "feng",
+      "name": "风灾",
+      "desc": "罡风削骨，破你护体灵光。",
+      "solutionItemId": "treasure_compass",
+      "solutionName": "定风罗盘",
+      "rateDelta": 5,
+      "minRealmIndex": 0
+    },
+    {
+      "id": "xinmo",
+      "name": "心魔劫",
+      "desc": "内魔趁虚，直攻道心。",
+      "solutionItemId": "pill_calm",
+      "solutionName": "凝神丹",
+      "rateDelta": 5,
+      "minRealmIndex": 4
+    }
+  ]
+}

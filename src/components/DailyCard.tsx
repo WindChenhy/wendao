@@ -2,12 +2,11 @@ import { useEffect } from 'react'
 import { DAILY_TASK_MAP, WEEK_GIFT } from '../data/daily'
 import { useGameStore } from '../stores/useGameStore'
 
-/** v1.4 修炼页顶部：今日日课（按游戏日刷新）+ 现实日签到 */
+/** v1.4 修炼页顶部：修行日课（按现实日刷新，与焚香记日一致）+ 现实日「焚香记日」 */
 export function DailyCard() {
   const player = useGameStore((s) => s.player)
   const daily = useGameStore((s) => s.daily)
   const checkin = useGameStore((s) => s.checkin)
-  const timeKey = useGameStore((s) => `${s.time.year}-${s.time.month}-${s.time.day}`)
   const ensureDaily = useGameStore((s) => s.ensureDaily)
   const claimDailyTask = useGameStore((s) => s.claimDailyTask)
   const claimDailyWeekGift = useGameStore((s) => s.claimDailyWeekGift)
@@ -15,7 +14,7 @@ export function DailyCard() {
 
   useEffect(() => {
     ensureDaily()
-  }, [timeKey, ensureDaily])
+  }, [ensureDaily])
 
   if (!player) return null
   const dead = !player.alive
@@ -25,13 +24,13 @@ export function DailyCard() {
   return (
     <div className="panel-box p-4">
       <div className="flex justify-between items-center mb-2">
-        <div className="font-display text-gold">今日日课</div>
+        <div className="font-display text-gold">修行日课</div>
         <button
           className={`pixel-btn text-xs ${checkedToday ? '' : 'primary'}`}
           disabled={dead || checkedToday}
           onClick={claimCheckin}
         >
-          {checkedToday ? `已签到 · 连签 ${checkin.streak} 天` : '签到'}
+          {checkedToday ? `今日已焚香 · 连记 ${checkin.streak} 日` : '焚香记日'}
         </button>
       </div>
       <div className="space-y-1.5">
@@ -58,19 +57,19 @@ export function DailyCard() {
           )
         })}
         {daily.tasks.length === 0 && (
-          <p className="text-xs text-text-dim">今日日课生成中……（进行任意操作后刷新）</p>
+          <p className="text-xs text-text-dim">修行日课生成中……（进行任意操作后刷新）</p>
         )}
       </div>
       <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between text-xs">
         <span className="text-text-dim">
-          日课积分 <span className="text-gold">{daily.points}</span>/{WEEK_GIFT.points}（全清 +1）
+          日课功行 <span className="text-gold">{daily.points}</span>/{WEEK_GIFT.points}（全清 +1）
         </span>
         <button
           className={`pixel-btn text-[10px] ${weekReady ? 'primary' : ''}`}
           disabled={dead || !weekReady}
           onClick={claimDailyWeekGift}
         >
-          兑换周礼包
+          领七日之赐
         </button>
       </div>
     </div>

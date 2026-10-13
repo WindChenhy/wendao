@@ -5,10 +5,12 @@ import {
   storyEndingKey,
   type StoryChoice,
 } from '../../data/companions'
+import { isDemonic } from '../../data/classes'
 import { ITEMS } from '../../data/items'
 import { dayNumber } from '../../game/day'
 import { harvestYield, plotProgress } from '../../game/farm'
 import { addItem, removeItem } from '../../game/inventory'
+import { isCrossAlignment } from '../../game/reputation'
 import {
   afterProgressSnapshot,
   log,
@@ -108,9 +110,10 @@ export function createCompanionSlice(
         set({ pendingStory: null })
         return
       }
-      const { companionId, beat } = pendingStory
+      const { companionId, beat, beatIndex } = pendingStory
       const choice: StoryChoice | undefined = beat.choices?.find((c) => c.id === choiceId)
-      const stage = companion.postStage[companionId] ?? 0
+      // v1.5：postStage 必须按被选中的段落下标推进（门槛可能跳过若干段）
+      const stage = beatIndex ?? companion.postStage[companionId] ?? 0
       const nextStage = stage + 1
       const aff = companion.affinity[companionId] ?? 0
 
@@ -280,9 +283,7 @@ export function createCompanionSlice(
         return
       }
       // 正魔恋需更高好感
-      const isCross =
-        (player.classId === 'demon' && c.align === 'righteous') ||
-        (player.classId !== 'demon' && c.align === 'demonic')
+      const isCross = isCrossAlignment(isDemonic(player), c.align)
       if (isCross && aff < c.marryAt + 40) {
         log(`正魔之恋阻力极大，${c.name}还需更多坚定。（需好感 ${c.marryAt + 40}）`, 'bad')
         return

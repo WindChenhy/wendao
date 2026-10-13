@@ -1,5 +1,7 @@
 import { COMPANIONS, companionById, nextStoryBeat, storyEndingLabel } from '../data/companions'
+import { isDemonic } from '../data/classes'
 import { ITEMS, itemCategory } from '../data/items'
+import { isCrossAlignment } from '../game/reputation'
 import { useGameStore } from '../stores/useGameStore'
 
 export function CompanionPanel() {
@@ -14,6 +16,7 @@ export function CompanionPanel() {
   const spouseFarmHelp = useGameStore((s) => s.spouseFarmHelp)
   const spousePillHelp = useGameStore((s) => s.spousePillHelp)
   const time = useGameStore((s) => s.time)
+  const sect = useGameStore((s) => s.sect)
 
   if (!player) return null
   const dead = !player.alive
@@ -22,7 +25,14 @@ export function CompanionPanel() {
     ([id, n]) => n > 0 && itemCategory(id) !== 'treasure' && ITEMS[id],
   )
   const dayKey = `${time.year}-${time.month}-${time.day}`
-  const storyBeat = spouse ? nextStoryBeat(spouse, companion.postStage[spouse.id] ?? 0) : null
+  const storyBeat = spouse
+    ? nextStoryBeat(spouse, companion.postStage[spouse.id] ?? 0, {
+        realm: player.realm,
+        sectId: sect.sectId,
+        sectRank: sect.rank,
+        flags: companion.flags,
+      }).beat
+    : null
   const unlockedSet = new Set(companion.hiddenUnlocked)
 
   return (
@@ -116,9 +126,7 @@ export function CompanionPanel() {
           const seen = companion.heartsSeen[c.id] ?? 0
           const isSpouse = companion.spouseId === c.id
           const lockedOther = companion.spouseId && !isSpouse
-          const cross =
-            (player.classId === 'demon' && c.align === 'righteous') ||
-            (player.classId !== 'demon' && c.align === 'demonic')
+          const cross = isCrossAlignment(isDemonic(player), c.align)
           const stage = companion.postStage[c.id] ?? 0
           const endings = Object.entries(companion.endings).filter(([k]) => k.startsWith(`${c.id}_`))
           return (

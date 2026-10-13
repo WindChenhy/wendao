@@ -1,12 +1,13 @@
 import { GONGFAS, canLearnGongfaFull, gongfaRealmText, gongfaScopeText } from '../../data/gongfa'
 import { ITEMS } from '../../data/items'
-import { realmIndex, realmLabel } from '../../data/realms'
+import { REALMS, realmIndex, realmLabel } from '../../data/realms'
 import {
   SECT_RANKS,
   SECTS,
   nextSectRank,
   sectExamOpponent,
   sectRankIndex,
+  withinMentorWindow,
 } from '../../data/sects'
 import {
   SECT_BUILDING_MAP,
@@ -18,10 +19,12 @@ import {
 import { availableQuestChains, questChainById, questStepMatchesDeliver } from '../../data/sectQuests'
 import { createCombatState } from '../../game/combatEngine'
 import { atonementCost, clampWanted } from '../../game/bounty'
-import { isRighteousParagon, REP_TASK_CONTRIB_MUL } from '../../game/reputation'
+import { CLASSES, isDemonic, isForbiddenPath, pathIdsOf, secondarySlots, usedSecondarySlots } from '../../data/classes'
 import { advanceTime } from '../../game/day'
 import { addItem, removeItem } from '../../game/inventory'
+import { enshrinePath, pathCost, pathEnshrineText } from '../../game/paths'
 import { isAscended } from '../../game/reincarnate'
+import { isRighteousParagon, REP_TASK_CONTRIB_MUL, resolveAlignment } from '../../game/reputation'
 import { playBell, playChime } from '../../game/sfx'
 import {
   afterProgressSnapshot,
@@ -65,8 +68,9 @@ export function createSectSlice(
       if (!player || sect.sectId) return
       const s = SECTS.find((x) => x.id === sectId)
       if (!s) return
-      if (s.alignment === 'righteous' && player.classId === 'demon') {
-        log(`${s.name}守山大阵感应到你的魔功，将你拒之门外。`, 'bad')
+      // R-31：拒收只看立场（与道途解耦）——洗魔归正者，纵身负魔功旧事亦可拜入正道
+      if (s.alignment === 'righteous' && resolveAlignment(player) === 'demonic') {
+        log(`${s.name}守山大阵感应到你一身魔焰（魔道立场），将你拒之门外。`, 'bad')
         return
       }
       if (s.alignment === 'demonic' && player.repRight > 30 && player.repDemonic < 10) {
@@ -98,7 +102,7 @@ export function createSectSlice(
       }
       const rankMul = SECT_RANKS[sect.rank].taskMul
       // v1.4 正道名宿：宗门委托贡献 +10%
-      const paragonMul = isRighteousParagon(player.repRight) ? REP_TASK_CONTRIB_MUL : 1
+      const paragonMul = isRighteousParagon(player.repRight, player.repDemonic) ? REP_TASK_CONTRIB_MUL : 1
       const gain = Math.floor((15 + Math.floor(Math.random() * 20)) * rankMul * paragonMul)
       const poolCut = commissionPoolCutOf(gain)
       const stone = 20 + Math.floor(Math.random() * 30)
@@ -150,6 +154,90 @@ export function createSectSlice(
         log('贡献不足或未入门。', 'bad')
         return
       }
+      const cur = SECTS.find((s) => s.id === sect.sectId)
+      const entry = cur?.library.find((l) => l.id === libId)
+      if (!entry) return
+
+      // R-21：道途传承（拜师立道）——与自悟共用 enshrinePath 结算，门槛走师承规则
+      if (entry.kind === 'path') {
+        const pathId = entry.pathId
+        const def = pathId ? CLASSES[pathId] : null
+        if (!pathId || !def) return
+        // 拜师窗口：元婴及以下；化神起只能自立门户
+        if (!withinMentorWindow(player.realm)) {
+          log('你已可自立门户，不再有拜师之缘。新道途须靠历练中自行顿悟。', 'bad')
+          return
+        }
+        if (entry.minRank && sectRankIndex(sect.rank) < sectRankIndex(entry.minRank)) {
+          log(`拜入此脉，须具${SECT_RANKS[entry.minRank].name}以上职位。`, 'bad')
+          return
+        }
+        if (entry.minRealm && realmIndex(player.realm) < realmIndex(entry.minRealm)) {
+          log(`师长言你修为尚浅，需${REALMS[entry.minRealm]?.name ?? entry.minRealm}以上，方可授道。`, 'bad')
+          return
+        }
+        const owned = pathIdsOf(player)
+        if (pathId && owned.includes(pathId)) {
+          log(`你已立「${def.name}」，师长含笑不授。`, 'dim')
+          return
+        }
+        // 禁忌道途不占兼修位（R-24，以永久心魔为代价）
+        if (!isForbiddenPath(pathId!) && owned.length > 0 && usedSecondarySlots(player) >= secondarySlots(player.realm)) {
+          log(
+            `兼修位已满（${secondarySlots(player.realm)}），境界提升后可再分心一艺。`,
+            'bad',
+          )
+          return
+        }
+        if (sect.contribution < entry.cost) {
+          log(`贡献不足（拜师需 ${entry.cost}，当前 ${sect.contribution}）。`, 'bad')
+          return
+        }
+        const pc = pathCost(def)
+        if (player.lifespanLeft - pc.lifespan <= 0) {
+          log('立道需以寿元为引，而你已油尽灯枯。', 'bad')
+          return
+        }
+        const { player: nextPlayer, isPrimary } = enshrinePath(player, def)
+        const vitals = recomputeVitals(
+          get,
+          nextPlayer,
+          treasures,
+          gongfa.learned,
+          legacy.daoMarks,
+          player.realm,
+        )
+        log(`师长将你领入后堂，焚香净手，亲传道印……`, 'dim')
+        log(pathEnshrineText(def, isPrimary), 'gold')
+        log(`束脩之礼：宗门贡献 -${entry.cost}。`, 'dim')
+        if (pc.lifespan > 0) log(`以寿元为引：寿元 -${pc.lifespan} 年。`, 'dim')
+        if (pc.repRight > 0) {
+          log(
+            `血誓既立，正道声望 -${pc.repRight}。自此正道宗门、坊市皆视你为魔道中人。`,
+            'bad',
+          )
+        }
+        const hdGained = (nextPlayer.heartDemon ?? 0) - (player.heartDemon ?? 0)
+        if (hdGained > 0) {
+          log(`禁忌传承祸根暗种，心魔初生（心魔 +${hdGained}，现 ${nextPlayer.heartDemon}）。此道不占兼修位。`, 'bad')
+        }
+        set({
+          player: {
+            ...vitals,
+            shaqi: isDemonic(nextPlayer) ? Math.max(player.shaqi, 10) : player.shaqi,
+          },
+          sect: { ...sect, contribution: sect.contribution - entry.cost },
+        })
+        if (!isPrimary) {
+          const used = usedSecondarySlots(nextPlayer)
+          log(`兼修位已用 ${used}/${secondarySlots(player.realm)}：兼修只得半数加成，且分心拖慢修炼。`, 'dim')
+        } else {
+          log('首立之道即为你的主修。日后境界渐高，另立之道皆为兼修。', 'dim')
+        }
+        afterProgressSnapshot(get, set)
+        return
+      }
+
       // 藏经阁扩容折扣
       const actual = Math.max(1, Math.floor(cost * (1 - 0.05 * sect.libraryLv)))
       if (sect.contribution < actual) {
@@ -549,9 +637,20 @@ export function createSectSlice(
       }
       const cur = SECTS.find((s) => s.id === sect.sectId)
       if (!cur) return
-      const candidates = cur.library.filter((l) => !gongfa.learned[l.id])
+      // 残页参悟同样受境界与品阶门槛约束（与藏经阁贡献参悟同一规则）
+      const candidates = cur.library.filter((l) => {
+        if (gongfa.learned[l.id]) return false
+        const g = GONGFAS[l.id]
+        return Boolean(g) && canLearnGongfaFull(g, player.realm)
+      })
       if (candidates.length === 0) {
-        log('本宗藏经阁秘法已尽数参悟。', 'dim')
+        const all = cur.library.filter((l) => !gongfa.learned[l.id])
+        log(
+          all.length === 0
+            ? '本宗藏经阁秘法已尽数参悟。'
+            : '本宗秘法品阶/境界门槛未到，残页暂无可参悟之法。',
+          'dim',
+        )
         return
       }
       const pick = candidates[Math.floor(Math.random() * candidates.length)]

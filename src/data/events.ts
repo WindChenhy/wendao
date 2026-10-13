@@ -1,6 +1,6 @@
 import { realmIndex } from './realms'
 import { sectRankIndex, type SectRank } from './sects'
-import type { ClassId, RealmId } from '../types'
+import type { Alignment, ClassId, RealmId } from '../types'
 import eventsDb from './db/events.json'
 
 type WorldEventType =
@@ -43,6 +43,8 @@ export interface EventOutcome {
   lifespan?: number
   hpPct?: number
   flag?: string
+  /** R-32 道侣好感增减（作用于当前道侣；正入负出，结算时不低于 0） */
+  affinity?: number
   companionId?: string
   /** v1.2 灵兽认主 */
   petId?: string
@@ -53,6 +55,12 @@ export interface EventOutcome {
   ending?: 'he' | 'be'
   /** v1.4 通缉档位增减（正入负出，结算时夹在 0–5） */
   wanted?: number
+  /** R-24 心魔值增减（正入负出，结算时夹在 0–100） */
+  heartDemon?: number
+  /** R-31 显式改写立场（血誓/屠村/投案/洗魔等重大节点） */
+  alignment?: 'righteous' | 'neutral' | 'demonic'
+  /** R-25 洗魔：散去指定道途（自主修移除则由其余兼修顺位为主修，无则为未择道） */
+  removePath?: ClassId
   /** combat 失败时的结算；缺省用 lose 文案 */
   win?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
   lose?: Omit<EventOutcome, 'kind' | 'bossId' | 'win' | 'lose'>
@@ -86,6 +94,8 @@ interface EventGates {
   notFlags?: string[]
   /** v1.4 通缉档位门槛（通缉制只对魔修生效） */
   minWanted?: number
+  /** R-31 立场门槛（由显式 alignment 或双声望推导后的当前立场） */
+  alignment?: Alignment
 }
 
 export interface WorldEvent {
@@ -113,6 +123,8 @@ export interface EventGateContext {
   realm: RealmId
   layer: number
   classId: ClassId
+  /** 兼修道途（主修在 classId）；requireClass 命中任一已立道途即可 */
+  paths?: ClassId[]
   year: number
   repRight: number
   repDemonic: number
@@ -123,6 +135,8 @@ export interface EventGateContext {
   flags: string[]
   /** v1.4 通缉档位 */
   wanted: number
+  /** R-31 当前立场（显式或声望推导） */
+  alignment: Alignment
 }
 
 function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolean {
@@ -141,8 +155,12 @@ function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolea
   if (gates.requireSpouse && !ctx.spouseId) return false
   if (gates.spouseId && ctx.spouseId !== gates.spouseId) return false
   if (gates.minYear && ctx.year < gates.minYear) return false
-  if (gates.requireClass && ctx.classId !== gates.requireClass) return false
+  if (gates.requireClass) {
+    const pool = [ctx.classId, ...(ctx.paths ?? [])]
+    if (!pool.includes(gates.requireClass)) return false
+  }
   if (gates.minWanted != null && ctx.wanted < gates.minWanted) return false
+  if (gates.alignment && ctx.alignment !== gates.alignment) return false
   if (gates.affinity) {
     const aff = ctx.affinity[gates.affinity.id] ?? 0
     if (aff < gates.affinity.min) return false
@@ -159,8 +177,11 @@ function eventPassesGates(evt: WorldEvent, ctx: EventGateContext): boolean {
   return passGates(evt.gates, ctx)
 }
 
+/** 门禁判定（导出供单测使用；业务逻辑请走 pickWorldEvent） */
+export const eventGatePasses = eventPassesGates
+
 /** 本体事件池（含 v0.9 主题包）；DLC 追加事件由 rules.extraEvents 合并 */
-const WORLD_EVENTS: WorldEvent[] = eventsDb.events as WorldEvent[]
+export const WORLD_EVENTS: WorldEvent[] = eventsDb.events as WorldEvent[]
 
 /** 奇遇触发率：约 12% */
 const WORLD_EVENT_RATE = 0.12

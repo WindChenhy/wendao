@@ -1,4 +1,4 @@
-import { CLASSES } from '../../data/classes'
+import { isDemonic, pathIdsOf, playerMults } from '../../data/classes'
 import { ENEMY_TEMPLATES, enemyTemplateId } from '../../data/enemies'
 import { ITEMS } from '../../data/items'
 import {
@@ -10,7 +10,7 @@ import {
   petStatBonus,
   type PetState,
 } from '../../data/pets'
-import { realmCombatBase } from '../../data/realms'
+import { ASCENSION_REALM, realmCombatBase } from '../../data/realms'
 import { nextSectRank, SECT_RANKS } from '../../data/sects'
 import { SECRET_REALMS, isBossFloor } from '../../data/secretRealms'
 import { buildingAtkMul } from '../../data/sectBuildings'
@@ -46,7 +46,8 @@ import {
 } from './shared'
 import { worldEventById, type WorldEvent } from '../../data/events'
 import { clampWanted, wantedHuntChance, wantedLabel } from '../../game/bounty'
-import { isDemonicChampion, REP_EXPLORE_STONE_MUL } from '../../game/reputation'
+import { isDemonicChampion, REP_EXPLORE_STONE_MUL, resolveAlignment } from '../../game/reputation'
+import { adjustHeartDemon } from '../../game/heartDemon'
 
 export function makePlayerCombatant(get: MetaGet, player: PlayerState, treasures: string[], hpScale = 1): CombatActor {
   const snap = get()
@@ -55,17 +56,19 @@ export function makePlayerCombatant(get: MetaGet, player: PlayerState, treasures
   const tb = treasureBonus(treasures, artifacts)
   const extras = artifactBattleExtras(artifacts)
   const base = realmCombatBase(player.realm, player.layer)
+  const m = playerMults(player)
   return buildPlayerCombatActor({
     name: player.name || '你',
     classId: player.classId,
+    paths: pathIdsOf(player),
     realm: player.realm,
     layer: player.layer,
     hp: player.hp,
     maxHp: player.maxHp,
     energy: player.energy,
     maxEnergy: player.maxEnergy,
-    atk: Math.floor(base.atk * CLASSES[player.classId].atkMul * tb.atk * gb.atk * (1 + petStatBonus(snap.pet).atk) * buildingAtkMul(snap.sect.buildings, { isExam: snap.activeCombat?.context?.kind === 'sect_exam' })),
-    def: Math.floor(base.def * CLASSES[player.classId].defMul * tb.def * gb.def),
+    atk: Math.floor(base.atk * m.atkMul * tb.atk * gb.atk * (1 + petStatBonus(snap.pet).atk) * buildingAtkMul(snap.sect.buildings, { isExam: snap.activeCombat?.context?.kind === 'sect_exam' })),
+    def: Math.floor(base.def * m.defMul * tb.def * gb.def),
     dmgReduce: gb.dodge + extras.dmgReduce,
     dodge: Math.min(0.25, tb.dodge),
     treasures,
@@ -173,7 +176,8 @@ function settleExploreCombat(args: SettleArgs) {
     const dropRate = enemy.loot.dropRate ?? 1
     // v1.4 魔道魁首历练灵石收益 +10%
     const stoneMul =
-      currentRules().exploreStoneMul * (isDemonicChampion(player.repDemonic) ? REP_EXPLORE_STONE_MUL : 1)
+      currentRules().exploreStoneMul *
+        (isDemonicChampion(player.repDemonic, player.repRight) ? REP_EXPLORE_STONE_MUL : 1)
     if (result.itemId && ITEMS[result.itemId] && Math.random() < dropRate) {
       addItem(inv, result.itemId)
       lines.push(`获得「${ITEMS[result.itemId].name}」×1`)
@@ -188,9 +192,9 @@ function settleExploreCombat(args: SettleArgs) {
     if (enemy.faction === 'demonic') {
       log(`斩杀魔修：正道声望 +${rep.right}，魔道声望 +${rep.demonic}`, 'dim')
     }
-    // v1.4 通缉：魔修截杀正道修士升档；魔道魁首免于升档
+    // v1.4 通缉；R-31 改只认立场：正道出身者堕魔后截杀正道修士同样升档，洗魔归正后不再记档
     let wantedNext = get().wanted
-    if (player.classId === 'demon' && enemy.faction === 'righteous' && !isDemonicChampion(player.repDemonic)) {
+    if (resolveAlignment(player) === 'demonic' && enemy.faction === 'righteous') {
       wantedNext = clampWanted(wantedNext + 1)
       log(`你截杀了正道修士，缉魔令上又添一笔（通缉 ${wantedLabel(wantedNext)}）。`, 'bad')
     }
@@ -201,7 +205,7 @@ function settleExploreCombat(args: SettleArgs) {
       repRight: player.repRight + rep.right,
       repDemonic: player.repDemonic + rep.demonic,
       shaqi:
-        player.classId === 'demon'
+        isDemonic(player)
           ? clamp(player.shaqi + (enemy.faction === 'beast' ? 2 : 5), 0, 100)
           : player.shaqi,
     }
@@ -216,7 +220,12 @@ function settleExploreCombat(args: SettleArgs) {
       wanted: wantedNext,
       meta: {
         ...meta,
-        stats: { ...meta.stats, combatsWon: meta.stats.combatsWon + 1 },
+        stats: {
+          ...meta.stats,
+          combatsWon: meta.stats.combatsWon + 1,
+          // R-27 剑道质变：记录本场剑意峰值
+          maxSwordIntent: Math.max(meta.stats.maxSwordIntent ?? 0, result.maxSwordIntent),
+        },
       },
     })
     unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
@@ -225,6 +234,7 @@ function settleExploreCombat(args: SettleArgs) {
     afterProgressSnapshot(get, set)
   } else {
     log(`历练遭遇 ${enemy.name}，不敌败退。`, 'bad')
+    const metaLose = get().meta
     set({
       time: advanced.time,
       exploring: false,
@@ -234,6 +244,10 @@ function settleExploreCombat(args: SettleArgs) {
       player: {
         ...nextPlayer,
         hp: Math.max(1, result.playerHpLeft > 0 ? hpLeft : Math.floor(player.maxHp * 0.15)),
+      },
+      meta: {
+        ...metaLose,
+        stats: { ...metaLose.stats, combatsLost: metaLose.stats.combatsLost + 1 },
       },
     })
   }
@@ -252,7 +266,7 @@ function settleExploreCombat(args: SettleArgs) {
 function maybeWantedHunt(get: MetaGet): WorldEvent | null {
   const s = get()
   if (!s.player || s.pendingEvent || s.pendingStory || s.activeCombat) return null
-  if (s.player.classId !== 'demon' || isDemonicChampion(s.player.repDemonic)) return null
+  if (!isDemonic(s.player) || isDemonicChampion(s.player.repDemonic)) return null
   if (Math.random() >= wantedHuntChance(s.wanted)) return null
   return worldEventById('wanted_hunt')
 }
@@ -271,14 +285,19 @@ function settleTowerCombat(args: SettleArgs) {
       addItem(inv, result.itemId)
       lines.push(`获得「${ITEMS[result.itemId]?.name}」`)
     }
-    // v1.4 飞升秘境：每通关一层得仙缘 +20（仙界遗珍 DLC 再乘 favorMul）
-    const favorGain =
-      realm.minRealm === 'ascended' ? Math.floor(20 * currentRules().favorMul) : 0
+    // v1.4 飞升秘境：每通关一层得仙缘 +20（仙界遗珍 DLC 再乘 favorMul）；
+    // 飞升后修为已无用（expNeeded(ASCENSION_REALM)=0），本层修为奖励不再入账，改按 1/10 折为仙缘
+    const ascendedRealm = realm.minRealm === ASCENSION_REALM
+    const expGain = ascendedRealm ? 0 : result.expGain
+    const favorGain = ascendedRealm
+      ? Math.floor((20 + Math.floor(result.expGain / 10)) * currentRules().favorMul)
+      : 0
     if (favorGain > 0) lines.push(`仙机感悟，仙缘 +${favorGain}`)
     const best = Math.max(get().towerBest[realm.id] ?? 0, tower.floor)
     const clearedAll = tower.floor >= realm.floors
     log(
-      `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：修为 +${result.expGain}，灵石 +${result.stoneGain}${favorGain ? `，仙缘 +${favorGain}` : ''}`,
+      `秘境通关第 ${tower.floor} 层${boss ? '（镇守）' : ''}：` +
+        `${expGain ? `修为 +${expGain}，` : ''}灵石 +${result.stoneGain}${favorGain ? `，仙缘 +${favorGain}` : ''}`,
       'gold',
     )
     const meta = get().meta
@@ -293,11 +312,16 @@ function settleTowerCombat(args: SettleArgs) {
       tower: clearedAll ? null : { ...tower, floor: tower.floor + 1, inCombat: false, log: lines },
       player: {
         ...nextPlayer,
-        exp: player.exp + result.expGain,
+        exp: player.exp + expGain,
       },
       meta: {
         ...meta,
-        stats: { ...meta.stats, combatsWon: meta.stats.combatsWon + 1 },
+        stats: {
+          ...meta.stats,
+          combatsWon: meta.stats.combatsWon + 1,
+          // R-27 剑道质变：记录本场剑意峰值
+          maxSwordIntent: Math.max(meta.stats.maxSwordIntent ?? 0, result.maxSwordIntent),
+        },
       },
     })
     unlockCodex(get, set, 'secret', realm.id)
@@ -315,6 +339,7 @@ function settleTowerCombat(args: SettleArgs) {
     return
   }
   log(`秘境第 ${tower.floor} 层不敌，被迫退出。`, 'bad')
+  const metaLose = get().meta
   set({
     activeCombat: null,
     lastCombat: { enemy, win: false, log: lines },
@@ -325,6 +350,10 @@ function settleTowerCombat(args: SettleArgs) {
         1,
         result.playerHpLeft > 0 ? hpLeft : Math.floor(player.maxHp * 0.12),
       ),
+    },
+    meta: {
+      ...metaLose,
+      stats: { ...metaLose.stats, combatsLost: metaLose.stats.combatsLost + 1 },
     },
   })
 }
@@ -354,7 +383,11 @@ function settleExamCombat(args: SettleArgs) {
       },
       meta: {
         ...metaExam,
-        stats: { ...metaExam.stats, combatsWon: metaExam.stats.combatsWon + 1 },
+        stats: {
+          ...metaExam.stats,
+          combatsWon: metaExam.stats.combatsWon + 1,
+          maxSwordIntent: Math.max(metaExam.stats.maxSwordIntent ?? 0, result.maxSwordIntent),
+        },
       },
     })
     unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
@@ -403,11 +436,17 @@ export function settleActiveCombat(get: MetaGet, set: MetaSet) {
   const hpLeft = realHpAfterScaledCombat(player.hp, hpScale, result.playerHpLeft)
   const energyLeft = Math.max(0, Math.min(player.maxEnergy, result.playerEnergyLeft))
   const lifespanLeft = Math.max(1, player.lifespanLeft - result.lifespanCost)
+  // R-24：战斗中施展禁忌技滋生的心魔，在结算时统一入账（胜负皆然，心性之债不免）
+  const heartDemon = adjustHeartDemon(player.heartDemon, result.heartDemonGain)
+  if (result.heartDemonGain > 0) {
+    lines.push(`禁忌术反噬心性，心魔 +${result.heartDemonGain}（现 ${heartDemon}）`)
+  }
   const nextPlayer: PlayerState = {
     ...player,
     hp: hpLeft,
     energy: energyLeft,
     lifespanLeft,
+    heartDemon,
   }
   const args: SettleArgs = {
     get,

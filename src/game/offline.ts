@@ -1,7 +1,7 @@
-import { CLASSES } from '../data/classes'
+import { playerMults, type PathInput } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { realmIndex } from '../data/realms'
-import type { ClassId, RealmId } from '../types'
+import type { AptitudeId, ClassId, RealmId } from '../types'
 
 /** 各大境界离线时长上限（小时） */
 export const OFFLINE_HOUR_CAP: Record<RealmId, number> = {
@@ -56,12 +56,12 @@ export interface OfflineSettlement {
 
 /** 离线每小时基准修为：与打坐同源，不含随机波动 */
 function offlineExpPerHour(
-  classId: ClassId,
+  paths: PathInput,
   realm: RealmId,
   layer: number,
   multipliers = 1,
 ): number {
-  const rate = CLASSES[classId]?.cultivateRate ?? 1
+  const rate = playerMults(paths).cultivateRate
   const ri = Math.max(0, realmIndex(realm))
   const base = 12 * Math.pow(1.32, ri) * (1 + (Math.max(1, layer) - 1) * 0.18)
   return Math.max(3, Math.floor(base * rate * multipliers * OFFLINE_EFFICIENCY))
@@ -79,15 +79,21 @@ function offlineDeepenStoneCost(hoursCounted: number, realm: RealmId): number {
 export function calcOfflineCultivation(opts: {
   lastOnlineAt: number
   now: number
+  /** 主修道途；'none' = 未择道 */
   classId: ClassId
+  /** 兼修道途（可选；缺省视为仅主修） */
+  paths?: ClassId[]
+  /** 灵根资质（可选；缺省视为杂灵根） */
+  aptitude?: AptitudeId
   realm: RealmId
   layer: number
   /** 已合并的修炼倍率（道痕/宗门/功法/道侣等） */
   multipliers: number
 }): OfflineSettlement {
   const { lastOnlineAt, now, classId, realm, layer, multipliers } = opts
+  const pathArg: PathInput = { classId, paths: opts.paths, aptitude: opts.aptitude }
   const capHours = offlineCapHours(realm)
-  const expPerHour = offlineExpPerHour(classId, realm, layer, multipliers)
+  const expPerHour = offlineExpPerHour(pathArg, realm, layer, multipliers)
 
   const empty = (reason: OfflineSettlement['reason']): OfflineSettlement => ({
     active: false,

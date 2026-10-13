@@ -19,63 +19,105 @@
       "name": "腰缠万贯",
       "desc": "灵石曾达到一万。",
       "category": "milestone",
-      "reward": { "daoMarks": 3 }
+      "reward": { "stones": 500 }
     },
     {
       "id": "realm_foundation",
       "name": "筑基有成",
       "desc": "境界突破至筑基。",
       "category": "milestone",
-      "reward": { "daoMarks": 5 }
+      "reward": { "stones": 100 }
     },
     {
       "id": "realm_core",
       "name": "金丹初成",
       "desc": "境界突破至金丹。",
       "category": "milestone",
-      "reward": { "daoMarks": 8 }
+      "reward": { "stones": 200 }
     },
     {
       "id": "realm_soul",
       "name": "元婴出窍",
       "desc": "境界突破至元婴。",
       "category": "milestone",
-      "reward": { "daoMarks": 12 }
+      "reward": { "stones": 400 }
     },
     {
       "id": "realm_spirit",
       "name": "化神问道",
       "desc": "境界突破至化神。",
       "category": "milestone",
-      "reward": { "daoMarks": 16 }
+      "reward": { "stones": 800 }
     },
     {
       "id": "realm_void",
       "name": "炼虚合道",
       "desc": "境界突破至炼虚。",
       "category": "milestone",
-      "reward": { "daoMarks": 20 }
+      "reward": { "stones": 1200 }
+    },
+    {
+      "id": "realm_integration",
+      "name": "法体合一",
+      "desc": "境界突破至合体。",
+      "category": "milestone",
+      "reward": { "stones": 1800 }
+    },
+    {
+      "id": "realm_mahayana",
+      "name": "大乘气象",
+      "desc": "境界突破至大乘。",
+      "category": "milestone",
+      "reward": { "stones": 2500 }
+    },
+    {
+      "id": "realm_tribulation",
+      "name": "天劫加身",
+      "desc": "境界突破至渡劫。",
+      "category": "milestone",
+      "reward": { "stones": 3000, "daoMarks": 10 }
     },
     {
       "id": "realm_ascend",
       "name": "举霞飞升",
       "desc": "首次飞升。",
       "category": "milestone",
-      "reward": { "daoMarks": 40, "title": "飞升者" }
+      "reward": { "stones": 5000, "daoMarks": 10, "title": "飞升者" }
+    },
+    {
+      "id": "path_first",
+      "name": "初立道途",
+      "desc": "在修行途中立下第一门道途（主修）。",
+      "category": "milestone",
+      "reward": { "stones": 100 }
+    },
+    {
+      "id": "path_dual",
+      "name": "兼修有得",
+      "desc": "道途达三门（1 主修 + 2 兼修）。",
+      "category": "milestone",
+      "reward": { "stones": 400 }
+    },
+    {
+      "id": "path_all",
+      "name": "六道同修",
+      "desc": "一身兼六道——一法通，万法通。",
+      "category": "challenge",
+      "reward": { "stones": 1500, "title": "万法通" }
     },
     {
       "id": "favor_100",
       "name": "仙缘深厚",
       "desc": "累计仙缘达到 100。",
       "category": "challenge",
-      "reward": { "daoMarks": 10 }
+      "reward": { "stones": 800 }
     },
     {
       "id": "taixu_clear",
       "name": "踏破仙阙",
-      "desc": "贯通太虚仙阙全部 99 层。",
+      "desc": "贯通太虚仙阙全部层数。",
       "category": "challenge",
-      "reward": { "daoMarks": 30, "title": "太虚行者" }
+      "reward": { "stones": 2000, "title": "太虚行者" }
     },
     {
       "id": "dlc_war_kill10",
@@ -89,7 +131,7 @@
       "name": "恶名远扬",
       "desc": "【魔修杀伐】通缉达到最高档 Ⅴ。",
       "category": "challenge",
-      "reward": { "daoMarks": 8 }
+      "reward": { "stones": 600 }
     },
     {
       "id": "dlc_pet_lv10",
@@ -103,7 +145,7 @@
       "name": "心有灵犀",
       "desc": "【御兽之道】灵兽亲密度满 100。",
       "category": "challenge",
-      "reward": { "daoMarks": 5 }
+      "reward": { "stones": 300 }
     },
     {
       "id": "dlc_relic_favor50",
@@ -117,7 +159,7 @@
       "name": "仙阙漫步",
       "desc": "【仙界遗珍】太虚仙阙抵达 30 层。",
       "category": "challenge",
-      "reward": { "daoMarks": 10 }
+      "reward": { "stones": 500 }
     },
     {
       "id": "enemy_5",
@@ -131,7 +173,7 @@
       "name": "除魔卫道",
       "desc": "敌人图鉴解锁 10 种。",
       "category": "collect",
-      "reward": { "daoMarks": 4 }
+      "reward": { "stones": 150 }
     },
     {
       "id": "gongfa_3",
@@ -145,7 +187,7 @@
       "name": "道藏渊深",
       "desc": "参悟 10 部功法。",
       "category": "collect",
-      "reward": { "stones": 800, "daoMarks": 5 }
+      "reward": { "stones": 800 }
     },
     {
       "id": "treasure_3",
@@ -159,7 +201,7 @@
       "name": "百宝缠身",
       "desc": "认主 5 件法宝。",
       "category": "collect",
-      "reward": { "daoMarks": 6 }
+      "reward": { "stones": 400 }
     },
     {
       "id": "codex_realms_5",
@@ -194,7 +236,7 @@
       "name": "玄冰破关",
       "desc": "通关玄冰地窟。",
       "category": "challenge",
-      "reward": { "daoMarks": 10 }
+      "reward": { "stones": 600 }
     },
     {
       "id": "heart",
@@ -208,42 +250,42 @@
       "name": "结为道侣",
       "desc": "与任一道侣结缘。",
       "category": "story",
-      "reward": { "daoMarks": 8 }
+      "reward": { "stones": 300 }
     },
     {
       "id": "sect_elder",
       "name": "宗门砥柱",
       "desc": "晋升宗门长老。",
       "category": "story",
-      "reward": { "daoMarks": 6 }
+      "reward": { "stones": 300 }
     },
     {
       "id": "sect_master",
       "name": "一宗之主",
       "desc": "成为宗主。",
       "category": "story",
-      "reward": { "daoMarks": 12 }
+      "reward": { "stones": 800 }
     },
     {
       "id": "spouse_story_he",
       "name": "良缘天成",
       "desc": "任一道侣结缘线达成良缘结局。",
       "category": "story",
-      "reward": { "daoMarks": 8, "title": "白首同心" }
+      "reward": { "stones": 400, "title": "白首同心" }
     },
     {
       "id": "spouse_story_be",
       "name": "情深不寿",
       "desc": "任一道侣结缘线达成遗恨结局。",
       "category": "story",
-      "reward": { "daoMarks": 5 }
+      "reward": { "stones": 200 }
     },
     {
       "id": "hidden_companion",
       "name": "云海有缘",
       "desc": "解锁隐藏道侣。",
       "category": "story",
-      "reward": { "daoMarks": 10, "title": "天机眷顾" }
+      "reward": { "stones": 500, "title": "天机眷顾" }
     },
     {
       "id": "quest_chain_1",
@@ -257,14 +299,14 @@
       "name": "宗门干城",
       "desc": "完成 5 条宗门任务链。",
       "category": "challenge",
-      "reward": { "daoMarks": 6 }
+      "reward": { "stones": 400 }
     },
     {
       "id": "sect_fragment_learn",
       "name": "残页参悟",
       "desc": "以藏经残页参悟一部宗门秘法。",
       "category": "collect",
-      "reward": { "daoMarks": 4 }
+      "reward": { "stones": 200 }
     },
     {
       "id": "sect_build",
@@ -285,7 +327,7 @@
       "name": "三世修行",
       "desc": "转生 3 次。",
       "category": "cycle",
-      "reward": { "daoMarks": 15, "title": "轮回旅人" }
+      "reward": { "stones": 600, "title": "轮回旅人" }
     }
   ]
 }

@@ -13,6 +13,7 @@ import { createDailySlice } from './slices/dailySlice'
 import { createExploreSlice } from './slices/exploreSlice'
 import { createInventorySlice } from './slices/inventorySlice'
 import { createMetaSlice } from './slices/metaSlice'
+import { createPathSlice } from './slices/pathSlice'
 import { createPetSlice } from './slices/petSlice'
 import { createSaveSlice } from './slices/saveSlice'
 import { createSectSlice } from './slices/sectSlice'
@@ -59,6 +60,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   ...createMetaSlice(set, get),
   ...createCultivateSlice(set, get),
+  ...createPathSlice(set, get),
   ...createExploreSlice(set, get),
   ...createCombatSlice(set, get),
   ...createSectSlice(set, get),

@@ -16,6 +16,7 @@ import { SECTS, type SectDef } from '../../data/sects'
 import { BUILTIN_DLC } from '../../dlc/builtin'
 import { combineRules, loadEnabledDlc, type RuntimeRules } from '../../dlc/types'
 import { dayNumber } from '../../game/day'
+import { resolveAlignment } from '../../game/reputation'
 import { harvestYield, plotProgress } from '../../game/farm'
 import { addItem } from '../../game/inventory'
 import type { CompanionState, GameTime, PlayerState, SectState } from '../../types'
@@ -54,6 +55,7 @@ function buildEventContext(s: {
     realm: p.realm,
     layer: p.layer,
     classId: p.classId,
+    paths: p.paths,
     year: s.time.year,
     repRight: p.repRight,
     repDemonic: p.repDemonic,
@@ -63,6 +65,8 @@ function buildEventContext(s: {
     affinity: s.companion.affinity,
     flags: s.companion.flags,
     wanted: s.wanted ?? 0,
+    // R-31：立场独立字段（显式或由双声望推导）
+    alignment: resolveAlignment(p),
   }
 }
 
@@ -103,7 +107,7 @@ export function bumpQuestExploreWin(get: MetaGet, set: MetaSet) {
   }
 }
 
-/** 结缘后剧情：有可触发段则弹出 */
+/** 结缘后剧情：有可触发段则弹出（身份/时序门槛由 nextStoryBeat 处理，命中的可能是替代段） */
 export function maybeTriggerSpouseStory(get: MetaGet, set: MetaSet) {
   const s = get()
   if (!s.player || s.pendingEvent || s.pendingStory || s.activeCombat) return
@@ -112,10 +116,26 @@ export function maybeTriggerSpouseStory(get: MetaGet, set: MetaSet) {
   const c = companionById(spouseId)
   if (!c?.postStory?.length) return
   const stage = s.companion.postStage[spouseId] ?? 0
-  if (stage >= c.postStory.length) return
-  const beat = nextStoryBeat(c, stage)
-  if (!beat) return
-  set({ pendingStory: { companionId: spouseId, beat } })
+  const next = nextStoryBeat(c, stage, {
+    realm: s.player.realm,
+    sectId: s.sect.sectId,
+    sectRank: s.sect.rank,
+    flags: s.companion.flags,
+  })
+  for (const text of next.skipped) log(text, 'dim')
+  if (!next.beat) {
+    // 剩余段落全部被门槛略过：一次性推进到结尾，避免每回合重复扫描
+    if (next.index !== stage) {
+      set({
+        companion: {
+          ...s.companion,
+          postStage: { ...s.companion.postStage, [spouseId]: next.index },
+        },
+      })
+    }
+    return
+  }
+  set({ pendingStory: { companionId: spouseId, beat: next.beat, beatIndex: next.index } })
 }
 
 /** v1.2 灵兽灵田协助（手动按钮 / 跨日自动共用）；auto 模式下无可收获则不消耗当日协助 */

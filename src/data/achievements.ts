@@ -1,7 +1,11 @@
-import { realmIndex } from './realms'
+import { ASCENSION_REALM, realmIndex } from './realms'
 import { SECT_RANK_ORDER, type SectRank } from './sects'
+import { SECRET_REALMS } from './secretRealms'
 import type { CollectionState, LegacyState, MetaStats } from '../types'
 import achievementsJson from './db/achievements.json'
+
+/** 太虚仙阙总层数（唯一来源：秘境表），成就阈值跟随它变化 */
+export const TAIXU_PALACE_FLOORS = SECRET_REALMS.find((r) => r.id === 'taixu_palace')?.floors ?? 99
 
 export type AchievementCategory = 'milestone' | 'collect' | 'challenge' | 'story' | 'cycle'
 
@@ -25,6 +29,32 @@ export const ACHIEVEMENTS: AchievementDef[] = achievementsJson.achievements as A
 export const ACHIEVEMENT_MAP: Record<string, AchievementDef> = Object.fromEntries(
   ACHIEVEMENTS.map((a) => [a.id, a]),
 )
+
+/**
+ * 成就道痕单世软上限（R-12）。
+ * 道痕的主要来源应为转生结算（reincarnateGain），成就只在渡劫/飞升这类叙事节点给少量道痕，
+ * 全部成就的道痕总和不得超过此值；溢出部分折算当世灵石。
+ */
+export const ACHIEVEMENT_DAO_CAP = 20
+/** 每点溢出道痕折算的灵石数 */
+export const ACHIEVEMENT_DAO_OVERFLOW_STONES = 100
+
+/** 已领取成就合计发放的道痕 */
+export function achievementDaoMarksOf(claimedIds: readonly string[]): number {
+  return claimedIds.reduce((sum, id) => sum + (ACHIEVEMENT_MAP[id]?.reward.daoMarks ?? 0), 0)
+}
+
+/** 新成就发奖时按单世软上限切分：额度内发道痕，溢出折算灵石 */
+export function grantAchievementDaoMarks(
+  claimedIds: readonly string[],
+  grantDaoMarks: number,
+): { daoMarks: number; stones: number } {
+  const used = achievementDaoMarksOf(claimedIds)
+  const allowed = Math.max(0, ACHIEVEMENT_DAO_CAP - used)
+  const daoMarks = Math.max(0, Math.min(allowed, grantDaoMarks))
+  const overflow = Math.max(0, grantDaoMarks - daoMarks)
+  return { daoMarks, stones: overflow * ACHIEVEMENT_DAO_OVERFLOW_STONES }
+}
 
 export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = {
   milestone: '里程碑',
@@ -71,6 +101,8 @@ export interface AchievementProgressInput {
   wanted?: number
   /** v1.4 灵兽概况（无灵兽为 null） */
   pet?: { level: number; broken: boolean; bond: number } | null
+  /** v1.5 已立道途数（含主修）；0 = 尚未择道 */
+  pathCount?: number
 }
 
 /** DLC 包 id → 专属成就 id 列表（设置页展示进度用；未启用的包成就隐藏） */
@@ -95,9 +127,12 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
   if (input.stats.offlineSettled > 0) push('offline_return')
   if (input.stats.stonesPeak >= 10000 || input.stones >= 10000) push('rich')
 
+  const asc = Boolean(
+    input.player && (input.player.ascended || input.player.realm === ASCENSION_REALM),
+  )
   const ri = input.player
-    ? input.player.ascended || input.player.realm === 'ascended'
-      ? realmIndex('ascended')
+    ? asc
+      ? realmIndex(ASCENSION_REALM)
       : Math.max(input.legacy.bestRealmIndex, realmIndex(input.player.realm as never))
     : input.legacy.bestRealmIndex
   if (ri >= realmIndex('foundation')) push('realm_foundation')
@@ -105,10 +140,17 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
   if (ri >= realmIndex('nascent_soul')) push('realm_soul')
   if (ri >= realmIndex('spirit_sea')) push('realm_spirit')
   if (ri >= realmIndex('void')) push('realm_void')
-  if (input.player?.ascended || input.player?.realm === 'ascended' || ri >= realmIndex('ascended'))
-    push('realm_ascend')
+  if (ri >= realmIndex('integration')) push('realm_integration')
+  if (ri >= realmIndex('mahayana')) push('realm_mahayana')
+  if (ri >= realmIndex('tribulation')) push('realm_tribulation')
+  if (asc || ri >= realmIndex(ASCENSION_REALM)) push('realm_ascend')
 
   if (input.collection.enemy.length >= 5) push('enemy_5')
+  // v1.5 道途：立道 / 兼修 / 六道同修（1 主修 + 兼修位上限 5）
+  const pathCount = input.pathCount ?? 0
+  if (pathCount >= 1) push('path_first')
+  if (pathCount >= 3) push('path_dual')
+  if (pathCount >= 6) push('path_all')
   if (input.collection.enemy.length >= 10) push('enemy_10')
   if (input.gongfaCount >= 3) push('gongfa_3')
   if (input.gongfaCount >= 10) push('gongfa_10')
@@ -123,7 +165,8 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
   if ((input.towerBest.ice_cave ?? 0) >= 40) push('clear_ice')
   // v1.4 飞升终局：仙缘积累与太虚仙阙贯通
   if ((input.favor ?? 0) >= 100) push('favor_100')
-  if ((input.towerBest.taixu_palace ?? 0) >= 99) push('taixu_clear')
+  // 以秘境表实际层数为准（层数调整后成就自动跟随，避免两处魔数失配）
+  if ((input.towerBest.taixu_palace ?? 0) >= TAIXU_PALACE_FLOORS) push('taixu_clear')
 
   // v1.4 DLC 专属成就：仅在对应包启用时判定/展示
   const dlcOn = (id: string) => (input.enabledDlc ?? []).includes(id)

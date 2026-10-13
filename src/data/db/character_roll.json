@@ -1,0 +1,33 @@
+{
+  "optionCount": 4,
+  "maxRolls": 5,
+  "distinctAptitudePerRoll": true,
+  "aptitudeWeights": {
+    "heaven": 4,
+    "mutant": 2,
+    "true": 12,
+    "dual": 26,
+    "mixed": 34,
+    "false": 22
+  },
+  "originWeights": {
+    "wild": 18,
+    "wanderer": 16,
+    "sect": 14,
+    "herbalist": 14,
+    "scholar": 14,
+    "fallen": 12,
+    "merchant": 6,
+    "artisan": 6
+  },
+  "affinity": {
+    "fallen": { "heaven": 2.0, "true": 1.5 },
+    "wild": { "mutant": 2.0 },
+    "sect": { "true": 1.4, "dual": 1.2 },
+    "scholar": { "true": 1.2 },
+    "artisan": { "mutant": 1.3 },
+    "wanderer": { "false": 1.2, "dual": 1.1 },
+    "herbalist": { "mixed": 1.2 },
+    "merchant": {}
+  }
+}

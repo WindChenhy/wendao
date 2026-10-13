@@ -66,9 +66,14 @@ export function canLearnGongfa(g: GongfaDef, realm: RealmId): boolean {
 }
 
 /**
- * 品阶随境界收紧（学习/坊市可见）：
+ * 品阶随境界收紧（**只管"新获得"**：坊市可见性、藏经阁/残页参悟）：
  * 元婴以下：天地玄黄；元婴以上：天地玄；炼虚以上：天地；大乘及以上：仅天阶。
- * 仙阶为传世特例，仅渡劫/飞升相关可持有，不进常规池。
+ * 仙阶为传世特例，仅大乘及以上可参悟，不进坊市常规池。
+ *
+ * 注意与 `gongfaInScope` 的分工（SPRINT_B R-07 曾把它当成自相矛盾）：
+ * - `gongfaGradeOk`：**新参悟**时的门槛。大乘之后不能再新学低阶功法，属有意设计。
+ * - `gongfaInScope`：**已参悟功法是否继续生效**。`maxRealm` 为空＝不设上限，永远生效。
+ * 因此"大乘期不能再学一部不设上限的地阶功法"不是矛盾，而是"已学的继续有效、未学的门槛更高"。
  */
 export function gongfaGradesAllowed(realm: RealmId): GongfaGrade[] {
   const i = realmIndex(realm)
@@ -81,7 +86,7 @@ export function gongfaGradesAllowed(realm: RealmId): GongfaGrade[] {
   return ['黄阶', '玄阶', '地阶', '天阶']
 }
 
-/** 该功法品阶是否允许在当前境界出现/参悟 */
+/** 该功法品阶是否允许在当前境界**新参悟**（已参悟者不受影响，见文件头注释） */
 export function gongfaGradeOk(g: GongfaDef, realm: RealmId): boolean {
   if (g.grade === '仙阶') {
     // 传世仙经：仅大乘及以上可参悟（秘境/残页所得，不走坊市常规筛选）
@@ -90,7 +95,7 @@ export function gongfaGradeOk(g: GongfaDef, realm: RealmId): boolean {
   return gongfaGradesAllowed(realm).includes(g.grade)
 }
 
-/** 是否在适用范围内（超过 maxRealm 则失效） */
+/** 功法是否在当前境界**仍然生效**（`maxRealm` 为空 = 不设上限，永久生效） */
 export function gongfaInScope(g: GongfaDef, realm: RealmId): boolean {
   if (!g.maxRealm) return true
   return realmIndex(realm) <= realmIndex(g.maxRealm)
@@ -125,7 +130,12 @@ export function gongfaByScrollId(scrollItemId: string): GongfaDef | null {
   return GONGFAS[scrollItemId.slice('scroll_'.length)] ?? null
 }
 
-/** 坊市在售的功法（宗门秘法 price 为 0，仅藏经阁贡献参悟） */
+/**
+ * 坊市在售的功法（price > 0）。
+ * price 为 0 的有两类，均不生成可交易秘籍：
+ * - 宗门秘法（仅本宗藏经阁以贡献参悟）；
+ * - 仙阶传世仙经（R-16：不进坊市常规池，仅大乘后由上宗藏经阁传承/残页/秘境获得）。
+ */
 export function isMarketGongfa(g: GongfaDef): boolean {
   return g.price > 0
 }

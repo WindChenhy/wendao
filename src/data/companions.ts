@@ -1,4 +1,6 @@
 import type { Gender, RealmId } from '../types'
+import { realmIndex } from './realms'
+import { sectRankIndex, type SectRank } from './sects'
 import storiesDb from './db/companion_stories.json'
 
 export interface StoryChoice {
@@ -17,6 +19,29 @@ export interface StoryChoice {
   flag?: string
 }
 
+/**
+ * 剧情段门槛（v1.5 R-01）。
+ * 此前道侣长线完全没有身份/时序判定，导致「青云剑宗宗主去剑压青云质疑者」这类身份矛盾。
+ */
+export interface StoryGates {
+  /** 境界门槛 */
+  minRealm?: RealmId
+  /** 需要具备的剧情 flag */
+  flags?: string[]
+  /** 带有任一 flag 时不适用 */
+  notFlags?: string[]
+  /** 玩家已在该宗门、且职位不低于 skipIfMinRank 时，本段不适用 */
+  skipIfSectId?: string
+  skipIfMinRank?: SectRank
+  /**
+   * 本段不适用时改用的替代段落（保留剧情与结局，避免"无声消失"）。
+   * 缺省则略过本段，并输出 skipText 作交代。
+   */
+  alt?: StoryBeat
+  /** 被略过时的一句交代 */
+  skipText?: string
+}
+
 export interface StoryBeat {
   id: string
   title: string
@@ -25,6 +50,16 @@ export interface StoryBeat {
   /** 无选项时的单结文案（点「继续」推进） */
   postText?: string
   ending?: 'he' | 'be'
+  /** 身份/时序门槛（v1.5） */
+  gates?: StoryGates
+}
+
+/** 判定剧情段门槛所需的玩家状态 */
+export interface StoryGateContext {
+  realm: RealmId
+  sectId: string | null
+  sectRank: SectRank
+  flags: string[]
 }
 
 export interface CompanionDef {
@@ -52,8 +87,6 @@ export interface CompanionDef {
   breakthroughBonus: number
   /** 可攻略条件：境界 */
   minRealm: RealmId
-  /** 玩家性别兼容：any 或异性 */
-  prefer: 'any' | 'opposite'
   /** 隐藏道侣：需特殊事件解锁 */
   hidden?: boolean
   unlockHint?: string
@@ -91,7 +124,6 @@ const BASE_COMPANIONS: CompanionDef[] = [
     dualMul: 1.15,
     breakthroughBonus: 3,
     minRealm: 'qi',
-    prefer: 'any',
     postStory: stories.stories.find((s) => s.companionId === 'lin_wan')?.beats ?? [],
   },
   {
@@ -112,7 +144,6 @@ const BASE_COMPANIONS: CompanionDef[] = [
     dualMul: 1.18,
     breakthroughBonus: 4,
     minRealm: 'qi',
-    prefer: 'any',
     postStory: stories.stories.find((s) => s.companionId === 'su_qing')?.beats ?? [],
   },
   {
@@ -133,7 +164,6 @@ const BASE_COMPANIONS: CompanionDef[] = [
     dualMul: 1.12,
     breakthroughBonus: 5,
     minRealm: 'qi',
-    prefer: 'any',
   },
   {
     id: 'xue_mei',
@@ -153,7 +183,6 @@ const BASE_COMPANIONS: CompanionDef[] = [
     dualMul: 1.25,
     breakthroughBonus: -2,
     minRealm: 'qi',
-    prefer: 'any',
     postStory: stories.stories.find((s) => s.companionId === 'xue_mei')?.beats ?? [],
   },
   {
@@ -174,7 +203,6 @@ const BASE_COMPANIONS: CompanionDef[] = [
     dualMul: 1.28,
     breakthroughBonus: -3,
     minRealm: 'foundation',
-    prefer: 'any',
   },
   {
     id: 'yun_yao',
@@ -194,7 +222,6 @@ const BASE_COMPANIONS: CompanionDef[] = [
     dualMul: 1.1,
     breakthroughBonus: 6,
     minRealm: 'qi',
-    prefer: 'any',
   },
 ]
 
@@ -216,11 +243,53 @@ export function giftAffinity(c: CompanionDef, itemId: string): number {
   return c.giftPrefs[itemId] ?? c.giftDefault
 }
 
-/** 结缘后待触发的剧情段（按 postStage 推进） */
-export function nextStoryBeat(c: CompanionDef, postStage: number): StoryBeat | null {
-  if (!c.postStory || c.postStory.length === 0) return null
-  if (postStage < 0 || postStage >= c.postStory.length) return null
-  return c.postStory[postStage]
+/** 本段是否适用于当前玩家状态 */
+export function storyBeatApplies(beat: StoryBeat, ctx: StoryGateContext | undefined): boolean {
+  const g = beat.gates
+  if (!g) return true
+  if (!ctx) return true
+  if (g.minRealm && realmIndex(ctx.realm) < realmIndex(g.minRealm)) return false
+  if (g.flags?.length && !g.flags.every((f) => ctx.flags.includes(f))) return false
+  if (g.notFlags?.length && g.notFlags.some((f) => ctx.flags.includes(f))) return false
+  // 已是本宗高位（如青云宗主）：本段所写的"外人视角"不再成立
+  if (g.skipIfSectId && ctx.sectId === g.skipIfSectId) {
+    const floor = g.skipIfMinRank
+    if (!floor || sectRankIndex(ctx.sectRank) >= sectRankIndex(floor)) return false
+  }
+  return true
+}
+
+/** 下一段剧情的选取结果 */
+export interface NextStoryBeat {
+  /** 待播放段落；null = 该道侣长线已完结 */
+  beat: StoryBeat | null
+  /** 该段在 postStory 中的下标（beat 为 null 时为 postStory.length） */
+  index: number
+  /** 被门槛略过的段落交代（调用方负责输出一次） */
+  skipped: string[]
+}
+
+/**
+ * 取下一段剧情：从 postStage 起向后扫描，跳过不满足门槛的段落。
+ * 返回的 index 必须由调用方写回 postStage（并在结算时推进到 index + 1），
+ * 否则会每回合重复扫描。
+ */
+export function nextStoryBeat(
+  c: CompanionDef,
+  postStage: number,
+  ctx?: StoryGateContext,
+): NextStoryBeat {
+  const beats = c.postStory ?? []
+  const start = Math.max(0, Math.floor(postStage))
+  const skipped: string[] = []
+  for (let i = start; i < beats.length; i += 1) {
+    const beat = beats[i]
+    if (storyBeatApplies(beat, ctx)) return { beat, index: i, skipped }
+    const alt = beat.gates?.alt
+    if (alt) return { beat: alt, index: i, skipped }
+    if (beat.gates?.skipText) skipped.push(beat.gates.skipText)
+  }
+  return { beat: null, index: beats.length, skipped }
 }
 
 export function storyEndingKey(companionId: string, ending: 'he' | 'be'): string {

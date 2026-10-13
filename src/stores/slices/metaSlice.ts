@@ -1,7 +1,8 @@
 import { artifactDisplayName, makeArtifactUid, type ArtifactInstance } from '../../data/artifacts'
-import { CLASSES } from '../../data/classes'
+import { aptitudeOf } from '../../data/aptitudes'
+import { displayItemName, itemCategory } from '../../data/items'
+import { originOf } from '../../data/origins'
 import { GONGFAS } from '../../data/gongfa'
-import { itemCategory } from '../../data/items'
 import { expNeeded, realmIndex } from '../../data/realms'
 import { SECRET_REALMS } from '../../data/secretRealms'
 import { advanceTime, dailyRecover, dayKey } from '../../game/day'
@@ -12,6 +13,8 @@ import {
   afterProgressSnapshot,
   freshPlayer,
   log,
+  originStartItems,
+  originStartStones,
   processMetaProgress,
   recomputeVitals,
   unlockCodex,
@@ -137,8 +140,11 @@ export function createMetaSlice(
       const player = freshPlayer(input, legacy)
       const dao = daoBonuses(legacy.daoMarks)
       const abode = freshAbode()
+      const apt = aptitudeOf(player)
+      const origin = originOf(player)
       // 初始 6×6=36 格；道痕不再额外送地（开拓另计）
-      log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
+      log(`你名 ${player.name}，灵根为「${apt.name}」，出身${origin.name}。`, 'gold')
+      log('修仙之路始于吐纳。道途不必急于定下——历练、炼丹、炼器与机缘自会为你指路。', 'dim')
       // v1.0 封印传承物：功法残卷入门带入 / 法宝实例带入
       const learned: Record<string, GongfaLearned> = {}
       const sealedArts: ArtifactInstance[] = []
@@ -169,7 +175,17 @@ export function createMetaSlice(
         if (seenArt.has(a.itemId)) a.equipped = false
         else seenArt.add(a.itemId)
       }
-      log(`你名 ${player.name}，踏上修行之路。职业：${CLASSES[player.classId].name}。`, 'gold')
+      const startItems = originStartItems(input)
+      const inventory = { ...defaultInventory() }
+      for (const [id, n] of Object.entries(startItems)) {
+        if (n > 0) inventory[id] = (inventory[id] ?? 0) + n
+      }
+      log(
+        `行囊：灵石 ${originStartStones(input) + dao.startStones}，${Object.entries(startItems)
+          .map(([id, n]) => `${displayItemName(id)}×${n}`)
+          .join('、') || '别无长物'}。`,
+        'dim',
+      )
       log(`初始寿元 ${player.lifespanLeft} 年。${dayKey(get().time)}，天朗气清。`, 'dim')
       if (legacy.reincarnations > 0) {
         log(
@@ -181,12 +197,13 @@ export function createMetaSlice(
         log(`道痕 ${legacy.daoMarks}：修炼加速、突破略易，起始灵石更丰。`, 'dim')
       }
       const prevMeta = get().meta
+      const startStones = originStartStones(input) + dao.startStones
       set({
         phase: 'play',
         player,
         time: { year: 1, month: 1, day: 1 },
-        stones: dao.startStones,
-        inventory: defaultInventory(),
+        stones: startStones,
+        inventory,
         sect: freshSect(),
         companion: freshCompanion(),
         gongfa: { learned },
@@ -210,7 +227,7 @@ export function createMetaSlice(
           collection: mergeCollection(prevMeta.collection, { realm: ['qi'] }),
           stats: {
             ...prevMeta.stats,
-            stonesPeak: Math.max(prevMeta.stats.stonesPeak, dao.startStones),
+            stonesPeak: Math.max(prevMeta.stats.stonesPeak, startStones),
           },
           lastOnlineAt: Date.now(),
         },

@@ -1,9 +1,13 @@
 import {
   ACHIEVEMENT_MAP,
+  ACHIEVEMENT_DAO_CAP,
   describeReward as describeAchieveReward,
   evaluateAchievementIds,
+  grantAchievementDaoMarks,
 } from '../../data/achievements'
 import { julingCultivateBonus } from '../../data/abode'
+import type { PathInput } from '../../data/classes'
+import { pathIdsOf } from '../../data/classes'
 import {
   CODEX_PAGE_META,
   codexRewardKey,
@@ -35,22 +39,22 @@ import { log } from './log'
 import { currentRules, sectDef, spouseDef } from './shared'
 
 export function gainCultivate(
-  classId: PlayerState['classId'],
+  paths: PathInput,
   realm: PlayerState['realm'],
   layer: number,
   julingLevel = 0,
 ): number {
-  return Math.floor(cultivateGain(classId, realm, layer) * currentRules().cultivateMul * julingCultivateBonus(julingLevel))
+  return Math.floor(cultivateGain(paths, realm, layer) * currentRules().cultivateMul * julingCultivateBonus(julingLevel))
 }
 
 export function gainSeclusion(
-  classId: PlayerState['classId'],
+  paths: PathInput,
   realm: PlayerState['realm'],
   layer: number,
   days: number,
   julingLevel = 0,
 ): number {
-  return Math.floor(seclusionGain(classId, realm, layer, days) * currentRules().cultivateMul * julingCultivateBonus(julingLevel))
+  return Math.floor(seclusionGain(paths, realm, layer, days) * currentRules().cultivateMul * julingCultivateBonus(julingLevel))
 }
 
 /** 合并修炼倍率：道痕 / 宗门 / 职位 / 功法 / 道侣 / 法宝（打坐/闭关/双修/离线共用）。
@@ -139,6 +143,7 @@ export function processMetaProgress(get: MetaGet, set: MetaSet) {
     pet: state.pet
       ? { level: state.pet.level, broken: state.pet.broken, bond: state.pet.bond }
       : null,
+    pathCount: state.player ? pathIdsOf(state.player).length : 0,
   })
 
   const unlockedSet = new Set(achievements)
@@ -146,16 +151,24 @@ export function processMetaProgress(get: MetaGet, set: MetaSet) {
     if (unlockedSet.has(id)) continue
     const def = ACHIEVEMENT_MAP[id]
     if (!def) continue
-    achievements.push(id)
-    unlockedSet.add(id)
     if (def.reward.stones) stones += def.reward.stones
+    let rewardText = describeAchieveReward(def.reward)
     if (def.reward.daoMarks) {
-      legacy = { ...legacy, daoMarks: legacy.daoMarks + def.reward.daoMarks }
+      // R-12：成就道痕单世软上限，溢出折算当世灵石
+      const split = grantAchievementDaoMarks(achievements, def.reward.daoMarks)
+      if (split.daoMarks > 0) legacy = { ...legacy, daoMarks: legacy.daoMarks + split.daoMarks }
+      if (split.stones > 0) {
+        stones += split.stones
+        const overflow = def.reward.daoMarks - split.daoMarks
+        rewardText += `（单世道痕上限 ${ACHIEVEMENT_DAO_CAP}，溢出 ${overflow} 点折算灵石 +${split.stones}）`
+      }
     }
     if (def.reward.title && !titles.includes(def.reward.title)) {
       titles.push(def.reward.title)
     }
-    log(`成就解锁「${def.name}」：${def.desc} · ${describeAchieveReward(def.reward)}`, 'gold')
+    achievements.push(id)
+    unlockedSet.add(id)
+    log(`成就解锁「${def.name}」：${def.desc} · ${rewardText}`, 'gold')
   }
 
   set({
@@ -225,6 +238,8 @@ export function trySettleOffline(get: MetaGet, set: MetaSet) {
     lastOnlineAt: state.meta.lastOnlineAt,
     now: Date.now(),
     classId: player.classId,
+    paths: player.paths,
+    aptitude: player.aptitude,
     realm: player.realm,
     layer: player.layer,
     multipliers: cultivateMultipliers(

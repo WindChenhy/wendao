@@ -1,5 +1,6 @@
+import { isDemonic } from '../../data/classes'
 import { ITEMS } from '../../data/items'
-import { expNeeded, REALMS, realmLabel, realmMaxEnergy } from '../../data/realms'
+import { ASCENSION_REALM, expNeeded, REALMS, realmLabel, realmMaxEnergy } from '../../data/realms'
 import { OFFLINE_PILL_BONUS, formatOfflineDuration } from '../../game/offline'
 import { migrateAbode } from '../../game/farm'
 import { removeItem } from '../../game/inventory'
@@ -156,7 +157,7 @@ export function createSaveSlice(
         )
         const maxEnergy = Math.max(
           snap.player.maxEnergy,
-          realmMaxEnergy(snap.player.realm, snap.player.classId === 'demon', snap.player.layer),
+          realmMaxEnergy(snap.player.realm, isDemonic(snap.player), snap.player.layer),
         )
         const lifespanFloor = REALMS[snap.player.realm]?.lifespan ?? REALMS.qi.lifespan
         const wasFullHp = snap.player.hp >= snap.player.maxHp - 1
@@ -176,7 +177,7 @@ export function createSaveSlice(
               alive: true,
               lifespanLeft: Math.max(
                 rawPlayer.lifespanLeft,
-                Math.floor(REALMS.ascended.lifespan * 1),
+                Math.floor(REALMS[ASCENSION_REALM].lifespan * 1),
               ),
             }
           : rawPlayer
@@ -208,9 +209,13 @@ export function createSaveSlice(
             // 曲线调整后：原先满血/满灵的角色读档即按新上限回满
             hp: wasFullHp ? maxHp : Math.min(maxHp, playerFixed.hp),
             energy: wasFullEn ? maxEnergy : Math.min(maxEnergy, playerFixed.energy),
+            // R-20：新规则下寿元是消耗品，读档不再回补；
+            // 仅 v18 之前的旧档保留一次性「该境寿元 30%」兜底（旧规则为突破回满）
             lifespanLeft: isAscended(playerFixed)
               ? playerFixed.lifespanLeft
-              : Math.max(playerFixed.lifespanLeft, Math.floor(lifespanFloor * 0.3)),
+              : snap.version < 18
+                ? Math.max(playerFixed.lifespanLeft, Math.floor(lifespanFloor * 0.3))
+                : playerFixed.lifespanLeft,
           },
           stones: snap.stones,
           inventory,
@@ -313,7 +318,7 @@ export function createSaveSlice(
               alive: true,
               lifespanLeft: Math.max(
                 snap.player.lifespanLeft,
-                Math.floor(REALMS.ascended.lifespan),
+                Math.floor(REALMS[ASCENSION_REALM].lifespan),
               ),
             }
           : snap.player
@@ -338,7 +343,19 @@ export function createSaveSlice(
         set({
           phase: 'play',
           time: snap.time,
-          player: playerFixed,
+          // R-20：与读档同一套寿元兜底（仅 v18 之前旧档一次性补足）
+          player: isAscended(playerFixed)
+            ? playerFixed
+            : {
+                ...playerFixed,
+                lifespanLeft:
+                  snap.version < 18
+                    ? Math.max(
+                        playerFixed.lifespanLeft,
+                        Math.floor((REALMS[playerFixed.realm]?.lifespan ?? REALMS.qi.lifespan) * 0.3),
+                      )
+                    : playerFixed.lifespanLeft,
+              },
           stones: snap.stones ?? 0,
           inventory,
           sect: migratedSect,

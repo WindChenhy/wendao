@@ -8,16 +8,145 @@ import type { PetState } from '../data/pets'
 
 export type Gender = 'male' | 'female'
 
+/**
+ * 道途 id（原「职业」）。修仙之人先修仙、后择道：
+ * 出生时只有灵根与出身，道途在修行途中通过历练/实践/机缘立下。
+ * `'none'` 表示尚未择道（未定道途的散修）。
+ */
 export type ClassId =
+  | 'none'
   | 'sword'
   | 'body'
   | 'alchemy'
   | 'artifact'
   | 'talisman'
+  | 'formation'
+  | 'beast'
+  | 'puppet'
+  | 'medicine'
+  | 'music'
   | 'soul'
   | 'demon'
 
-export type Faction = 'righteous' | 'demonic' | 'beast' | 'abomination'
+/** 道途类别：战道 / 艺道 / 禁道（魔道、魂道） */
+export type PathKind = 'combat' | 'craft' | 'forbidden'
+
+/** 择道条件里可统计的修行履历 */
+export type PathStatKey =
+  | 'combatsWon'
+  | 'combatsLost'
+  | 'pillsCrafted'
+  | 'artifactsForged'
+  | 'towerFloors'
+  /** R-27 丹道质变：历史最高丹纹（0–5） */
+  | 'bestDanMarks'
+  /** R-27 器道质变：历史最高法宝品质档（0=未炼器, 1=凡品, 2=灵品, 3=宝器, 4=仙器） */
+  | 'bestArtifactTier'
+  /** R-27 剑道质变：单场战斗剑意最高层数 */
+  | 'maxSwordIntent'
+
+/** 道途的获得条件（在游戏中「问道」立道时校验） */
+export interface PathUnlock {
+  minRealm?: RealmId
+  minLayer?: number
+  /** 履历门槛 */
+  stats?: Partial<Record<PathStatKey, number>>
+  /** 立道代价：寿元（年） */
+  lifespanCost?: number
+  /** 立道代价：灵石 */
+  stoneCost?: number
+  /** 立道门槛：魔道声望 */
+  repDemonic?: number
+  /** 立道代价：正道声望（立魔道时扣除） */
+  repRightCost?: number
+  /** 条件说明（UI 展示） */
+  note: string
+}
+
+export interface ClassDef {
+  id: ClassId
+  /** 道途名，如「剑道」 */
+  name: string
+  /** 世人称号，如「剑修」 */
+  title: string
+  kind: PathKind
+  faction: 'righteous' | 'neutral' | 'demonic'
+  desc: string
+  /** 世界观说明（道途页展示） */
+  lore: string
+  /** 修炼速度倍率 */
+  cultivateRate: number
+  /** 突破加成（百分点） */
+  breakthroughBonus: number
+  /** 战斗攻击倍率 */
+  atkMul: number
+  /** 战斗防御倍率 */
+  defMul: number
+  /** 战斗气血倍率 */
+  hpMul: number
+  /** 特色标签 */
+  tags: string[]
+  /** 获得条件（'none' 无） */
+  unlock?: PathUnlock
+}
+
+/** 灵根（资质）：创角时确定，影响一生修炼与根骨 */
+export interface AptitudeDef {
+  id: AptitudeId
+  name: string
+  /** 俗称，如「单灵根」 */
+  alias: string
+  /** 稀有度品阶：天品/上品/中上/中品/下品 */
+  rarity: string
+  desc: string
+  detail: string
+  cultivateRate: number
+  breakthroughBonus: number
+  atkMul: number
+  defMul: number
+  hpMul: number
+  tags: string[]
+}
+
+export type AptitudeId = 'heaven' | 'mutant' | 'true' | 'dual' | 'mixed' | 'false'
+
+/** 出身：决定起始盘缠与行囊，并通过「机缘亲和」影响天道掷卷时灵根的出现概率 */
+export interface OriginDef {
+  id: OriginId
+  name: string
+  desc: string
+  startStones: number
+  startItems: Record<string, number>
+  tags: string[]
+}
+
+export type OriginId =
+  | 'wild'
+  | 'wanderer'
+  | 'sect'
+  | 'herbalist'
+  | 'scholar'
+  | 'fallen'
+  | 'merchant'
+  | 'artisan'
+
+/** 创角天命掷卷的可配置概率参数：src/data/db/character_roll.json */
+export interface CharacterRollConfig {
+  /** 每卷给出的组合数 */
+  optionCount: number
+  /** 最多掷卷次数（含首卷；用尽后固定为最后一卷结果） */
+  maxRolls: number
+  /** 灵根基础权重（相对出现概率） */
+  aptitudeWeights: Partial<Record<AptitudeId, number>>
+  /** 出身基础权重 */
+  originWeights: Partial<Record<OriginId, number>>
+  /** 机缘亲和：出身对灵根权重的倍率（>1 相契更易现世，<1 相斥） */
+  affinity: Partial<Record<OriginId, Partial<Record<AptitudeId, number>>>>
+  /** 每卷内灵根尽量不重复（多样性约束；灵根数不足时自动放宽） */
+  distinctAptitudePerRoll: boolean
+}
+
+export type Faction = 'righteous' | 'demonic' | 'beast' | 'abomination' | 'rogue'
 
 export type RealmId =
   | 'qi'
@@ -53,13 +182,20 @@ export interface ClassDef {
 export interface RealmDef {
   id: RealmId
   name: string
-  /** 该境界小层层数 */
+  /**
+   * 该境界小层层数。
+   * 终局 ascended 恒为 1（终局唯一状态，非可修行层级，见 ASCENSION_REALM 注释）。
+   */
   layers: number
-  /** 每层所需修为（基准，按层号缩放） */
-  expPerLayer: number
-  /** 突破到下一大境界基础成功率 % */
+  /**
+   * 突破到下一大境界基础成功率 %。
+   * 终局 ascended 恒为 0：无下一大境界可破。
+   */
   breakthroughBaseRate: number
-  /** 该境界寿命（年） */
+  /**
+   * 该境界寿命（年）。
+   * 终局 ascended 为哨兵值 999999（与天同寿），不是真实寿元，UI 不应直接展示该数字。
+   */
   lifespan: number
 }
 
@@ -90,6 +226,8 @@ export interface ItemDef {
     energy?: number
     /** 服用后提升本次/后续突破成功率（百分点）；突破丹药在冲击壁垒时自动消耗 */
     breakthroughRate?: number
+    /** 仙缘（飞升后长线资源；普通丹药没有此项） */
+    favor?: number
     /** 复活/回满等特殊效果标记 */
     special?: 'full_heal' | 'cleanse'
   }
@@ -110,7 +248,14 @@ export interface ItemDef {
 export interface PlayerState {
   name: string
   gender: Gender
+  /** 主修道途；'none' = 尚未择道 */
   classId: ClassId
+  /** 兼修道途（不含主修，顺序 = 立道先后） */
+  paths?: ClassId[]
+  /** 灵根资质（创角确定；缺省视为杂灵根，兼容旧档） */
+  aptitude?: AptitudeId
+  /** 出身（创角确定；缺省视为山野遗孤，兼容旧档） */
+  origin?: OriginId
   realm: RealmId
   layer: number
   exp: number
@@ -128,9 +273,23 @@ export interface PlayerState {
   repRight: number
   /** 魔道声望 */
   repDemonic: number
+  /**
+   * 心魔值 0–100（R-24）：立禁忌道途、施禁忌技、突破失败、邪祟事件都会滋长心魔；
+   * 压制突破成功率，深重者突破时更易引动心魔劫。可由清心丹/长久闭关/道侣护法削减退散。
+   * 缺省 0（旧档由存档迁移收敛）。
+   */
+  heartDemon?: number
+  /**
+   * 立场（R-31，与道途正交）：righteous/neutral/demonic。
+   * 缺省时由双声望实时推导（deriveAlignment），事件可显式改写（血誓/屠村/投案/洗魔）。
+   */
+  alignment?: Alignment
   alive: boolean
   ascended: boolean
 }
+
+/** 修行立场（R-31）：与道途独立——剑修行凶亦可堕魔，魔子回头亦可归正 */
+export type Alignment = 'righteous' | 'neutral' | 'demonic'
 
 export interface GameTime {
   year: number
@@ -171,7 +330,10 @@ export type PanelId =
 export interface CharacterCreateInput {
   name: string
   gender: Gender
-  classId: ClassId
+  /** 灵根资质（创角唯一影响数值的选择） */
+  aptitude: AptitudeId
+  /** 出身（只影响起始盘缠与行囊） */
+  origin: OriginId
 }
 
 /** 秘境爬塔进行中状态 */
@@ -236,12 +398,28 @@ export interface CollectionState {
 export interface MetaStats {
   /** 战斗获胜次数 */
   combatsWon: number
+  /** 战斗失败次数（体道「屡败愈坚」的门槛） */
+  combatsLost: number
   /** 炼丹成功次数 */
   pillsCrafted: number
+  /** 炼器（打造法宝）成功次数 */
+  artifactsForged: number
   /** 历史灵石峰值 */
   stonesPeak: number
   /** 离线结算次数 */
   offlineSettled: number
+  /**
+   * 历史最高丹纹 0–5（R-27 丹道质变：出过五纹丹）。
+   * 缺省 0（旧档由存档迁移收敛）。
+   */
+  bestDanMarks?: number
+  /**
+   * 历史最高法宝品质档 0–4（R-27 器道质变：0=未炼器, 1=凡品, 2=灵品, 3=宝器, 4=仙器）。
+   * 与 artifacts 的 QUALITY_ORDER 对齐（序号 +1）。
+   */
+  bestArtifactTier?: number
+  /** 单场战斗剑意最高层数（R-27 剑道质变：剑意叠满 5 层） */
+  maxSwordIntent?: number
 }
 
 /** v0.7 图鉴 / 成就 / 离线元数据（进存档） */
@@ -265,18 +443,18 @@ export interface DailyTaskState {
   claimed: boolean
 }
 
-/** v1.4 日课（按游戏日惰性刷新；points 累计换周礼包） */
+/** v1.4 日课（按现实日惰性刷新；points 累计换周礼包） */
 export interface DailyState {
   dayKey: string
   tasks: DailyTaskState[]
   points: number
 }
 
-/** v1.4 现实日签到（7 日一轮） */
+/** v1.4 现实日「焚香记日」（7 日一轮；实现字段沿用 checkin 命名） */
 export interface CheckinState {
-  /** 上次签到日期 YYYY-MM-DD；空串表示从未签到 */
+  /** 上次记日日期 YYYY-MM-DD；空串表示从未记日 */
   lastDate: string
-  /** 连续签到天数（断签重置为 1） */
+  /** 连续记日天数（断签重置为 1） */
   streak: number
 }
 
@@ -354,6 +532,8 @@ export interface CompanionState {
 export interface PendingStory {
   companionId: string
   beat: StoryBeat
+  /** 该段在 postStory 中的下标（v1.5：门槛可能跳过若干段，推进时必须用它而非简单 +1） */
+  beatIndex: number
 }
 
 /** 修炼/历练触发的待处理世界事件 */

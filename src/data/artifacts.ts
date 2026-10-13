@@ -1,4 +1,5 @@
 import artifactDb from './db/artifact_recipes.json'
+import { hasPath, type PathInput } from './classes'
 import { ITEMS, itemCategory } from './items'
 import type { ClassId } from '../types'
 
@@ -123,6 +124,15 @@ export const ARTIFACT_QUALITY_CLASS = {
   immortal: 'text-vermilion',
 } as const
 
+/**
+ * 品质档位（1=凡品 … 4=仙器），用于存档统计 bestArtifactTier（R-27 器道质变门槛）。
+ * 未炼器记为 0；未知品质回退 0。
+ */
+export function artifactQualityTier(quality: ArtifactQuality | undefined): number {
+  const i = QUALITY_ORDER.indexOf(quality as ArtifactQuality)
+  return i < 0 ? 0 : i + 1
+}
+
 /** 洗练/随机词条：受品质与器阁上限约束 */
 export function rollAffixIds(
   quality: ArtifactQuality,
@@ -159,7 +169,7 @@ export function rollAffixIds(
 export function rollQuality(
   qualityCap: ArtifactQuality,
   qualityFloor?: ArtifactQuality,
-  classId?: ClassId,
+  paths?: PathInput,
   rng: () => number = Math.random,
 ): ArtifactQuality {
   const capIdx = qualityIndex(qualityCap)
@@ -169,8 +179,8 @@ export function rollQuality(
   let total = 0
   const weights = options.map((q) => {
     let w = QUALITIES[q].weight
-    // 器修更容易出高品质
-    if (classId === 'artifact' && q !== 'mortal') w *= 1.35
+    // 器道更容易出高品质
+    if (hasPath(paths, 'artifact') && q !== 'mortal') w *= 1.35
     total += w
     return w
   })

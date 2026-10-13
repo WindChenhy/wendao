@@ -195,7 +195,7 @@
           "label": "严查到底",
           "outcome": {
             "kind": "combat",
-            "bossId": "shan_xiao",
+            "bossId": "wolf",
             "win": {
               "text": "窃贼竟是受雇的山魈所化。你斩妖追赃，灵草尽数归还。",
               "contribution": 50,
@@ -408,7 +408,7 @@
       "type": "faction",
       "pack": "faction_war",
       "title": "魔道招揽",
-      "text": "月夜，一道传音符落在你掌心：「阁下煞气/剑意不凡，何苦在正道蹉跎？入我血池，三年内必成大器。」署名是一朵血梅。",
+      "text": "月夜，一道传音符落在你掌心：「阁下杀机内蕴、气相不凡，何苦在正道蹉跎？入我血池，三年内必成大器。」署名是一朵血梅。",
       "gates": {
         "minRealm": "foundation",
         "minRepDemonic": 5
@@ -453,7 +453,7 @@
       "type": "faction",
       "pack": "faction_war",
       "title": "除魔令",
-      "text": "正道盟会传下除魔令：血煞坛主屠村三处，凡筑基以上修士皆可领命。赏格丰厚，风险亦高。",
+      "text": "正道盟会传下除魔令：血煞魔宫坛主屠村三处，凡筑基以上修士皆可领命。赏格丰厚，风险亦高。",
       "gates": {
         "minRealm": "foundation",
         "minRepRight": 15
@@ -525,7 +525,7 @@
           "label": "助魔道",
           "outcome": {
             "kind": "combat",
-            "bossId": "shan_xiao",
+            "bossId": "wolf",
             "win": {
               "text": "正道巡夜败退。魔修丢来一袋煞气结晶：「够朋友。」",
               "repDemonic": 25,
@@ -590,7 +590,9 @@
             "text": "魔修很满意，血祭如期而至。你数着到手的灵石，耳畔幻听三日不绝。",
             "stones": 400,
             "repDemonic": 30,
-            "repRight": -30
+            "repRight": -30,
+            "alignment": "demonic",
+            "heartDemon": 10
           }
         },
         {
@@ -609,7 +611,7 @@
       "type": "faction",
       "pack": "faction_war",
       "title": "细作风波",
-      "text": "你截获一封密信：有人在向魔道递送宗门布防图。字迹像极了你的同门/旧识。信末画了一朵小小血梅。",
+      "text": "你截获一封密信：有人在向魔道递送宗门布防图。字迹眼熟得让人心慌——像是故人手笔。信末画了一朵小小血梅。",
       "gates": {
         "minRealm": "foundation"
       },
@@ -803,7 +805,9 @@
             "text": "火光里你的影子很长。灵石入手滚烫，像还带着体温。",
             "stones": 350,
             "repDemonic": 28,
-            "repRight": -40
+            "repRight": -40,
+            "alignment": "demonic",
+            "heartDemon": 10
           }
         },
         {
@@ -852,7 +856,7 @@
       "type": "omen",
       "pack": "omen",
       "title": "域外天魔",
-      "text": "虚空裂开一线，有魔影隔界窥伺，低语如针刺入识海：「小小界中仙，可要一缕超脱？」你道心轰鸣，金丹/元婴都在发烫。",
+      "text": "虚空裂开一线，有魔影隔界窥伺，低语如针刺入识海：「小小界中仙，可要一缕超脱？」你道心轰鸣，一身修为都在发烫。",
       "gates": {
         "minRealm": "nascent_soul"
       },
@@ -863,7 +867,7 @@
           "label": "斩灭魔影",
           "outcome": {
             "kind": "combat",
-            "bossId": "boss_demon_lord",
+            "bossId": "boss_heaven_demon",
             "win": {
               "text": "魔影尖啸溃散。你以道心为刃，斩断那一缕窥伺。",
               "exp": 800,
@@ -906,7 +910,7 @@
           "label": "深入洞府",
           "outcome": {
             "kind": "combat",
-            "bossId": "boss_ape",
+            "bossId": "puppet",
             "win": {
               "text": "你破开守府傀儡，得丹炉一座、灵石若干，壁上刻着半篇不知名心法。",
               "exp": 700,
@@ -1496,6 +1500,288 @@
       ]
     },
     {
+      "id": "washmo_call",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "洗魔·初念",
+      "text": "夜半打坐，识海忽现一线清明：多年杀伐，血气缠身，心魔已悄然生根。传言西域有「洗魔池」，可涤一身罪业——只是须先立下向善之志。",
+      "gates": {
+        "alignment": "demonic",
+        "minRealm": "foundation"
+      },
+      "weight": 0.8,
+      "actions": [
+        {
+          "id": "resolve",
+          "label": "立向善之志",
+          "outcome": {
+            "kind": "settle",
+            "text": "你于蒲团上郑重一拜。自此心头那点火苗，便再未熄过。",
+            "flag": "washmo_1",
+            "repRight": 5
+          }
+        },
+        {
+          "id": "refuse",
+          "label": "嗤之以鼻",
+          "outcome": {
+            "kind": "settle",
+            "text": "你冷笑一声，将那一线清明碾灭。魔道之路，何须回头。",
+            "repDemonic": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "washmo_offering",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "洗魔·献功",
+      "text": "向善之志既立，盟会遣人接引：欲涤罪业，先须自断根基——交出你赖以成道的魔功残卷，散于洗魔池中。",
+      "gates": {
+        "alignment": "demonic",
+        "flags": ["washmo_1"]
+      },
+      "actions": [
+        {
+          "id": "offer",
+          "label": "献出魔功残卷",
+          "cost": { "stones": 500 },
+          "outcome": {
+            "kind": "settle",
+            "text": "残卷投入池中，黑雾翻腾而散。你只觉经脉一空，却前所未有地轻松。",
+            "flag": "washmo_2",
+            "repDemonic": -30,
+            "heartDemon": -20
+          }
+        },
+        {
+          "id": "retreat",
+          "label": "临时反悔",
+          "outcome": {
+            "kind": "settle",
+            "text": "你终究下不去手。接引人叹息离去，此事作罢。",
+            "repDemonic": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "washmo_trial",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "洗魔·雷罚",
+      "text": "献功之后，须受一遭「洗魔雷罚」——以天雷鞭笞道基，逼出最后一点魔念。雷云已聚于洗魔池上空。",
+      "gates": {
+        "alignment": "demonic",
+        "flags": ["washmo_2"]
+      },
+      "actions": [
+        {
+          "id": "endure",
+          "label": "以身受雷",
+          "outcome": {
+            "kind": "combat",
+            "bossId": "boss_demon_lord",
+            "win": {
+              "text": "雷罚加身而道基未崩。魔念尽数随血雾蒸腾，你自池中起身，宛若新生。",
+              "flag": "washmo_3",
+              "repDemonic": -30,
+              "heartDemon": -30
+            },
+            "lose": {
+              "text": "雷罚过猛，你几近道消，被人拖出池外。所幸魔念已去大半，来日尚可再试。",
+              "flag": "washmo_2",
+              "hpPct": 0.5,
+              "heartDemon": -15
+            }
+          }
+        },
+        {
+          "id": "quote",
+          "label": "功亏一篑，暂且退避",
+          "outcome": {
+            "kind": "settle",
+            "text": "你望雷云而却步。事已至此，也只能改日再来。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "washmo_return",
+      "type": "faction",
+      "pack": "demonic",
+      "title": "洗魔·归正",
+      "text": "洗魔池水已清。接引长老递来两份文书：一份「散功归正」，从此与魔道一刀两断；一份「带艺投诚」，留魔功在身，只改心性——正道宗门未必尽信，却也聊胜于无。",
+      "gates": {
+        "flags": ["washmo_3"]
+      },
+      "actions": [
+        {
+          "id": "clean_break",
+          "label": "散功归正",
+          "outcome": {
+            "kind": "settle",
+            "text": "你运功散尽魔道根基，痛彻骨髓。待尘埃落定，一身清爽，宛如初入仙途。盟会昭告天下，勾去缉魔之名。",
+            "removePath": "demon",
+            "alignment": "righteous",
+            "heartDemon": -100,
+            "repDemonic": -80,
+            "repRight": 60,
+            "wanted": -5
+          }
+        },
+        {
+          "id": "keep_art",
+          "label": "带艺投诚",
+          "outcome": {
+            "kind": "settle",
+            "text": "魔功仍在，心却已正。盟会半信半疑，暂录你于正道名册之末。多年血债，并非一纸文书可清。",
+            "alignment": "neutral",
+            "heartDemon": -100,
+            "repDemonic": -50,
+            "repRight": 20,
+            "wanted": -3
+          }
+        }
+      ]
+    },
+    {
+      "id": "crosslove_sect_pressure",
+      "type": "companion",
+      "pack": "core",
+      "title": "正魔之恋·宗门施压",
+      "text": "执法堂深夜召你。长老面色铁青：「你与血煞魔宫圣女结缘之事，已传遍山门。要么与她断绝、自证清白；要么——叛出青云，永为魔道。」",
+      "gates": {
+        "alignment": "righteous",
+        "spouseId": "xue_mei",
+        "requireSect": true
+      },
+      "weight": 0.9,
+      "actions": [
+        {
+          "id": "break_up",
+          "label": "断绝自证",
+          "outcome": {
+            "kind": "settle",
+            "text": "你当着长老的面焚了那枚她送的同心结。此后青云门中再无闲话，只余你一人在剑冢前站了很久。",
+            "affinity": -60,
+            "repRight": 25,
+            "flag": "crosslove_broken"
+          }
+        },
+        {
+          "id": "choose_her",
+          "label": "携侣叛门",
+          "outcome": {
+            "kind": "settle",
+            "text": "你拂袖出山，径直去了血煞魔宫。正道唾骂声中，她笑着迎上来——这一次，你没有再回头。",
+            "affinity": 25,
+            "alignment": "demonic",
+            "repRight": -50,
+            "repDemonic": 40,
+            "wanted": 1,
+            "flag": "crosslove_chosen"
+          }
+        },
+        {
+          "id": "prevaricate",
+          "label": "虚与委蛇",
+          "outcome": {
+            "kind": "settle",
+            "text": "你只说「缘分已尽」，搪塞过去。长老半信半疑，事情暂时压下。",
+            "affinity": -10,
+            "repRight": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "crosslove_master_orders",
+      "type": "companion",
+      "pack": "core",
+      "title": "正魔之恋·师长勒令",
+      "text": "一封青云剑宗的亲笔信送到魔宫：林婉被师长禁足，逼她与你断绝往来，否则逐出师门。信末有一行小楷，是她的字：「别来救我，也别来送我。」",
+      "gates": {
+        "alignment": "demonic",
+        "spouseId": "lin_wan"
+      },
+      "weight": 0.9,
+      "actions": [
+        {
+          "id": "let_go",
+          "label": "放手成全",
+          "outcome": {
+            "kind": "settle",
+            "text": "你没有去。后来听说她重回剑冢，剑法愈发凌厉，再未提及你。",
+            "affinity": -50,
+            "repDemonic": 10,
+            "flag": "crosslove_broken"
+          }
+        },
+        {
+          "id": "storm_sect",
+          "label": "闯山抢人",
+          "outcome": {
+            "kind": "settle",
+            "text": "你提剑闯上青云山门，一路打上门去。她握着你通红的手，又哭又笑——从此两人都成了正道通缉。",
+            "affinity": 30,
+            "repRight": -40,
+            "repDemonic": 25,
+            "wanted": 1,
+            "flag": "crosslove_chosen"
+          }
+        },
+        {
+          "id": "secret_meet",
+          "label": "暗中相候",
+          "outcome": {
+            "kind": "settle",
+            "text": "你依信中所言退去，只在剑宗山门外三尺处留了一缕气息。她懂。",
+            "affinity": 5,
+            "repDemonic": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "crosslove_elope",
+      "type": "companion",
+      "pack": "core",
+      "title": "正魔之恋·私奔抉择",
+      "text": "顾沉将幽冥鬼宗的令牌放在你面前：「正道容不下我们。走与不走，你今夜定夺——黄泉碧落，我只等你这一句话。」",
+      "gates": {
+        "alignment": "righteous",
+        "spouseId": "gu_chen"
+      },
+      "weight": 0.9,
+      "actions": [
+        {
+          "id": "elope",
+          "label": "远走高飞",
+          "outcome": {
+            "kind": "settle",
+            "text": "你折了正道玉牒，弃了山门名分。两人一路向南，江湖再无「正」「魔」，只有一对亡命之人。",
+            "affinity": 30,
+            "alignment": "neutral",
+            "repRight": -30,
+            "flag": "crosslove_elope"
+          }
+        },
+        {
+          "id": "stay",
+          "label": "留守正道",
+          "outcome": {
+            "kind": "settle",
+            "text": "你把令牌推了回去。他没有多说，起身走入夜色，再未回头。",
+            "affinity": -60,
+            "repRight": 15,
+            "flag": "crosslove_broken"
+          }
+        }
+      ]
+    },
+    {
       "id": "hc_pressure",
       "type": "misfortune",
       "pack": "dlc",
@@ -1724,7 +2010,7 @@
       "pack": "demonic",
       "dlcId": "demonic_war",
       "title": "血池机缘",
-      "text": "万魔窟深处现出一方血池，池底沉浮着前人遗骨。以血引血，或有大造化。",
+      "text": "血煞魔宫深处现出一方血池，池底沉浮着前人遗骨。以血引血，或有大造化。",
       "gates": { "requireClass": "demon" },
       "actions": [
         {

@@ -1,13 +1,16 @@
-import { dayKey } from '../../game/day'
-import { bumpTask, freshDailyState, type DailyVariant } from '../../game/daily'
+import { bumpTask, freshDailyState, realDayKey, type DailyVariant } from '../../game/daily'
 import { isAscended } from '../../game/reincarnate'
 import type { MetaGet, MetaSet } from '../gameState'
 
-/** 惰性刷新：跨游戏日（或首次）重掷当日日课；飞升后只保留洞府类任务 */
+/**
+ * 惰性刷新：跨现实日（或首次）重掷当日日课；飞升后只保留洞府类任务。
+ * 注意必须用现实日而非游戏日：打坐/历练/炼丹等动作本身会推进游戏日，
+ * 若按游戏日刷新，每次动作都会重掷日课并清空进度，多次数任务永不可完成。
+ */
 export function ensureDailyState(get: MetaGet, set: MetaSet) {
   const s = get()
   if (!s.player) return
-  const key = dayKey(s.time)
+  const key = realDayKey()
   if (s.daily && s.daily.dayKey === key) return
   const variant: DailyVariant = isAscended(s.player) ? 'ascended' : 'mortal'
   set({ daily: freshDailyState(key, variant) })

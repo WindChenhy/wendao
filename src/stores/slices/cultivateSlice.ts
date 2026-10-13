@@ -1,10 +1,15 @@
 import { companionById } from '../../data/companions'
-import { bestBreakthroughPill, requiredMaterial, ITEMS } from '../../data/items'
-import { expNeeded, REALMS, realmIndex } from '../../data/realms'
+import { isDemonic, secondarySlots } from '../../data/classes'
+import { bestBreakthroughPill, requiredMaterial, ITEMS, itemMinRealmOk } from '../../data/items'
+import { ASCENSION_REALM, expNeeded, REALMS, realmIndex } from '../../data/realms'
 import {
+  calamityLogText,
+  calamitySolutionBonus,
+  drawCalamities,
   isTribulationMoment,
   softenSeverity,
   tribulationPlan,
+  type DrawnCalamity,
 } from '../../data/tribulation'
 import { applyLayerDown, applyLayerUp, attemptBreakthrough, canBreakthrough } from '../../game/breakthrough'
 import { breakthroughSuccessRate } from '../../game/rules/breakthrough'
@@ -20,7 +25,17 @@ import {
 } from '../../game/day'
 import { clamp } from '../../game/format'
 import { removeItem } from '../../game/inventory'
+import { breakthroughLifespan } from '../../game/lifespan'
+import {
+  BREAKTHROUGH_FAIL_HEART_DEMON,
+  SECLUSION_HEART_DEMON,
+  adjustHeartDemon,
+  heartDemonBreakthroughPenalty,
+  heartDemonOf,
+  heartDemonTribulation,
+} from '../../game/heartDemon'
 import { daoBonuses, isAscended, reincarnateGain } from '../../game/reincarnate'
+import { isCrossAlignment } from '../../game/reputation'
 import { sealDaoCost, sealSlots, type SealedItem } from '../../game/seal'
 import {
   afterProgressSnapshot,
@@ -53,7 +68,7 @@ export function createCultivateSlice(
     meditate: () => {
       const { player, time } = get()
       if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
-      let gain = gainCultivate(player.classId, player.realm, player.layer, get().abode.julingLevel)
+      let gain = gainCultivate(player, player.realm, player.layer, get().abode.julingLevel)
       gain = Math.floor(
         gain *
           cultivateMultipliers(
@@ -109,7 +124,7 @@ export function createCultivateSlice(
       const n = clamp(days, 1, GAME_DAYS_PER_YEAR * 120)
       const { player, time } = get()
       if (!player || !player.alive || isAscended(player) || get().pendingEvent || get().pendingStory || get().tower || get().activeCombat) return
-      let gain = gainSeclusion(player.classId, player.realm, player.layer, n, get().abode.julingLevel)
+      let gain = gainSeclusion(player, player.realm, player.layer, n, get().abode.julingLevel)
       gain = Math.floor(
         gain *
           cultivateMultipliers(
@@ -144,6 +159,10 @@ export function createCultivateSlice(
         wantedNext = clampWanted(wantedNext - 1)
         log('闭关日久，风声渐息，通缉降了一档。', 'dim')
       }
+      // R-24：长久闭关亦能静心消魔（≥7 日心魔 −3）
+      const hdBefore = heartDemonOf(player)
+      const hdAfter = n >= 7 && hdBefore > 0 ? adjustHeartDemon(hdBefore, -SECLUSION_HEART_DEMON) : hdBefore
+      if (hdAfter < hdBefore) log('闭关守静，心魔稍退（心魔 −' + (hdBefore - hdAfter) + '）。', 'good')
       set({
         time: advanced.time,
         player: {
@@ -153,6 +172,7 @@ export function createCultivateSlice(
           energy: player.maxEnergy,
           age: aged,
           lifespanLeft: life,
+          heartDemon: hdAfter,
         },
         wanted: wantedNext,
       })
@@ -180,13 +200,40 @@ export function createCultivateSlice(
       }
 
       const plan = tribulationPlan(planId)
-      const planOpen = isTribulationMoment(player.realm, player.layer, def.layers)
+      const planOpen = isTribulationMoment(player.realm)
       const usedPlan = planOpen ? plan : tribulationPlan('normal')
       let inv = { ...inventory }
+
+      // R-28：大境界冲关抽劫（三灾＋心魔劫）。所渡之劫与冲关方案正交。
+      const drawnCalamities: DrawnCalamity[] = isMajor
+        ? drawCalamities(player.realm, heartDemonOf(player)).map((def) => ({
+            def,
+            hasSolution: Boolean(def.solutionItemId && (inv[def.solutionItemId] ?? 0) > 0),
+          }))
+        : []
+      const calamityBonus = calamitySolutionBonus(drawnCalamities)
+      if (drawnCalamities.length > 0) {
+        log(calamityLogText(drawnCalamities), 'dim')
+        // 解法道具一次性消耗（护持此关，用后即散）
+        for (const c of drawnCalamities) {
+          if (c.hasSolution && c.def.solutionItemId) {
+            removeItem(inv, c.def.solutionItemId)
+            log(`「${c.def.solutionName}」化作灵光，替你顶下${c.def.name}。`, 'good')
+          }
+        }
+      }
 
       // 方案代价
       if (usedPlan.costItemId) {
         const need = usedPlan.costCount ?? 1
+        const costItem = ITEMS[usedPlan.costItemId]
+        if (costItem && !itemMinRealmOk(costItem, player.realm)) {
+          log(
+            `「${costItem.name}」药力过猛，${REALMS[costItem.minRealm as keyof typeof REALMS]?.name ?? ''}修为方能承受，无法用于此境冲关。`,
+            'bad',
+          )
+          return
+        }
         if ((inv[usedPlan.costItemId] ?? 0) < need) {
           log(`方案「${usedPlan.name}」需「${ITEMS[usedPlan.costItemId]?.name}」×${need}，不足。`, 'bad')
           return
@@ -214,7 +261,7 @@ export function createCultivateSlice(
       const synBt = gongfaBonuses(get().gongfa.learned, get().player?.realm).breakthrough ?? 0
       // 突破法宝（认主常驻，同类不叠加）+ 最佳突破丹药（本次消耗）+ 渡劫令持有
       const treasureBt = treasureBreakthroughTotal(treasures, get().artifacts)
-      const breakPill = bestBreakthroughPill(inv)
+      const breakPill = bestBreakthroughPill(inv, player.realm)
       // 金丹护道已扣渡劫金丹，不再从自动突破丹里重复扣
       const pillBt =
         usedPlan.id === 'golden_pill' ? 0 : breakPill?.rate ?? 0
@@ -222,7 +269,10 @@ export function createCultivateSlice(
       // 突破成功率规则集中在 game/rules/breakthrough：基础率 + 各加成线性叠加后钳制 5..95
       const rate = breakthroughSuccessRate({
         classId: player.classId,
+        paths: player.paths,
+        aptitude: player.aptitude,
         realm: player.realm,
+        layer: player.layer,
         sectBonus: sdef?.bonus.breakthroughBonus ?? 0,
         spouseBonus,
         daoBonus: dao.breakthroughBonus,
@@ -232,10 +282,20 @@ export function createCultivateSlice(
         synergyBonus: synBt,
         planRateDelta: usedPlan.rateDelta,
         rulesRateDelta: currentRules().breakthroughRateDelta,
+        heartDemon: heartDemonOf(player),
+        calamityBonus,
       })
+      // R-24：大境界冲关前警示心魔劫
+      if (isMajor && heartDemonTribulation(player.heartDemon)) {
+        log('心魔深重（≥60），此番破关，外劫未止，内魔又将趁虚而动！', 'bad')
+      }
+      const hdPenalty = heartDemonBreakthroughPenalty(player.heartDemon)
+      if (hdPenalty > 0) {
+        log(`心魔萦怀，道心动摇，突破成功率 -${hdPenalty}%。`, 'bad')
+      }
       const roll = Math.random() * 100
       // 成败与文案共用「含加成后的 rate」，避免成功却打出失败日志
-      const result = attemptBreakthrough(player.classId, player.realm, player.layer, roll, rate)
+      const result = attemptBreakthrough(player, player.realm, player.layer, roll, rate)
       const success = result.success
       const need = expNeeded(player.realm, player.layer)
 
@@ -246,10 +306,21 @@ export function createCultivateSlice(
 
       if (success) {
         const next = applyLayerUp(player.realm, player.layer)
-        const justAscended = next.realm === 'ascended'
+        const justAscended = next.realm === ASCENSION_REALM
         if (isMajor && matId) {
           removeItem(inv, matId)
         }
+        // R-20（D-4 拍板 A）：突破只延寿不回补，寿元是消耗品
+        const lifespanMul = currentRules().lifespanMul
+        const nextLifespan = breakthroughLifespan(
+          player.lifespanLeft,
+          player.realm,
+          next.realm,
+          lifespanMul,
+        )
+        // R-26：兼修位随境界开放时给玩家可见的顿悟反馈
+        const slotsBefore = secondarySlots(player.realm)
+        const slotsAfter = secondarySlots(next.realm)
         const vitals = recomputeVitals(
           get,
           { ...player, realm: next.realm, layer: next.layer },
@@ -262,6 +333,15 @@ export function createCultivateSlice(
         if (usedPlan.id !== 'normal') log(`天劫方案：${usedPlan.name}`, 'gold')
         if (justAscended) {
           log('霞举飞升，超脱此界。仙缘初聚（+50），可在秘境寻访仙机；此世修行已圆满，也可随时转生。', 'gold')
+        }
+        if (isMajor && !justAscended && nextLifespan > player.lifespanLeft) {
+          log(
+            `境界关隘既破，天机延寿 ${nextLifespan - player.lifespanLeft} 年（剩余寿元 ${nextLifespan} 年）。`,
+            'gold',
+          )
+        }
+        if (slotsAfter > slotsBefore) {
+          log(`元神渐固，可再分心一艺（兼修位 ${slotsBefore} → ${slotsAfter}）。`, 'gold')
         }
         if (spouse && !spouseHurt) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
         if (breakPill && usedPlan.id !== 'golden_pill')
@@ -291,12 +371,8 @@ export function createCultivateSlice(
             // 飞升写入终局标志，避免继续老化/战斗后被误判为道消
             ascended: justAscended ? true : vitals.ascended,
             alive: justAscended ? true : vitals.alive,
-            lifespanLeft: justAscended
-              ? Math.floor(REALMS.ascended.lifespan * currentRules().lifespanMul)
-              : Math.max(
-                  player.lifespanLeft,
-                  Math.floor(REALMS[next.realm].lifespan * currentRules().lifespanMul),
-                ),
+            // R-20：突破延寿不回补（小境不增寿、大境补两境之差、飞升给仙寿）
+            lifespanLeft: nextLifespan,
           },
         })
         unlockCodex(get, set, 'realm', next.realm)
@@ -321,6 +397,16 @@ export function createCultivateSlice(
       if (breakPill && usedPlan.id !== 'golden_pill')
         log(`服用「${breakPill.name}」，药力仍未能扭转乾坤。`, 'dim')
       log(`（成功率约 ${Math.round(rate)}%）`, 'dim')
+      // R-24：破关失败，心魔滋生 +5；R-28 心魔劫未解则再添 5
+      const hasXinmoUnresolved = drawnCalamities.some((c) => c.def.id === 'xinmo' && !c.hasSolution)
+      const hdDelta = BREAKTHROUGH_FAIL_HEART_DEMON + (hasXinmoUnresolved ? 5 : 0)
+      const hdAfterFail = adjustHeartDemon(player.heartDemon, hdDelta)
+      if (hdAfterFail !== heartDemonOf(player)) {
+        log(
+          `此番败北，心魔趁虚而入（心魔 +${hdDelta}${hasXinmoUnresolved ? '，心魔劫未解雪上加霜' : ''}，现 ${hdAfterFail}）。`,
+          'bad',
+        )
+      }
       let next = { realm: player.realm, layer: player.layer }
       let exp = Math.floor(player.exp * 0.55)
       let hp = player.hp
@@ -341,7 +427,7 @@ export function createCultivateSlice(
 
       set({
         inventory: inv,
-        player: { ...player, realm: next.realm, layer: next.layer, exp, hp, lifespanLeft },
+        player: { ...player, realm: next.realm, layer: next.layer, exp, hp, lifespanLeft, heartDemon: hdAfterFail },
       })
     },
 
@@ -417,15 +503,13 @@ export function createCultivateSlice(
         return
       }
       // 正魔恋惩罚
-      const isCross =
-        (player.classId === 'demon' && c.align === 'righteous') ||
-        (player.classId !== 'demon' && c.align === 'demonic' && player.repRight > 20)
+      const isCross = isCrossAlignment(isDemonic(player), c.align)
       if (isCross && aff < 80) {
         log(`正魔殊途，${c.name}仍心存顾虑。`, 'bad')
         return
       }
 
-      const base = gainCultivate(player.classId, player.realm, player.layer, get().abode.julingLevel)
+      const base = gainCultivate(player, player.realm, player.layer, get().abode.julingLevel)
       // 与打坐/闭关共用基础倍率（含法宝修炼加成），保留双修特殊系数 dualMul×2
       const gain = Math.floor(
         base *

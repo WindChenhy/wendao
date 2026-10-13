@@ -1,9 +1,22 @@
 import type { RealmDef, RealmId } from '../types'
 import realmsDb from './db/realms.json'
 
+/**
+ * 终局境界 id（决策 D-1：飞升 = 终局状态，不是可继续修行的第 10 个大境界）。
+ * 飞升后修为需求恒 0、无下一大境界、不可再突破/历练，只余仙缘（favor）可聚。
+ */
+export const ASCENSION_REALM = 'ascended' as const
+
 /** 经验曲线参考值：仅作境界节奏展示；实际所需修为见 expNeeded（全程连续递增）。数据见 src/data/db/realms.json */
 export const REALMS: Record<RealmId, RealmDef> = realmsDb as Record<RealmId, RealmDef>
 
+/**
+ * 全部大境界（含终局）。
+ * 注意：末位 ascended 是**终局哨兵**，其表内字段只作哨兵用途——
+ * layers=1（终局唯一状态）、breakthroughBaseRate=0（无突破可言）、
+ * lifespan=999999（「与天同寿」哨兵值，飞升时 lifespanLeft 直接置此值，勿当真实寿元展示）。
+ * 需要遍历「可修行境界」时用 CULTIVATABLE_REALMS，勿直接遍历本表。
+ */
 export const REALM_ORDER: RealmId[] = [
   'qi',
   'foundation',
@@ -14,8 +27,11 @@ export const REALM_ORDER: RealmId[] = [
   'integration',
   'mahayana',
   'tribulation',
-  'ascended',
+  ASCENSION_REALM,
 ]
+
+/** 可修行的九大境界（R-15：不含终局 ascended）；突破链/修行节奏只在这九境之内 */
+export const CULTIVATABLE_REALMS: RealmId[] = REALM_ORDER.filter((r) => r !== ASCENSION_REALM)
 
 export function realmIndex(realm: RealmId): number {
   return REALM_ORDER.indexOf(realm)
@@ -23,7 +39,7 @@ export function realmIndex(realm: RealmId): number {
 
 export function realmLabel(realm: RealmId, layer: number): string {
   const def = REALMS[realm]
-  if (realm === 'ascended') return '飞升'
+  if (realm === ASCENSION_REALM) return '飞升'
   return `${def.name}${layer}层`
 }
 
@@ -70,7 +86,7 @@ function layersBeforeRealm(realm: RealmId): number {
  */
 export function expNeeded(realm: RealmId, layer: number): number {
   const def = REALMS[realm]
-  if (realm === 'ascended' || !def) return 0
+  if (realm === ASCENSION_REALM || !def) return 0
   const before = layersBeforeRealm(realm)
   const safeLayer = Math.max(1, Math.min(def.layers, layer))
   // 全局步号：0 = 练气一层

@@ -52,7 +52,7 @@ export function createDailySlice(
       if (dailyAllClaimed(tasks)) {
         points += 1
         bonusStone = stone * DAILY_ALL_CLEAR_STONE_MUL
-        log(`今日日课全部完成！灵石 +${bonusStone}，日课积分 +1（${points}/${WEEK_GIFT.points}）`, 'gold')
+        log(`修行日课全部完成！灵石 +${bonusStone}，日课功行 +1（${points}/${WEEK_GIFT.points}）`, 'gold')
       }
       log(
         `日课「${def.desc}」完成：灵石 +${stone}${exp > 0 ? `，修为 +${exp}` : ''}${favorGain > 0 ? `，仙缘 +${favorGain}` : ''}`,
@@ -71,7 +71,7 @@ export function createDailySlice(
       if (!s.player || !s.player.alive) return
       const d = s.daily
       if (d.points < WEEK_GIFT.points) {
-        log(`日课积分不足（${d.points}/${WEEK_GIFT.points}）。`, 'dim')
+        log(`日课功行不足（${d.points}/${WEEK_GIFT.points}）。`, 'dim')
         return
       }
       const player = s.player
@@ -87,7 +87,7 @@ export function createDailySlice(
         pillName = ITEMS[pillId]?.name ?? pillId
       }
       log(
-        `周礼包：灵石 +${WEEK_GIFT.stones}${exp > 0 ? `，修为 +${exp}` : ''}${favorGain > 0 ? `，仙缘 +${favorGain}` : ''}${pillName ? `，「${pillName}」×1` : ''}`,
+        `七日之赐：灵石 +${WEEK_GIFT.stones}${exp > 0 ? `，修为 +${exp}` : ''}${favorGain > 0 ? `，仙缘 +${favorGain}` : ''}${pillName ? `，「${pillName}」×1` : ''}`,
         'gold',
       )
       set({
@@ -105,7 +105,7 @@ export function createDailySlice(
       const today = realDayKey()
       const oc = checkinOutcome(s.checkin.lastDate, s.checkin.streak, today)
       if (!oc) {
-        log('今日已签到。', 'dim')
+        log('今日已焚香记日。', 'dim')
         return
       }
       const reward = CHECKIN_REWARDS.find((r) => r.day === oc.day)
@@ -142,7 +142,7 @@ export function createDailySlice(
           }
         }
       }
-      log(`签到第 ${oc.day} 天（连签 ${oc.streak} 天）：${parts.join('，') || '心意已领'}`, 'gold')
+      log(`焚香第 ${oc.day} 日（连记 ${oc.streak} 日）：${parts.join('，') || '心意已领'}`, 'gold')
       set({
         checkin: { lastDate: today, streak: oc.streak },
         stones,
