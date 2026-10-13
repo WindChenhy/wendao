@@ -1,0 +1,66 @@
+{
+  "wild": {
+    "id": "wild",
+    "name": "山野遗孤",
+    "desc": "无父无母，靠山吃山。天地间野长大，灵根常有异变之象；识得草药兽骨，起点清贫，却比谁都耐得住苦。",
+    "startStones": 30,
+    "startItems": { "pill_heal": 3, "tiger_bone": 2 },
+    "tags": ["清贫", "识药", "机缘·异灵根易现"]
+  },
+  "wanderer": {
+    "id": "wanderer",
+    "name": "散修传人",
+    "desc": "父母是行走荒山的散修，留给你半册手札与一身机变。见过的世面比同龄人多，灵根驳杂者亦不在少数。",
+    "startStones": 80,
+    "startItems": { "pill_heal": 2, "snake_gall": 1, "herb_qi": 2 },
+    "tags": ["散修", "历练", "机缘·驳杂易现"]
+  },
+  "sect": {
+    "id": "sect",
+    "name": "仙门杂役",
+    "desc": "自幼在仙门山门外做杂役，洒扫之余偷学吐纳。仙门测过你的根骨——虽未收你入门，灵根偏纯者方能在杂役中熬出头。",
+    "startStones": 50,
+    "startItems": { "pill_qi": 2, "herb_qi": 2 },
+    "tags": ["宗门", "门径", "机缘·纯灵根易现"]
+  },
+  "herbalist": {
+    "id": "herbalist",
+    "name": "药农之家",
+    "desc": "祖辈在灵田里讨生活。开局的种子与灵草，够你早早摸到炼丹的门槛。",
+    "startStones": 60,
+    "startItems": { "seed_qi": 2, "seed_spiritgrass": 2, "herb_qi": 2 },
+    "tags": ["灵田", "丹道启蒙"]
+  },
+  "scholar": {
+    "id": "scholar",
+    "name": "书香门第",
+    "desc": "家藏一册《聚灵诀》残卷。起手即有功法可参，修行起点比旁人多半步。",
+    "startStones": 100,
+    "startItems": { "scroll_gf_juling": 1, "pill_qi": 1 },
+    "tags": ["家学", "功法", "机缘·纯灵根易现"]
+  },
+  "fallen": {
+    "id": "fallen",
+    "name": "没落世家",
+    "desc": "祖上曾有人筑基，血脉里犹存灵根之贵——天道掷卷时天灵根更易现世。如今只余薄资，道途却仍要自己走。",
+    "startStones": 300,
+    "startItems": { "pill_qi": 3 },
+    "tags": ["薄资", "丹药", "机缘·天灵根易现"]
+  },
+  "merchant": {
+    "id": "merchant",
+    "name": "商贾之家",
+    "desc": "家中货通南北，灵石从不短缺。灵根平平无奇，胜在起点丰厚——修行界的许多门槛，说到底是灵石的门槛。",
+    "startStones": 450,
+    "startItems": { "pill_qi": 1, "pill_heal": 2 },
+    "tags": ["富裕", "货通四海"]
+  },
+  "artisan": {
+    "id": "artisan",
+    "name": "百艺之家",
+    "desc": "祖上是符阵巧匠，你自小摆弄符纸阵盘，心思剔透。巧思近道，灵根偶有异变之象。",
+    "startStones": 90,
+    "startItems": { "pill_heal": 1, "fox_core": 1, "herb_spiritgrass": 2 },
+    "tags": ["巧匠", "符器启蒙", "机缘·异灵根易现"]
+  }
+}

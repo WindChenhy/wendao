@@ -13,11 +13,13 @@ import {
   type SeedDef,
 } from '../data/abode'
 import { ITEMS } from '../data/items'
+import { hasPath, pathIdsOf } from '../data/classes'
 import { canCraft, craftRate, plotProgress } from '../game/farm'
 import { ArtifactForgePanel } from './ArtifactForgePanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 import { PETS, petExpNeed, describePet } from '../data/pets'
+import { isAscended } from '../game/reincarnate'
 
 function PlotTile({
   index,
@@ -113,7 +115,8 @@ export function AbodePanel() {
   )
 
   if (!player) return null
-  const dead = !player.alive || player.realm === 'ascended' || player.ascended
+  const paths = pathIdsOf(player)
+  const dead = !player.alive || isAscended(player)
   const cols = abode.farmCols
   const rows = abode.farmRows
   const total = abode.plots.length
@@ -334,12 +337,14 @@ export function AbodePanel() {
 
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">丹房</div>
-        {player.classId === 'alchemy' && (
-          <p className="text-xs text-bamboo mb-2">丹修天赋：炼丹成功率 +12%</p>
+        {hasPath(player, 'alchemy') && (
+          <p className="text-xs text-bamboo mb-2">
+            丹道天赋：炼丹成功率 +12%{paths.length > 1 && player.classId !== 'alchemy' ? '（兼修）' : ''}
+          </p>
         )}
         <div className="space-y-2">
           {RECIPE_LIST.map((r) => {
-            const rate = craftRate(r, player.classId, legacy.daoMarks)
+            const rate = craftRate(r, player, legacy.daoMarks)
             const ok = canCraft(r, inventory)
             return (
               <div

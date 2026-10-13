@@ -1,5 +1,5 @@
 import { realmIndex, realmCombatBase } from './realms'
-import type { EnemyDef, RealmId } from '../types'
+import type { ClassId, EnemyDef, RealmId } from '../types'
 import sectsDb from './db/sects.json'
 
 type SectAlignment = 'righteous' | 'demonic'
@@ -115,12 +115,42 @@ export interface SectDef {
     minRank?: SectRank
     minRealm?: RealmId
   }[]
-  /** 藏经阁 */
-  library: { id: string; name: string; cost: number; desc: string; effect: 'atk' | 'def' | 'hp' | 'cultivate' }[]
+  /**
+   * 藏经阁。
+   * - kind 缺省/'gongfa'：宗门功法，effect 为功法加成类别；
+   * - kind 'path'（R-21 拜师传承）：以贡献拜师立道，pathId 为道途，
+   *   minRank/minRealm 为拜师门槛；另受「元婴之前可拜师」的全局境界窗口约束（见 sectSlice）。
+   */
+  library: SectLibraryEntry[]
+}
+
+export interface SectLibraryEntry {
+  id: string
+  name: string
+  cost: number
+  desc: string
+  kind?: 'gongfa' | 'path'
+  /** kind 'gongfa' 时的加成类别 */
+  effect?: 'atk' | 'def' | 'hp' | 'cultivate'
+  /** kind 'path' 时传承的道途 id */
+  pathId?: ClassId
+  minRealm?: RealmId
+  minRank?: SectRank
 }
 
 /** 宗门表：src/data/db/sects.json（sects） */
 export const SECTS: SectDef[] = sectsDb.sects as SectDef[]
+
+/**
+ * 拜师立道的境界窗口上界（R-21，paths §C.2：「元婴之前都有机会拜师」）。
+ * 元婴及以下可由师门授道；化神起「已可自立门户」，只能靠历练顿悟自悟立道。
+ */
+export const MENTOR_PATH_MAX_REALM: RealmId = 'nascent_soul'
+
+/** 当前境界是否仍在拜师窗口内（含元婴） */
+export function withinMentorWindow(realm: RealmId): boolean {
+  return realmIndex(realm) <= realmIndex(MENTOR_PATH_MAX_REALM)
+}
 
 export function sectsFor(
   alignment: 'righteous' | 'demonic',

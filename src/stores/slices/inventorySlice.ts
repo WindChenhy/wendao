@@ -2,6 +2,7 @@ import {
   createArtifactInstance,
   type ArtifactQuality,
 } from '../../data/artifacts'
+import { isDemonic } from '../../data/classes'
 import {
   GONGFA_STAGE_LABELS,
   GONGFAS,
@@ -14,17 +15,24 @@ import {
 } from '../../data/gongfa'
 import {
   ITEMS,
+  consumableExpGain,
   itemCategory,
   itemEffectWithMarks,
   itemMinRealmOk,
   itemOverScope,
   itemScopeText,
   itemTierText,
-  pillExp,
+  marketClueText,
+  marketEntryStatus,
 } from '../../data/items'
-import { REALMS } from '../../data/realms'
+import { ASCENSION_REALM, REALMS } from '../../data/realms'
 import { addItem, removeItem } from '../../game/inventory'
 import { marketPriceOf } from '../../game/bounty'
+import {
+  CLEANSE_PILL_HEART_DEMON,
+  adjustHeartDemon,
+} from '../../game/heartDemon'
+import { TUNING } from '../../game/tuning'
 import {
   afterProgressSnapshot,
   log,
@@ -66,15 +74,21 @@ export function createInventorySlice(
       const p = { ...player }
       const markNote = (item.danMarks ?? 0) > 0 ? `（${item.danMarks}纹药力）` : ''
       const scopeNote = over ? '（已超适用范围，药效大减）' : ''
-      const scopeMul = over ? 0.25 : 1
+      const scopeMul = over ? TUNING.overScopeEfficiency : 1
       // 特殊功效
       if (eff.special === 'full_heal') {
         p.hp = p.maxHp
         p.energy = p.maxEnergy
       }
       if (eff.special === 'cleanse') {
-        if (p.classId === 'demon' && p.shaqi > 0) {
+        if (isDemonic(p) && p.shaqi > 0) {
           p.shaqi = Math.max(0, p.shaqi - 15)
+        }
+        // R-24：清心丹亦化解心魔（−15），此为心魔两大常规削减手段之一
+        if ((p.heartDemon ?? 0) > 0) {
+          const before = p.heartDemon ?? 0
+          p.heartDemon = adjustHeartDemon(before, -CLEANSE_PILL_HEART_DEMON)
+          log(`清心丹药力化开，心魔杂念为之一清（心魔 -${before - (p.heartDemon ?? 0)}）。`, 'good')
         }
       }
       if (eff.hp) {
@@ -88,19 +102,29 @@ export function createInventorySlice(
         // 由 useItem 外层 stones 更新
       }
       if (eff.exp) {
-        const raw = id.startsWith('pill_qi')
-          ? pillExp(player.realm, item.pillGrade, item.danMarks)
-          : eff.exp
-        const gain = Math.floor(raw * scopeMul)
-        p.exp += gain
-        log(`服用 ${item.name}${markNote}，修为 +${gain}${scopeNote}`, 'good')
-      } else if (eff.special === 'full_heal') {
+        // v1.5（R-03）：修为丹只有一套口径（见 items.ts 的 consumableExpGain）
+        // 飞升后修为需求恒为 0，修为奖励无处可去，转而记入日志（并保留 favor 通道）
+        const gain = player.realm === ASCENSION_REALM ? 0 : consumableExpGain(item, player.realm)
+        if (gain > 0) {
+          p.exp += gain
+          log(`服用 ${item.name}${markNote}，修为 +${gain}${scopeNote}`, 'good')
+        } else {
+          log(`服用 ${item.name}${markNote}，修为已满，药力尽数化入仙缘。`, 'dim')
+        }
+      }
+      // 仙缘（飞升后的长线资源；只在大能之物上出现）
+      if (eff.favor) {
+        const f = Math.floor(eff.favor * scopeMul)
+        set({ favor: get().favor + f })
+        log(`仙缘 +${f}`, 'gold')
+      }
+      if (!eff.exp && eff.special === 'full_heal') {
         log(`服用 ${item.name}${markNote}，伤势尽复、灵力回满。`, 'gold')
-      } else if (eff.special === 'cleanse') {
+      } else if (!eff.exp && eff.special === 'cleanse') {
         log(`服用 ${item.name}${markNote}，心魔杂念为之一清${scopeNote}。`, 'good')
-      } else if (eff.hp || eff.energy) {
+      } else if (!eff.exp && (eff.hp || eff.energy)) {
         log(`服用 ${item.name}${markNote}，气血/灵力有所恢复${scopeNote}。`, 'good')
-      } else {
+      } else if (!eff.exp) {
         log(`使用 ${item.name}${markNote}。`, 'good')
       }
       if (eff.stone) {
@@ -211,8 +235,29 @@ export function createInventorySlice(
       const { inventory, stones, player, treasures } = get()
       const item = ITEMS[id]
       if (!item || !player) return
+      // 坊市不出售超出你境界承受范围的丹药/灵物（药力过猛者经文未足）
+      if (!itemMinRealmOk(item, player.realm)) {
+        log(
+          `「${item.name}」非${REALMS[item.minRealm as keyof typeof REALMS]?.name ?? ''}以上修为不可承受，坊市不售。`,
+          'bad',
+        )
+        return
+      }
+      // R-14：坊市境界闸门（如渡劫令须大乘后）与货架线索同源
+      const gate = marketEntryStatus(id, player.realm)
+      if (!gate.ok) {
+        log(
+          `「${item.name}」${marketClueText(gate.minRealm)}坊市不售。`,
+          'bad',
+        )
+        return
+      }
       // v1.4 成交价：通缉溢价（≥4）与正道名宿九折叠加
-      const price = marketPriceOf(item.price, { wanted: get().wanted, repRight: player.repRight })
+      const price = marketPriceOf(item.price, {
+        wanted: get().wanted,
+        repRight: player.repRight,
+        repDemonic: player.repDemonic,
+      })
       if (stones < price) return
       const inv = { ...inventory }
       addItem(inv, id)

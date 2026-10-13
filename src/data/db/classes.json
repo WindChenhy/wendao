@@ -1,86 +1,256 @@
 {
   "sword": {
     "id": "sword",
-    "name": "剑修",
+    "name": "剑道",
+    "title": "剑修",
+    "kind": "combat",
     "faction": "righteous",
     "desc": "一剑破万法，爆发凌厉，剑意叠层。",
+    "lore": "剑者，心之锋也。以剑入道，剑意即道心；一剑在手，不问万法。",
     "cultivateRate": 1.05,
     "breakthroughBonus": 2,
     "atkMul": 1.25,
     "defMul": 0.95,
     "hpMul": 0.95,
-    "tags": ["爆发", "连击"]
+    "tags": ["爆发", "连击"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 3,
+      "stats": { "combatsWon": 8, "maxSwordIntent": 5 },
+      "note": "生死搏杀中剑意自生。历练/秘境获胜 8 次、且曾于一场战斗中令剑意叠满 5 层，练气三层后方可立剑道。"
+    }
   },
   "body": {
     "id": "body",
-    "name": "体修",
+    "name": "体道",
+    "title": "体修",
+    "kind": "combat",
     "faction": "righteous",
     "desc": "淬体如钢，气血绵长，反伤克敌。",
+    "lore": "血肉即是道基。外炼筋骨皮，内炼一口气，败而不馁，其体愈坚。",
     "cultivateRate": 0.95,
     "breakthroughBonus": 5,
     "atkMul": 0.95,
     "defMul": 1.3,
     "hpMul": 1.35,
-    "tags": ["坦度", "反伤"]
+    "tags": ["坦度", "反伤"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 4,
+      "stats": { "combatsWon": 6, "combatsLost": 1 },
+      "note": "须先经挫败。尝过一场败绩、历练获胜 6 次，练气四层后可立体道。"
+    }
   },
   "alchemy": {
     "id": "alchemy",
-    "name": "丹修",
+    "name": "丹道",
+    "title": "丹修",
+    "kind": "craft",
     "faction": "righteous",
     "desc": "以丹证道，灵火炼天，自产自销。",
+    "lore": "丹鼎一脉，以火候窥天机。百炉之后，方知药性即道性。",
     "cultivateRate": 1.0,
     "breakthroughBonus": 0,
     "atkMul": 0.9,
     "defMul": 0.95,
     "hpMul": 0.95,
-    "tags": ["炼丹", "悟性"]
+    "tags": ["炼丹", "悟性"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 2,
+      "stats": { "pillsCrafted": 8, "bestDanMarks": 5 },
+      "note": "非苦炼不能成。亲手炼成 8 炉丹药、且炼出过一炉五纹丹，方可立丹道（洞府丹房）。"
+    }
   },
   "artifact": {
     "id": "artifact",
-    "name": "器修",
+    "name": "器道",
+    "title": "器修",
+    "kind": "craft",
     "faction": "righteous",
     "desc": "神识御器，法宝随身，攻守兼备。",
+    "lore": "器者，载道之具。识器之性、养器之灵，久之则人宝合一。",
     "cultivateRate": 1.0,
     "breakthroughBonus": 1,
     "atkMul": 1.05,
     "defMul": 1.1,
     "hpMul": 1.0,
-    "tags": ["炼器", "法宝"]
+    "tags": ["炼器", "法宝"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 2,
+      "stats": { "artifactsForged": 3, "bestArtifactTier": 3 },
+      "note": "锤下见真章。洞府器阁亲手打造 3 件法宝、且曾炼出宝器以上品质，方可立器道。"
+    }
   },
   "talisman": {
     "id": "talisman",
-    "name": "符修",
+    "name": "符道",
+    "title": "符修",
+    "kind": "craft",
     "faction": "righteous",
-    "desc": "符阵一体，控制辅助，以巧破力。",
+    "desc": "符箓御敌，一纸雷霆，聚散由心。",
+    "lore": "符者，天地之文。以朱砂为血、以灵墨为魂，画得成符，便借得天地之力。",
     "cultivateRate": 1.0,
     "breakthroughBonus": 3,
-    "atkMul": 1.0,
-    "defMul": 1.0,
+    "atkMul": 1.05,
+    "defMul": 0.95,
     "hpMul": 0.9,
-    "tags": ["控制", "阵法"]
+    "tags": ["符箓", "爆发"],
+    "unlock": {
+      "minRealm": "foundation",
+      "minLayer": 1,
+      "stats": { "towerFloors": 9 },
+      "note": "画符须先识文。秘境累计通关 9 层、筑基之后，可立符道。"
+    }
+  },
+  "formation": {
+    "id": "formation",
+    "name": "阵道",
+    "title": "阵师",
+    "kind": "craft",
+    "faction": "righteous",
+    "desc": "布阵困敌，以势压人，攻守兼备。",
+    "lore": "阵者，山川之势也。读得懂山川，便布得出杀阵；一子落定，全局皆活。",
+    "cultivateRate": 0.98,
+    "breakthroughBonus": 4,
+    "atkMul": 0.95,
+    "defMul": 1.2,
+    "hpMul": 1.0,
+    "tags": ["阵法", "控制"],
+    "unlock": {
+      "minRealm": "foundation",
+      "minLayer": 1,
+      "stats": { "towerFloors": 12 },
+      "note": "观阵须入阵。秘境累计通关 12 层、筑基之后，可立阵道。"
+    }
+  },
+  "beast": {
+    "id": "beast",
+    "name": "御兽道",
+    "title": "御兽师",
+    "kind": "combat",
+    "faction": "righteous",
+    "desc": "驯养灵兽，与兽同心，人兽合击。",
+    "lore": "禽兽亦有灵。以诚结之、以食养之，岁月既久，兽即是道侣。",
+    "cultivateRate": 1.02,
+    "breakthroughBonus": 1,
+    "atkMul": 1.05,
+    "defMul": 1.05,
+    "hpMul": 1.1,
+    "tags": ["灵兽", "协同"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 3,
+      "stats": { "combatsWon": 6, "towerFloors": 6 },
+      "note": "驯兽须先入山。历练获胜 6 次、秘境累计通关 6 层，练气三层后可立御兽道。"
+    }
+  },
+  "puppet": {
+    "id": "puppet",
+    "name": "傀儡道",
+    "title": "傀儡师",
+    "kind": "craft",
+    "faction": "neutral",
+    "desc": "取魂材炼傀，遥控厮杀，己身不沾因果。",
+    "lore": "傀儡无痛无惧、不知疲倦。只是夜深人静时，你常分不清——究竟是谁在牵谁的线。",
+    "cultivateRate": 0.95,
+    "breakthroughBonus": 2,
+    "atkMul": 1.15,
+    "defMul": 1.1,
+    "hpMul": 0.9,
+    "tags": ["傀儡", "远程"],
+    "unlock": {
+      "minRealm": "golden_core",
+      "minLayer": 1,
+      "stats": { "artifactsForged": 6, "towerFloors": 15 },
+      "note": "炼傀须先通器理、识魂性。炼器成功 6 次、秘境累计通关 15 层，金丹之后可立傀儡道。"
+    }
+  },
+  "medicine": {
+    "id": "medicine",
+    "name": "医道",
+    "title": "医修",
+    "kind": "craft",
+    "faction": "righteous",
+    "desc": "悬壶济世，疗伤续命，气血清正。",
+    "lore": "医者仁心，亦是道心。救一人易，救一世难；能治人者，先能治己。",
+    "cultivateRate": 1.0,
+    "breakthroughBonus": 3,
+    "atkMul": 0.9,
+    "defMul": 1.0,
+    "hpMul": 1.15,
+    "tags": ["疗愈", "济世"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 2,
+      "stats": { "pillsCrafted": 5, "bestDanMarks": 3 },
+      "note": "识药方能施针。亲手炼成 5 炉丹药、且炼出过三纹丹，方可立医道。"
+    }
+  },
+  "music": {
+    "id": "music",
+    "name": "音道",
+    "title": "琴修",
+    "kind": "combat",
+    "faction": "righteous",
+    "desc": "抚琴乱心，声波攻伐，控场于无形。",
+    "lore": "大音希声。五音可乱人心神，一弦可断人神魂；知音者少，知杀音者更少。",
+    "cultivateRate": 1.0,
+    "breakthroughBonus": 2,
+    "atkMul": 1.0,
+    "defMul": 0.95,
+    "hpMul": 1.0,
+    "tags": ["控场", "心神"],
+    "unlock": {
+      "minRealm": "foundation",
+      "minLayer": 1,
+      "stats": { "towerFloors": 8 },
+      "note": "琴音须有听众。秘境累计通关 8 层、筑基之后，可立音道。"
+    }
   },
   "soul": {
     "id": "soul",
-    "name": "魂修",
+    "name": "魂道",
+    "title": "魂修",
+    "kind": "forbidden",
     "faction": "neutral",
     "desc": "窥探阴阳，以寿元换机缘，风险极高。",
+    "lore": "魂魄本是天地间最忌之物。窥阴阳者，先要押上自己的寿数。",
     "cultivateRate": 1.15,
     "breakthroughBonus": -3,
     "atkMul": 1.1,
     "defMul": 0.85,
     "hpMul": 0.85,
-    "tags": ["献祭", "高风险"]
+    "tags": ["献祭", "高风险"],
+    "unlock": {
+      "minRealm": "golden_core",
+      "minLayer": 1,
+      "stats": { "towerFloors": 18 },
+      "lifespanCost": 1,
+      "note": "禁忌之道。金丹之后、秘境累计通关 18 层，再以一年寿元为引，可窥魂道。"
+    }
   },
   "demon": {
     "id": "demon",
-    "name": "魔修",
+    "name": "魔道",
+    "title": "魔修",
+    "kind": "forbidden",
     "faction": "demonic",
     "desc": "煞气加身，吸血续航，与正道为敌。",
+    "lore": "魔非天生。心魔一起，血誓一立，回头已无岸。",
     "cultivateRate": 1.2,
     "breakthroughBonus": -5,
     "atkMul": 1.3,
     "defMul": 0.9,
     "hpMul": 1.05,
-    "tags": ["吸血", "煞气", "魔道"]
+    "tags": ["吸血", "煞气", "魔道"],
+    "unlock": {
+      "minRealm": "qi",
+      "minLayer": 5,
+      "repDemonic": 30,
+      "repRightCost": 40,
+      "note": "血誓入魔。魔道声望 30 以上、练气五层后可行血誓：正道声望立减 40，正道宗门与坊市将视你为敌。"
+    }
   }
 }

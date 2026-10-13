@@ -10,6 +10,7 @@ import {
 } from '../../data/abode'
 import {
   artifactDisplayName,
+  artifactQualityTier,
   decomposeYield,
   describeAffix,
   describeArtifact,
@@ -230,7 +231,7 @@ export function createAbodeSlice(
         log('药材不足。', 'bad')
         return
       }
-      const rate = Math.min(98, craftRate(recipe, player.classId, get().legacy.daoMarks) + buildingCraftRateBonus(get().sect.buildings))
+      const rate = Math.min(98, craftRate(recipe, player, get().legacy.daoMarks) + buildingCraftRateBonus(get().sect.buildings))
       const inv = { ...inventory }
       for (const input of recipe.inputs) {
         removeItem(inv, input.itemId, input.count)
@@ -255,13 +256,19 @@ export function createAbodeSlice(
           'gold',
         )
         const metaCraft = get().meta
+        // R-27 丹道质变：记录历史最高丹纹（出过五纹丹方可立丹道）
+        const craftedMarks = ITEMS[recipe.outputItemId]?.danMarks ?? 0
         set({
           time: advanced.time,
           inventory: inv,
           player: { ...player, age: aged, lifespanLeft: life },
           meta: {
             ...metaCraft,
-            stats: { ...metaCraft.stats, pillsCrafted: metaCraft.stats.pillsCrafted + 1 },
+            stats: {
+              ...metaCraft.stats,
+              pillsCrafted: metaCraft.stats.pillsCrafted + 1,
+              bestDanMarks: Math.max(metaCraft.stats.bestDanMarks ?? 0, craftedMarks),
+            },
           },
         })
         unlockCodex(get, set, 'item', recipe.outputItemId)
@@ -364,7 +371,7 @@ export function createAbodeSlice(
       }
       const outcome = performCraft({
         recipeId,
-        classId: player.classId,
+        paths: player,
         daoMarks: get().legacy.daoMarks,
         forgeLevel,
       })
@@ -401,6 +408,7 @@ export function createAbodeSlice(
       }
       const nextArts = [...artifacts, inst]
       const nextTreasures = inst.equipped ? [...treasures, inst.itemId] : treasures
+      const metaForge = get().meta
       set({
         time: advanced.time,
         inventory: paid.inventory,
@@ -416,6 +424,18 @@ export function createAbodeSlice(
             get().legacy.daoMarks,
             player.realm,
           ),
+        },
+        meta: {
+          ...metaForge,
+          stats: {
+            ...metaForge.stats,
+            artifactsForged: metaForge.stats.artifactsForged + 1,
+            // R-27 器道质变：记录历史最高法宝品质档（炼出宝器以上方可立器道）
+            bestArtifactTier: Math.max(
+              metaForge.stats.bestArtifactTier ?? 0,
+              artifactQualityTier(inst.quality),
+            ),
+          },
         },
       })
       log(outcome.message, 'gold')

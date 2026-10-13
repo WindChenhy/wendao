@@ -31,7 +31,7 @@ export function createCombatSlice(
         if ((inv[action.itemId] ?? 0) <= 0) return
       }
       if (action.type === 'skill') {
-        const skills = getUnlockedPlayerSkills(player.classId, player.realm, player.layer)
+        const skills = getUnlockedPlayerSkills(player, player.realm, player.layer)
         const sk = skills.find((s) => s.id === action.skillId)
         if (!sk || !canPaySkill(activeCombat, sk)) return
       }

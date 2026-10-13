@@ -6,7 +6,6 @@ import {
   type AchievementCategory,
 } from '../data/achievements'
 import {
-  CODEX_MILESTONES,
   CODEX_PAGE_IDS,
   CODEX_PAGE_META,
   codexEntries,
@@ -63,7 +62,7 @@ export function CodexSection() {
           <div className="h-full bg-gold/60" style={{ width: `${percent}%` }} />
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
-          {CODEX_MILESTONES.map((pct) => {
+          {meta.milestones.map((pct) => {
             const key = codexRewardKey(page, pct)
             const got = claimed.includes(key)
             const hit = percent >= pct

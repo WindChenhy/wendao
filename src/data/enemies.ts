@@ -16,6 +16,11 @@ interface EnemyTemplate {
   /** 掉落：突破材料相对玩家大境界的偏移（0=当前，1=下一境） */
   matOffset: number
   dropRate?: number
+  /**
+   * 最低可遭遇大境界（缺省 = 练气即可）。
+   * 防止「域外天魔」「黑水蛟王」这类设定上的后期/上古存在在练气期当路边怪。
+   */
+  minRealm?: RealmId
 }
 
 /** 历练模板：只决定形象/阵营/强度档，数值在玩家遭遇时按其大境界重算；数据见 src/data/db/enemies.json */
@@ -111,11 +116,35 @@ export function pickEnemy(playerRealmIndex: number, playerLayer: number): EnemyD
   const wantTier: EnemyTier =
     roll < bossChance ? 'boss' : roll < bossChance + eliteChance ? 'elite' : roll < 0.75 ? 'normal' : 'minion'
 
-  let pool = ENEMY_TEMPLATES.filter((t) => t.tier === wantTier)
+  // 境界门槛：后期/上古存在不在低境界刷出（如域外天魔 ≥化神）
+  const inRealm = (t: EnemyTemplate) =>
+    !t.minRealm || ri >= REALM_ORDER.indexOf(t.minRealm)
+  let pool = ENEMY_TEMPLATES.filter((t) => t.tier === wantTier && inRealm(t))
+  if (pool.length === 0) pool = ENEMY_TEMPLATES.filter((t) => inRealm(t) && t.tier === 'normal')
   if (pool.length === 0) pool = ENEMY_TEMPLATES.filter((t) => t.tier === 'normal')
   if (pool.length === 0) pool = ENEMY_TEMPLATES
   const template = pool[Math.floor(Math.random() * pool.length)]
   return scaleEnemyToPlayer(template, ri, layer)
+}
+
+/**
+ * 奇遇/事件战斗的敌人：按 bossId 取模板并随玩家大境界缩放。
+ * 此前事件战斗直接取图鉴基表（atk/def/hp 全 0），导致一切奇遇战斗必胜、失败分支成死内容。
+ * bossId 未命中模板时回退为同境界寻常敌人，绝不返回空壳。
+ */
+export function eventEnemy(
+  bossId: string | undefined,
+  playerRealmIndex: number,
+  playerLayer: number,
+): EnemyDef {
+  const t = bossId ? ENEMY_TEMPLATES.find((x) => x.id === bossId) : undefined
+  if (!t) return pickEnemy(playerRealmIndex, playerLayer)
+  return scaleEnemyToPlayer(t, Math.max(0, playerRealmIndex), Math.max(1, playerLayer))
+}
+
+/** 事件数据里出现的 bossId 是否都能命中模板（数据完备性测试用） */
+export function hasEnemyTemplate(id: string): boolean {
+  return ENEMY_TEMPLATES.some((t) => t.id === id)
 }
 
 /** 图鉴/预览：按玩家当前境界生成该模板的参考数值 */
@@ -135,6 +164,7 @@ export function enemyFactionLabel(e: EnemyDef): string {
   if (e.faction === 'demonic') return '魔修'
   if (e.faction === 'beast') return '妖兽'
   if (e.faction === 'abomination') return '异类'
+  if (e.faction === 'rogue') return '邪修'
   return '修士'
 }
 

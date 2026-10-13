@@ -1,4 +1,4 @@
-import { CLASSES } from '../data/classes'
+import { CLASSES, isPathDefined } from '../data/classes'
 import { companionById } from '../data/companions'
 import { SECTS } from '../data/sects'
 import {
@@ -16,14 +16,17 @@ import {
 import { activeSynergies, describeSynergyEffects } from '../data/gongfaSynergy'
 import { REALMS, expNeeded } from '../data/realms'
 import { ITEMS, bestBreakthroughPill, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
-import { canBreakthrough, breakthroughRate } from '../game/breakthrough'
+import { canBreakthrough } from '../game/breakthrough'
+import { breakthroughSuccessRate } from '../game/rules/breakthrough'
 import { seclusionYearOptions, GAME_DAYS_PER_YEAR } from '../game/day'
 import { formatNum } from '../game/format'
 import { daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
+import { heartDemonOf } from '../game/heartDemon'
 import { sealDaoCost, sealSlots, describeSealed, type SealedItem } from '../game/seal'
 import { TRIBULATION_PLANS, isTribulationMoment, type TribulationPlanId } from '../data/tribulation'
 import { DailyCard } from '../components/DailyCard'
 import { useGameStore } from '../stores/useGameStore'
+import { currentRules } from '../stores/helpers/shared'
 import { useState } from 'react'
 
 function SealPicker({
@@ -109,11 +112,12 @@ export function CultivatePanel() {
   const spouse = companion.spouseId ? companionById(companion.spouseId) : null
   const spouseBonus = spouse?.breakthroughBonus ?? 0
   const treasureBt = treasureBreakthroughBonus(treasures)
-  const breakPill = bestBreakthroughPill(inventory)
+  const breakPill = bestBreakthroughPill(inventory, player.realm)
   const pillBt = breakPill?.rate ?? 0
   const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? 5 : 0
   const ready = canBreakthrough(player.realm, player.layer, player.exp)
   const c = CLASSES[player.classId]
+  const hasPrimary = isPathDefined(player.classId)
   // 飞升与道消互斥：已飞升则不再显示道消
   const win = isAscended(player)
   const dead = !player.alive && !win
@@ -126,26 +130,30 @@ export function CultivatePanel() {
   const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId), favor) : null
   const synList = activeSynergies(Object.keys(gongfa.learned))
   const synBt = synList.reduce((n, s) => n + (s.rule.effects.breakthrough ?? 0), 0)
-  const baseRate = Math.min(
-    95,
-    Math.max(
-      5,
-      breakthroughRate(player.classId, player.realm) +
-        (sdef?.bonus.breakthroughBonus ?? 0) +
-        spouseBonus +
-        dao.breakthroughBonus +
-        treasureBt +
-        pillBt +
-        tribTokenBt +
-        synBt,
-    ),
-  )
-  const planOpen = isTribulationMoment(player.realm, player.layer, def.layers)
+  // 与结算同源：成功率一律走 game/rules/breakthrough（大境界另有 70% 上限）
+  const rateCtx = {
+    classId: player.classId,
+    paths: player.paths,
+    aptitude: player.aptitude,
+    realm: player.realm,
+    layer: player.layer,
+    sectBonus: sdef?.bonus.breakthroughBonus ?? 0,
+    spouseBonus,
+    daoBonus: dao.breakthroughBonus,
+    treasureBonus: treasureBt,
+    pillBonus: pillBt,
+    tribTokenBonus: tribTokenBt,
+    synergyBonus: synBt,
+    rulesRateDelta: currentRules().breakthroughRateDelta,
+    heartDemon: heartDemonOf(player),
+  }
+  const baseRate = breakthroughSuccessRate(rateCtx)
+  const planOpen = isTribulationMoment(player.realm)
   const planDef = TRIBULATION_PLANS.find((p) => p.id === planId) ?? TRIBULATION_PLANS[0]
-  const rateWithPlan = Math.min(
-    95,
-    Math.max(5, baseRate + (planOpen ? planDef.rateDelta : 0)),
-  )
+  const rateWithPlan = breakthroughSuccessRate({
+    ...rateCtx,
+    planRateDelta: planOpen ? planDef.rateDelta : 0,
+  })
   const spouseHurt = (companion.spouseHurtUntilDay ?? 0) > 0
   const slots = sealSlots(legacy.daoMarks + (nextGain?.daoMarks ?? 0))
   const sealedCount = (legacy.sealed ?? []).length
@@ -184,7 +192,11 @@ export function CultivatePanel() {
       <DailyCard />
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">洞府静修</div>
-        <p className="text-xs text-text-dim mb-3">{c.desc}</p>
+        <p className="text-xs text-text-dim mb-3">
+          {hasPrimary
+            ? `${c.name} · ${c.desc}`
+            : '未定道途：以散修之身吐纳本命灵气，属性全凭灵根。修行途中自会遇上该走的路。'}
+        </p>
         <div className="text-sm mb-1">
           当前修为{' '}
           <span className="text-jade">
@@ -257,7 +269,15 @@ export function CultivatePanel() {
         <div className="font-display text-gold mb-2">冲击壁垒</div>
         <p className="text-xs text-text-dim mb-2">
           成功率约 <span className="text-gold">{Math.round(rateWithPlan)}%</span>
-          （含职业、宗门、道侣、道痕、法宝、丹药与羁绊加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
+          {planOpen && planDef.id !== 'normal' && (
+            <span className="text-text-dim ml-1">（常规方案 {Math.round(baseRate)}%）</span>
+          )}
+          {isMajor && (
+            <span className="text-vermilion ml-1">
+              （大境界冲关逢天劫，成功率上限 70%：丹药护持可增胜算，不可力保）
+            </span>
+          )}
+          （含道途、灵根、宗门、道侣、道痕、法宝、丹药与羁绊加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
         </p>
         <div className="text-xs text-text-dim mb-2 space-y-0.5">
           {treasureBt > 0 && <div className="text-bamboo">认主法宝：突破 +{treasureBt}%（同类不叠加）</div>}
@@ -384,13 +404,14 @@ export function CultivatePanel() {
                   {
                     name: player.name,
                     gender: player.gender,
-                    classId: player.classId,
+                    aptitude: player.aptitude ?? 'mixed',
+                    origin: player.origin ?? 'wild',
                   },
                   sealPick,
                 )
               }
             >
-              立即转生（沿用此身名号职业）
+              立即转生（沿用此身名号与灵根）
             </button>
             <button className="pixel-btn" onClick={startCreate}>
               另择新身转生
@@ -424,13 +445,14 @@ export function CultivatePanel() {
                   {
                     name: player.name,
                     gender: player.gender,
-                    classId: player.classId,
+                    aptitude: player.aptitude ?? 'mixed',
+                    origin: player.origin ?? 'wild',
                   },
                   sealPick,
                 )
               }
             >
-              立即转生（沿用此身名号职业）
+              立即转生（沿用此身名号与灵根）
             </button>
             <button className="pixel-btn" onClick={startCreate}>
               另择新身转生

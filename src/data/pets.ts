@@ -45,6 +45,9 @@ export const PET_GUARD_LOSS_REDUCE = cfg.guardLossReduce
 export const PET_CAPTURE_PITY = cfg.capturePity
 export const PET_FEED_EXP = cfg.feedExpPerItem
 
+/** R-29 御兽道：捕捉灵兽成功率上浮比例（+25%） */
+export const PET_BEAST_CAPTURE_BONUS = 0.25
+
 export interface PetState {
   petId: string
   name: string

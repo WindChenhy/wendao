@@ -2,61 +2,68 @@
   "realm": {
     "name": "境界",
     "desc": "曾抵达的大境界",
+    "milestones": [30, 60, 100],
     "rewards": {
-      "25": { "stones": 50 },
-      "50": { "stones": 150, "daoMarks": 2 },
-      "75": { "daoMarks": 6 },
-      "100": { "daoMarks": 12, "title": "天道见证" }
+      "30": { "stones": 50 },
+      "60": { "stones": 150 },
+      "100": { "daoMarks": 6, "title": "天道见证" }
     }
   },
   "enemy": {
     "name": "敌人",
     "desc": "历练/秘境遭遇并获胜的敌手",
+    "milestones": [20, 40, 60, 80, 100],
     "rewards": {
-      "25": { "stones": 40 },
-      "50": { "stones": 120 },
-      "75": { "daoMarks": 3 },
-      "100": { "daoMarks": 8, "title": "百战之身" }
+      "20": { "stones": 50 },
+      "40": { "stones": 150 },
+      "60": { "stones": 400 },
+      "80": { "daoMarks": 4 },
+      "100": { "daoMarks": 9, "title": "百战之身" }
     }
   },
   "gongfa": {
     "name": "功法",
     "desc": "曾参悟的功法",
+    "milestones": [10, 25, 50, 75, 100],
     "rewards": {
-      "25": { "stones": 80 },
-      "50": { "stones": 200, "daoMarks": 2 },
-      "75": { "daoMarks": 5 },
-      "100": { "daoMarks": 10, "title": "道藏知音" }
+      "10": { "stones": 80 },
+      "25": { "stones": 250 },
+      "50": { "stones": 600, "daoMarks": 3 },
+      "75": { "daoMarks": 7 },
+      "100": { "daoMarks": 13, "title": "道藏知音" }
     }
   },
   "item": {
     "name": "丹药法宝",
     "desc": "曾持有或服用的丹药、材料与法宝",
+    "milestones": [10, 30, 50, 75, 100],
     "rewards": {
-      "25": { "stones": 60 },
-      "50": { "stones": 160 },
-      "75": { "daoMarks": 3 },
-      "100": { "daoMarks": 8, "title": "百宝阁主" }
+      "10": { "stones": 60 },
+      "30": { "stones": 180 },
+      "50": { "stones": 400, "daoMarks": 2 },
+      "75": { "daoMarks": 5 },
+      "100": { "daoMarks": 11, "title": "百宝阁主" }
     }
   },
   "companion": {
     "name": "道侣",
     "desc": "曾结交的道侣",
+    "milestones": [30, 60, 100],
     "rewards": {
-      "25": { "stones": 50 },
-      "50": { "stones": 120, "daoMarks": 2 },
-      "75": { "daoMarks": 4 },
-      "100": { "daoMarks": 8, "title": "红尘知己" }
+      "30": { "stones": 60 },
+      "60": { "stones": 150, "daoMarks": 2 },
+      "100": { "daoMarks": 7, "title": "红尘知己" }
     }
   },
   "secret": {
     "name": "秘境",
     "desc": "曾踏入的秘境",
+    "milestones": [25, 50, 75, 100],
     "rewards": {
       "25": { "stones": 80 },
-      "50": { "stones": 200, "daoMarks": 2 },
-      "75": { "daoMarks": 5 },
-      "100": { "daoMarks": 10, "title": "秘境行者" }
+      "50": { "stones": 200 },
+      "75": { "daoMarks": 3 },
+      "100": { "daoMarks": 8, "title": "秘境行者" }
     }
   }
 }

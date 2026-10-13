@@ -300,6 +300,215 @@
         { "type": "consume_status", "status": "sha_qi", "bonusPerStack": 0.18 },
         { "type": "self_stun_if_consume", "status": "sha_qi", "threshold": 6, "turns": 1 }
       ]
+    },
+    {
+      "id": "pas_formation_trap",
+      "classId": "formation",
+      "name": "伏阵",
+      "type": "passive",
+      "desc": "身周暗布杀阵，受击反震10%实际伤害。",
+      "effects": [{ "type": "counter", "ratio": 0.1 }]
+    },
+    {
+      "id": "sk_formation_lock",
+      "classId": "formation",
+      "name": "困阵",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 14 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 0.5,
+      "defPierce": 1,
+      "autoPriority": 62,
+      "desc": "布下困阵，使敌虚弱2回合，35%概率定身。",
+      "effects": [
+        { "type": "add_status", "status": "weaken", "value": 0.2, "turns": 2, "target": "enemy" },
+        { "type": "chance_status", "chance": 0.35, "status": "stun", "turns": 1, "target": "enemy" }
+      ]
+    },
+    {
+      "id": "sk_formation_kill",
+      "classId": "formation",
+      "name": "绝杀阵",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 20 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 0.6,
+      "defPierce": 1,
+      "autoPriority": 76,
+      "desc": "阵势合拢：按敌已损气血追加伤害，并自固护盾。",
+      "effects": [
+        { "type": "missing_hp_damage", "ratio": 0.12, "capAtk": 1.1 },
+        { "type": "shield", "ratio": 0.12, "turns": 2 }
+      ]
+    },
+    {
+      "id": "pas_beast_bond",
+      "classId": "beast",
+      "name": "兽心相通",
+      "type": "passive",
+      "desc": "与灵兽心意相通：每造成120点伤害回复2点灵力。",
+      "effects": [{ "type": "energy_on_damage", "per": 120, "gain": 2 }]
+    },
+    {
+      "id": "sk_beast_call",
+      "classId": "beast",
+      "name": "唤兽护主",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 12 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 58,
+      "desc": "灵兽上前护主：回复15%气血并获得2回合攻击提升。",
+      "effects": [
+        { "type": "heal", "ratio": 0.15, "flat": 10 },
+        { "type": "add_status", "status": "atk_up", "value": 0.2, "turns": 2 }
+      ]
+    },
+    {
+      "id": "sk_beast_pounce",
+      "classId": "beast",
+      "name": "人兽合击",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 18 },
+      "cd": 3,
+      "hits": 2,
+      "multiplier": 0.95,
+      "defPierce": 1.05,
+      "autoPriority": 52,
+      "desc": "与灵兽齐扑，本击吸血提升至30%。",
+      "effects": [{ "type": "lifesteal_override", "ratio": 0.3 }]
+    },
+    {
+      "id": "pas_puppet_guard",
+      "classId": "puppet",
+      "name": "傀替",
+      "type": "passive",
+      "desc": "傀儡代主受创：受击反震15%实际伤害。",
+      "effects": [{ "type": "counter", "ratio": 0.15 }]
+    },
+    {
+      "id": "sk_puppet_strike",
+      "classId": "puppet",
+      "name": "御傀突袭",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 15 },
+      "cd": 2,
+      "hits": 1,
+      "multiplier": 1.5,
+      "defPierce": 1.15,
+      "autoPriority": 46,
+      "desc": "操控傀儡自死角突袭，破防加成。",
+      "effects": []
+    },
+    {
+      "id": "sk_puppet_shell",
+      "classId": "puppet",
+      "name": "傀甲合体",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 18 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 64,
+      "desc": "傀儡化甲附身：获得20%护盾，3回合并提升反伤。",
+      "effects": [
+        { "type": "shield", "ratio": 0.2, "turns": 3 },
+        { "type": "add_status", "status": "counter_buff", "value": 0.22, "turns": 3 }
+      ]
+    },
+    {
+      "id": "pas_medicine_heart",
+      "classId": "medicine",
+      "name": "药石之心",
+      "type": "passive",
+      "desc": "深谙药性：战斗服药效果×1.25，用药上限+1。",
+      "effects": [{ "type": "potion_bonus", "ratio": 1.25, "extraLimit": 1 }]
+    },
+    {
+      "id": "sk_medicine_heal",
+      "classId": "medicine",
+      "name": "回春术",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 13 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 0,
+      "autoPriority": 66,
+      "desc": "施术疗伤：回复20%气血并获得3回合持续回血。",
+      "effects": [
+        { "type": "heal", "ratio": 0.2, "flat": 15 },
+        { "type": "add_status", "status": "regen", "value": 0.05, "turns": 3 }
+      ]
+    },
+    {
+      "id": "sk_medicine_needle",
+      "classId": "medicine",
+      "name": "金针渡厄",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 16 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 0.7,
+      "defPierce": 1,
+      "autoPriority": 70,
+      "desc": "金针封经：对已被削弱之敌追加伤害，并回复自身气血。",
+      "effects": [
+        { "type": "bonus_if_status", "status": "weaken", "target": "enemy", "multiplier": 0.8 },
+        { "type": "heal", "ratio": 0.1, "flat": 10 }
+      ]
+    },
+    {
+      "id": "pas_music_mind",
+      "classId": "music",
+      "name": "余音绕梁",
+      "type": "passive",
+      "desc": "琴音不绝，心神自养：每造成110点伤害回复2点灵力。",
+      "effects": [{ "type": "energy_on_damage", "per": 110, "gain": 2 }]
+    },
+    {
+      "id": "sk_music_daze",
+      "classId": "music",
+      "name": "乱神曲",
+      "type": "active",
+      "unlock": { "realm": "qi", "layer": 1 },
+      "cost": { "energy": 14 },
+      "cd": 3,
+      "hits": 1,
+      "multiplier": 0.6,
+      "defPierce": 1,
+      "autoPriority": 60,
+      "desc": "一曲乱神，40%概率使敌定身1回合。",
+      "effects": [
+        { "type": "chance_status", "chance": 0.4, "status": "stun", "turns": 1, "target": "enemy" }
+      ]
+    },
+    {
+      "id": "sk_music_shatter",
+      "classId": "music",
+      "name": "破音",
+      "type": "active",
+      "unlock": { "realm": "foundation", "layer": 1 },
+      "cost": { "energy": 19 },
+      "cd": 4,
+      "hits": 1,
+      "multiplier": 1.55,
+      "defPierce": 1.15,
+      "autoPriority": 74,
+      "desc": "弦震裂空，重创之余使敌虚弱2回合。",
+      "effects": [
+        { "type": "add_status", "status": "weaken", "value": 0.22, "turns": 2, "target": "enemy" }
+      ]
     }
   ]
 }

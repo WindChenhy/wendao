@@ -8,6 +8,7 @@ import type {
   AbodeState,
   CheckinState,
   CharacterCreateInput,
+  ClassId,
   CompanionState,
   DailyState,
   EnemyDef,
@@ -49,7 +50,7 @@ export interface GameState {
   pet: PetState | null
   /** v1.2 捕捉软保底：连续失败次数（失败 PET_CAPTURE_PITY 次后必得） */
   petCaptureFails: number
-  /** v1.4 日课（按游戏日惰性刷新） */
+  /** v1.4 日课（按现实日惰性刷新） */
   daily: DailyState
   /** v1.4 现实日签到 */
   checkin: CheckinState
@@ -88,6 +89,10 @@ export interface GameState {
   seclude: (days: number) => void
   /** 冲击壁垒；plan 仅大境界/渡劫时可选（默认常规） */
   breakthrough: (plan?: TribulationPlanId) => void
+  /** 问道立道：首立为主修，其后为兼修（受兼修位限制） */
+  choosePath: (pathId: ClassId) => void
+  /** 洗炼道基改立主修（耗灵石） */
+  setPrimaryPath: (pathId: ClassId) => void
   explore: () => void
   clearCombat: () => void
   resolveEvent: (actionId: string) => void

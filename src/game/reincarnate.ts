@@ -1,10 +1,10 @@
-import { realmIndex } from '../data/realms'
+import { ASCENSION_REALM, realmIndex } from '../data/realms'
 import type { PlayerState } from '../types'
 
 /** 是否已飞升：以境界为准，兼容旧档未写入 ascended 标志的情况 */
 export function isAscended(player: Pick<PlayerState, 'realm' | 'ascended'> | null): boolean {
   if (!player) return false
-  return player.ascended || player.realm === 'ascended'
+  return player.ascended || player.realm === ASCENSION_REALM
 }
 
 interface ReincarnateGain {
@@ -23,7 +23,7 @@ export function reincarnateGain(
   favor = 0,
 ): ReincarnateGain {
   const ascended = isAscended(player)
-  const ri = ascended ? realmIndex('ascended') : realmIndex(player.realm)
+  const ri = ascended ? realmIndex(ASCENSION_REALM) : realmIndex(player.realm)
   const realmPart = (ri + 1) * 8
   const agePart = Math.floor(player.age / 20)
   const spousePart = hadSpouse ? 12 : 0
@@ -40,12 +40,16 @@ export function reincarnateGain(
   return { daoMarks, desc: bits.join(' · ') }
 }
 
-/** 道痕永久加成（下一世） */
+/**
+ * 道痕永久加成（下一世）。
+ * 上限刻意设在「单世所能攒到的道痕之上」：成就/图鉴一次即可发放百余点道痕，
+ * 若上限过低，一世便能吃满，转生（多周目）就失去意义。
+ */
 export function daoBonuses(daoMarks: number) {
   return {
-    cultivateMul: 1 + Math.min(0.5, daoMarks * 0.004),
-    breakthroughBonus: Math.min(15, Math.floor(daoMarks * 0.15)),
-    startStones: Math.min(500, 20 + Math.floor(daoMarks * 2)),
+    cultivateMul: 1 + Math.min(0.5, daoMarks * 0.0025),
+    breakthroughBonus: Math.min(15, Math.floor(daoMarks * 0.09)),
+    startStones: Math.min(500, 20 + Math.floor(daoMarks * 1.2)),
   }
 }
 
@@ -89,8 +93,8 @@ export function describeSaveTimeline(opts: {
     .join(' · ')
 }
 
-/** 创建新角色时的道痕修正气血 */
+/** 创建新角色时的道痕修正气血（上限与 daoBonuses 同步设在 200 道痕） */
 export function applyDaoToMaxHp(baseHp: number, daoMarks: number): number {
-  const mul = 1 + Math.min(0.25, daoMarks * 0.002)
+  const mul = 1 + Math.min(0.25, daoMarks * 0.00125)
   return Math.floor(baseHp * mul)
 }

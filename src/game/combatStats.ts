@@ -1,5 +1,5 @@
 /** 法宝/功法/战斗数值计算（纯函数，可单测）；旧版 combat.ts 的面板属性与击杀声望已并入此文件 */
-import { CLASSES } from '../data/classes'
+import { isDemonic, playerMults, type PathInput } from '../data/classes'
 import { GONGFA_STAGE_MUL, GONGFAS, gongfaInScope } from '../data/gongfa'
 import { activeSynergies, synergyBonus } from '../data/gongfaSynergy'
 import { TREASURE_BONUS } from '../data/items'
@@ -10,7 +10,7 @@ import {
   artifactOfflineMul,
   type ArtifactInstance,
 } from '../data/artifacts'
-import type { ClassId, EnemyDef, GongfaLearned, RealmId } from '../types'
+import type { EnemyDef, GongfaLearned, RealmId } from '../types'
 
 /** 法宝加成：基础 TREASURE_BONUS + 词条（同类只计 active 一件）；cultivate 为修炼乘区、dodge 为闪避概率（加算，消费端封顶） */
 export function treasureBonus(treasures: string[], artifacts?: ArtifactInstance[]) {
@@ -55,7 +55,14 @@ export function artifactBattleExtras(artifacts?: ArtifactInstance[]) {
   }
 }
 
-/** 认主突破加成（基础 + 词条） */
+/**
+ * 突破类法宝的全局累计上限（百分点）。
+ * 报告核算：满配可持造化丹炉 4 + 悟道莲台 6 + 星斗罗盘 8 + 功德金环 10 + 昊天宝鉴 5 + 道韵青莲 12 = 45，
+ * 线性叠加后把「渡劫 6%」抹平。故对"突破"这一通道单独设总量上限（见 SPRINT_B R-09 / 决策 D-2）。
+ */
+export const TREASURE_BREAKTHROUGH_CAP = 20
+
+/** 认主突破加成（基础 + 词条；同类不叠加，且全局封顶 TREASURE_BREAKTHROUGH_CAP） */
 export function treasureBreakthroughTotal(
   treasures: string[],
   artifacts?: ArtifactInstance[],
@@ -71,7 +78,7 @@ export function treasureBreakthroughTotal(
     }
   }
   if (artifacts?.length) bonus += artifactBreakthroughBonus(artifacts)
-  return bonus
+  return Math.min(TREASURE_BREAKTHROUGH_CAP, bonus)
 }
 
 interface Combatant {
@@ -85,9 +92,9 @@ interface Combatant {
   dmgReduce?: number
 }
 
-/** 面板展示用战斗属性 */
+/** 面板展示用战斗属性（道途 + 灵根合并倍率） */
 export function playerCombatStats(
-  classId: ClassId,
+  paths: PathInput,
   realm: RealmId,
   layer: number,
   hp: number,
@@ -95,7 +102,7 @@ export function playerCombatStats(
   atkMul = 1,
   defMul = 1,
 ): Combatant {
-  const c = CLASSES[classId]
+  const c = playerMults(paths)
   const base = realmCombatBase(realm, layer)
   return {
     name: '你',
@@ -103,16 +110,22 @@ export function playerCombatStats(
     def: Math.floor(base.def * c.defMul * defMul),
     hp,
     maxHp,
-    isDemon: classId === 'demon',
+    isDemon: isDemonic(paths),
     dmgReduce: 0,
   }
 }
 
-/** 击杀对正/魔声望的影响 */
+/**
+ * 击杀对正/魔声望的影响（对称结算）：
+ * 斩魔除异扬正道之名，屠戮正道修士则损正道声望、堕入魔道之名。
+ */
 export function repDeltaOnKill(enemy: EnemyDef): { right: number; demonic: number } {
   if (enemy.faction === 'demonic') return { right: 8, demonic: -12 }
+  if (enemy.faction === 'abomination') return { right: 6, demonic: -4 }
   if (enemy.faction === 'beast') return { right: 3, demonic: 0 }
-  return { right: 0, demonic: 4 }
+  if (enemy.faction === 'rogue') return { right: 4, demonic: 0 }
+  // righteous：同道相残
+  return { right: -10, demonic: 4 }
 }
 
 /** 已参悟功法的加成（按阶段系数缩放，圆满 1.5 倍）；含羁绊；超适用范围失效 */

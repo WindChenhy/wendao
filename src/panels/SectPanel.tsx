@@ -1,7 +1,8 @@
-import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsFor } from '../data/sects'
+import { SECTS, SECT_RANKS, SECT_RANK_ORDER, nextSectRank, sectRankIndex, sectsFor, withinMentorWindow } from '../data/sects'
 import { GONGFA_GRADE_CLASS, GONGFAS, canLearnGongfaFull as canLearnGongfa, gongfaRealmText, gongfaScopeText } from '../data/gongfa'
+import { isDemonic, pathIdsOf } from '../data/classes'
 import { ITEMS } from '../data/items'
-import { realmIndex, realmLabel } from '../data/realms'
+import { REALMS, realmIndex, realmLabel } from '../data/realms'
 import {
   availableQuestChains,
   describeQuestReward,
@@ -52,7 +53,7 @@ export function SectPanel() {
   if (!player) return null
   const dead = !player.alive
   const current = sect.sectId ? SECTS.find((s) => s.id === sect.sectId) : null
-  const demonicPref = player.classId === 'demon' || player.repDemonic > player.repRight
+  const demonicPref = isDemonic(player) || player.repDemonic > player.repRight
   const alignment = demonicPref ? 'demonic' : 'righteous'
   const candidates = sectsFor(
     alignment,
@@ -522,62 +523,126 @@ export function SectPanel() {
 
           <div className="panel-box p-4">
             <div className="font-display text-gold mb-3">藏经阁</div>
+            {current.library.some((l) => l.kind === 'path') && (
+              <div className="mb-4">
+                <div className="text-xs text-text-dim mb-2">
+                  道途传承 · 拜师立道（免去自悟历练，仍付道途自身代价）
+                  {!withinMentorWindow(player.realm) && (
+                    <span className="text-vermilion ml-1">——你已可自立门户，不再有拜师之缘</span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {current.library
+                    .filter((l) => l.kind === 'path')
+                    .map((lib) => {
+                      const owned = lib.pathId ? pathIdsOf(player).includes(lib.pathId) : false
+                      const rankOk = !lib.minRank || sectRankIndex(sect.rank) >= sectRankIndex(lib.minRank)
+                      const realmGateOk =
+                        !lib.minRealm || realmIndex(player.realm) >= realmIndex(lib.minRealm)
+                      const windowOk = withinMentorWindow(player.realm)
+                      const enabled =
+                        !owned && rankOk && realmGateOk && windowOk && sect.contribution >= lib.cost
+                      return (
+                        <div key={lib.id} className="border border-border px-3 py-2">
+                          <div className="flex justify-between items-center gap-2">
+                            <div>
+                              <div className="text-sm">
+                                <span className="text-jade text-xs mr-1">师承</span>
+                                <span className="text-gold">{lib.name}</span>
+                                {lib.minRank && (
+                                  <span
+                                    className={`text-xs ml-2 ${rankOk ? 'text-text-dim' : 'text-vermilion'}`}
+                                  >
+                                    需{SECT_RANKS[lib.minRank].name}
+                                  </span>
+                                )}
+                                {lib.minRealm && (
+                                  <span
+                                    className={`text-xs ml-2 ${realmGateOk ? 'text-text-dim' : 'text-vermilion'}`}
+                                  >
+                                    需{REALMS[lib.minRealm]?.name ?? lib.minRealm}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-text-dim mt-0.5">{lib.desc}</div>
+                            </div>
+                            {owned ? (
+                              <span className="text-xs text-bamboo">已立此道</span>
+                            ) : (
+                              <button
+                                className="pixel-btn text-xs"
+                                disabled={!enabled}
+                                onClick={() => sectLearn(lib.id, lib.cost)}
+                              >
+                                {lib.cost} 贡献拜师
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+            <div className="text-xs text-text-dim mb-2">功法传承</div>
             {!canEnterLibrary && (
-              <p className="text-xs text-vermilion mb-2">藏经阁仅对内门及以上职位开放。</p>
+              <p className="text-xs text-vermilion mb-2">功法秘藏仅对内门及以上职位开放。</p>
             )}
             <div className="space-y-2">
-              {current.library.map((lib) => {
-                const g = GONGFAS[lib.id]
-                const known = Boolean(gongfa.learned[lib.id])
-                const realmOk = g ? canLearnGongfa(g, player.realm) : true
-                return (
-                  <div key={lib.id} className="border border-border px-3 py-2">
-                    <div className="flex justify-between items-center gap-2">
-                      <div>
-                        <div className="text-sm">
-                          {g && (
-                            <>
-                              <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
-                              <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
-                            </>
-                          )}
-                          <span className="text-gold">{lib.name}</span>
-                          {g && (
-                            <span
-                              className={`text-xs ml-2 ${
-                                realmOk ? 'text-text-dim' : 'text-vermilion'
-                              }`}
-                            >
-                              {gongfaRealmText(g)}
-                            </span>
-                          )}
+              {current.library
+                .filter((l) => l.kind !== 'path')
+                .map((lib) => {
+                  const g = GONGFAS[lib.id]
+                  const known = Boolean(gongfa.learned[lib.id])
+                  const realmOk = g ? canLearnGongfa(g, player.realm) : true
+                  return (
+                    <div key={lib.id} className="border border-border px-3 py-2">
+                      <div className="flex justify-between items-center gap-2">
+                        <div>
+                          <div className="text-sm">
+                            {g && (
+                              <>
+                                <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
+                                <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
+                              </>
+                            )}
+                            <span className="text-gold">{lib.name}</span>
+                            {g && (
+                              <span
+                                className={`text-xs ml-2 ${
+                                  realmOk ? 'text-text-dim' : 'text-vermilion'
+                                }`}
+                              >
+                                {gongfaRealmText(g)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-text-dim mt-0.5">{lib.desc}</div>
+                          {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
                         </div>
-                        <div className="text-xs text-text-dim mt-0.5">{lib.desc}</div>
-                        {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
+                        {known ? (
+                          <span className="text-xs text-bamboo">已参悟</span>
+                        ) : (
+                          <button
+                            className="pixel-btn text-xs"
+                            disabled={
+                              !canEnterLibrary ||
+                              sect.contribution < Math.max(1, Math.floor(lib.cost * libDiscount)) ||
+                              !realmOk
+                            }
+                            onClick={() => sectLearn(lib.id, lib.cost)}
+                          >
+                            {!realmOk
+                              ? '境界不足'
+                              : libDiscount < 1
+                                ? `${Math.max(1, Math.floor(lib.cost * libDiscount))} 贡献`
+                                : `${lib.cost} 贡献`}
+                          </button>
+                        )}
                       </div>
-                      {known ? (
-                        <span className="text-xs text-bamboo">已参悟</span>
-                      ) : (
-                        <button
-                          className="pixel-btn text-xs"
-                          disabled={
-                            !canEnterLibrary ||
-                            sect.contribution < Math.max(1, Math.floor(lib.cost * libDiscount)) ||
-                            !realmOk
-                          }
-                          onClick={() => sectLearn(lib.id, lib.cost)}
-                        >
-                          {!realmOk
-                            ? '境界不足'
-                            : libDiscount < 1
-                              ? `${Math.max(1, Math.floor(lib.cost * libDiscount))} 贡献`
-                              : `${lib.cost} 贡献`}
-                        </button>
-                      )}
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
             </div>
           </div>
 

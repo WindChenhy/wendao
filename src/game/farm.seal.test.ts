@@ -41,8 +41,12 @@ describe('转生封印与天劫', () => {
   })
 
   it('天劫方案与失败降档', () => {
-    expect(isTribulationMoment('qi', 1, 9)).toBe(false)
-    expect(isTribulationMoment('qi', 9, 9)).toBe(true)
+    // v1.5（R-11）：天劫只属于大乘/渡劫阶段，练气满层冲关不再弹方案
+    expect(isTribulationMoment('qi')).toBe(false)
+    expect(isTribulationMoment('qi')).toBe(false)
+    expect(isTribulationMoment('foundation')).toBe(false)
+    expect(isTribulationMoment('mahayana')).toBe(true)
+    expect(isTribulationMoment('tribulation')).toBe(true)
     expect(softenSeverity('critical')).toBe('major')
     expect(softenSeverity('minor')).toBe('minor')
     expect(tribulationPlan('force').rateDelta).toBeLessThan(0)

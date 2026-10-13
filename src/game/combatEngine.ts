@@ -1,4 +1,5 @@
-import { CLASSES } from '../data/classes'
+import { isForbiddenPath, pathIdsOf, pathSummaryText, type PathInput } from '../data/classes'
+import { FORBIDDEN_SKILL_GAIN_CAP, FORBIDDEN_SKILL_HEART_DEMON } from './heartDemon'
 import { ITEMS, itemCategory } from '../data/items'
 import {
   ATTACK_TREASURES,
@@ -7,7 +8,7 @@ import {
   SKILLS,
   isSkillUnlocked,
   passiveForClass,
-  unlockedActiveSkills,
+  unlockedActiveSkillsForPaths,
   type SkillDef,
 } from '../data/skills'
 import type { ClassId, EnemyDef, RealmId } from '../types'
@@ -42,6 +43,8 @@ interface CombatStatus {
 export interface CombatActor {
   name: string
   classId?: ClassId
+  /** 已立道途（主修在首位）；缺省时退回 classId 单道途判定 */
+  paths?: ClassId[]
   atk: number
   def: number
   hp: number
@@ -83,6 +86,10 @@ export interface CombatEngineResult {
   itemId?: string
   message: string
   rounds: number
+  /** R-24：本场战斗因施展禁忌技而滋生的心魔（0–3） */
+  heartDemonGain: number
+  /** R-27：本场战斗剑意最高层数 */
+  maxSwordIntent: number
 }
 
 export interface CombatEngineState {
@@ -95,6 +102,10 @@ export interface CombatEngineState {
   lifespanCost: number
   potionsUsed: string[]
   blastPillsUsed: string[]
+  /** R-24：本场战斗已施展的禁忌技次数（结算时折算心魔增长） */
+  forbiddenSkillCasts: number
+  /** R-27：本场战斗剑意达到过的最高层数（剑道质变门槛统计） */
+  maxSwordIntent: number
   potionLimit: number
   context: CombatContext
   /** v1.2 出战灵兽（协战） */
@@ -127,6 +138,12 @@ export interface CombatPetInfo {
 
 function getStatus(actor: CombatActor, id: string): CombatStatus | undefined {
   return actor.statuses.find((s) => s.id === id)
+}
+
+/** 参战者是否修炼某道途（主修/兼修皆算；敌方按 classId 兜底） */
+function actorHasPath(actor: CombatActor, id: ClassId): boolean {
+  if (actor.paths && actor.paths.length > 0) return actor.paths.includes(id)
+  return actor.classId === id
 }
 
 function statusStacks(actor: CombatActor, id: string): number {
@@ -226,7 +243,7 @@ function effAtk(actor: CombatActor, cfg = COMBAT_CONFIG): number {
 
 function counterRatio(actor: CombatActor): number {
   let ratio = 0
-  if (actor.classId === 'body' || getStatus(actor, 'counter')) ratio += 0.12
+  if (actorHasPath(actor, 'body') || getStatus(actor, 'counter')) ratio += 0.12
   const buff = getStatus(actor, 'counter_buff')
   if (buff?.turns && buff.turns > 0) ratio = Math.max(ratio, buff.value ?? 0.2)
   return ratio
@@ -260,6 +277,8 @@ function pushLog(log: CombatLogLine[], text: string, kind: LogKind) {
 export function buildPlayerCombatActor(opts: {
   name: string
   classId: ClassId
+  /** 已立道途（主修在前）；缺省 = [classId] */
+  paths?: ClassId[]
   realm: RealmId
   layer: number
   hp: number
@@ -275,10 +294,12 @@ export function buildPlayerCombatActor(opts: {
   hpScale?: number
 }): CombatActor {
   const treasures = opts.treasures
+  const paths = pathIdsOf(opts.paths && opts.paths.length > 0 ? opts.paths : opts.classId)
+  const flag = (id: ClassId) => paths.includes(id)
   let artifactAtkMul = 1
   let artifactDefMul = 1
-  if (opts.classId === 'artifact') {
-    // 器修被动：认主法宝加成战斗内再放大
+  if (flag('artifact')) {
+    // 器道被动：认主法宝加成战斗内再放大
     artifactAtkMul = 1 + (treasures.some((t) => ATTACK_TREASURES.has(t)) ? 0.08 : 0)
     artifactDefMul = 1 + (treasures.some((t) => DEF_TREASURES.has(t)) ? 0.08 : 0)
     // 通用共鸣：有任一法宝时轻微提升
@@ -288,23 +309,24 @@ export function buildPlayerCombatActor(opts: {
     }
   }
   let maxEnergy = opts.maxEnergy
-  if (opts.classId === 'artifact') {
+  if (flag('artifact')) {
     maxEnergy += treasures.filter((t) => itemCategory(t) === 'treasure').length * 5
   }
   const statuses: CombatStatus[] = []
-  if (opts.classId === 'talisman') {
+  if (flag('talisman')) {
     statuses.push({ id: 'talisman_charge', stacks: 2 })
   }
   return {
     name: opts.name,
     classId: opts.classId,
+    paths,
     atk: opts.atk,
     def: Math.floor(opts.def * artifactDefMul),
     hp: Math.floor(opts.hp * (opts.hpScale ?? 1)),
     maxHp: Math.floor(opts.maxHp * (opts.hpScale ?? 1)),
     energy: opts.energy,
     maxEnergy,
-    isDemon: opts.classId === 'demon',
+    isDemon: flag('demon'),
     dmgReduce: opts.dmgReduce,
     dodge: opts.dodge ?? 0,
     statuses,
@@ -381,7 +403,7 @@ export function createCombatState(
   const log: CombatLogLine[] = [
     { text: `【${context.title}】${enemy.name}`, kind: 'sys' },
     {
-      text: `你（${player.classId ? CLASSES[player.classId].name : '修士'}） VS ${enemy.name}`,
+      text: `你（${pathSummaryText(player) || '修士'}） VS ${enemy.name}`,
       kind: 'sys',
     },
     {
@@ -389,7 +411,7 @@ export function createCombatState(
       kind: 'sys',
     },
   ]
-  if (player.classId === 'artifact') {
+  if (actorHasPath(player, 'artifact')) {
     pushLog(log, '法宝共鸣已生效。', 'status')
   }
   if (context.pet) {
@@ -405,20 +427,24 @@ export function createCombatState(
     lifespanCost: 0,
     potionsUsed: [],
     blastPillsUsed: [],
+    forbiddenSkillCasts: 0,
+    maxSwordIntent: 0,
     potionLimit:
       COMBAT_CONFIG.combatPotionLimit +
-      (player.classId === 'alchemy' ? 1 : 0),
+      (actorHasPath(player, 'alchemy') ? 1 : 0),
     context,
     pet: context.pet,
   }
 }
 
+/** 已立道途（兼容旧的单一 classId 调用）下已领悟的主动技 */
 export function getUnlockedPlayerSkills(
-  classId: ClassId,
+  input: PathInput,
   realm: RealmId,
   layer: number,
 ): SkillDef[] {
-  return unlockedActiveSkills(classId, realm, layer)
+  // R-22：兼修技能受「主修境界−1」封顶（玩家只有一身道行，主修为当前境界）
+  return unlockedActiveSkillsForPaths(pathIdsOf(input), realm, layer, realm)
 }
 
 export function canPaySkill(state: CombatEngineState, skill: SkillDef): boolean {
@@ -449,7 +475,7 @@ function paySkill(state: CombatEngineState, skill: SkillDef) {
 function lifestealRatio(state: CombatEngineState, override?: number): number {
   if (override !== undefined) return override
   const p = state.player
-  if (!p.isDemon && p.classId !== 'demon') return 0
+  if (!p.isDemon && !actorHasPath(p, 'demon')) return 0
   return COMBAT_CONFIG.demonLifesteal
 }
 
@@ -462,20 +488,22 @@ function applyOnHitPassives(
   if (dmg <= 0) return
   const log = state.log
   const cfg = COMBAT_CONFIG
-  if (attacker.classId === 'sword') {
+  if (actorHasPath(attacker, 'sword')) {
     addStatus(attacker, 'sword_intent', 1)
     if (statusStacks(attacker, 'sword_intent') > cfg.swordIntentMax) {
       const st = getStatus(attacker, 'sword_intent')
       if (st) st.stacks = cfg.swordIntentMax
     }
+    // R-27：记录本场剑意峰值（剑道质变门槛）
+    state.maxSwordIntent = Math.max(state.maxSwordIntent, statusStacks(attacker, 'sword_intent'))
   }
-  if (attacker.classId === 'demon' || attacker.isDemon) {
+  if (actorHasPath(attacker, 'demon') || attacker.isDemon) {
     addStatus(attacker, 'sha_qi', 1)
     const st = getStatus(attacker, 'sha_qi')
     if (st && (st.stacks ?? 0) > cfg.shaQiMax) st.stacks = cfg.shaQiMax
   }
   const ls = lifestealRatio(state, lifestealOverride)
-  const demonActive = attacker.classId === 'demon' || attacker.isDemon
+  const demonActive = actorHasPath(attacker, 'demon') || attacker.isDemon
   if (demonActive && ls > 0) {
     const heal = Math.floor(dmg * ls)
     if (heal > 0) {
@@ -483,7 +511,7 @@ function applyOnHitPassives(
       pushLog(log, `煞气反哺，回复 ${heal} 气血。（煞气×${statusStacks(attacker, 'sha_qi')}）`, 'heal')
     }
   }
-  if (attacker.classId === 'soul') {
+  if (actorHasPath(attacker, 'soul')) {
     const passive = passiveForClass('soul')
     const per = passive?.effects?.find((e) => e.type === 'energy_on_damage')
     if (per) {
@@ -517,7 +545,7 @@ function dealDamage(
     pushLog(state.log, `${defender.name}身形一晃，避开了这一击。`, 'player')
     return 0
   }
-  const critChance = cfg.critBaseChance + (attacker.classId === 'sword' ? 0.05 : 0)
+  const critChance = cfg.critBaseChance + (actorHasPath(attacker, 'sword') ? 0.05 : 0)
   const atk = effAtk(attacker) * (opts.extraMul ?? 1)
   const { dmg, crit } = rollDamage(
     atk,
@@ -574,11 +602,11 @@ function tryPotion(state: CombatEngineState, itemId: string): boolean {
   p.potionsUsed += 1
   state.potionsUsed.push(itemId)
   let mul = 1
-  if (p.classId === 'alchemy') mul = 1.35
+  if (actorHasPath(p, 'alchemy')) mul = 1.35
   if (item.effect.hp) {
     const heal = Math.floor(item.effect.hp * mul)
     p.hp = Math.min(p.maxHp, p.hp + heal)
-    pushLog(state.log, `你服下${item.name}，气血 +${heal}。${p.classId === 'alchemy' ? '（丹道入微）' : ''}`, 'heal')
+    pushLog(state.log, `你服下${item.name}，气血 +${heal}。${actorHasPath(p, 'alchemy') ? '（丹道入微）' : ''}`, 'heal')
   }
   if (item.effect.energy) {
     const en = Math.floor((item.effect.energy as number) * mul)
@@ -658,7 +686,7 @@ function enemyAct(state: CombatEngineState) {
 
 function decayIntent(state: CombatEngineState, acted: { hit: boolean }) {
   const p = state.player
-  if (p.classId !== 'sword') return
+  if (!actorHasPath(p, 'sword')) return
   const st = getStatus(p, 'sword_intent')
   if (!st) return
   if (!acted.hit) {
@@ -670,7 +698,7 @@ function decayIntent(state: CombatEngineState, acted: { hit: boolean }) {
 
 function demonBacklash(state: CombatEngineState) {
   const p = state.player
-  if (p.classId !== 'demon') return
+  if (!actorHasPath(p, 'demon')) return
   const st = getStatus(p, 'sha_qi')
   if (!st || (st.stacks ?? 0) < 6) return
   if (Math.random() < 0.1) {
@@ -707,7 +735,7 @@ function petAssistTick(state: CombatEngineState) {
 
 function talismanChargeTick(state: CombatEngineState) {
   const p = state.player
-  if (p.classId !== 'talisman') return
+  if (!actorHasPath(p, 'talisman')) return
   if (state.round % 3 !== 0) return
   const st = getStatus(p, 'talisman_charge')
   const stacks = (st?.stacks ?? 0) + 1
@@ -802,10 +830,22 @@ export function stepCombat(
     }
   } else if (action.type === 'skill') {
     const skill = SKILLS[action.skillId]
-    if (!skill || skill.type !== 'active' || skill.classId !== p.classId) {
+    if (!skill || skill.type !== 'active' || !actorHasPath(p, skill.classId)) {
       pushLog(next.log, '无法使用该技能。', 'status')
-    } else if (!isSkillUnlocked(skill, playerRealm, playerLayer)) {
-      pushLog(next.log, '境界不足，技能尚未领悟。', 'status')
+    } else if (
+      !isSkillUnlocked(skill, playerRealm, playerLayer, {
+        // R-22：非主修道途的技能按兼修压制校验
+        isSecondary: skill.classId !== (p.paths?.[0] ?? p.classId),
+        primaryRealm: playerRealm,
+      })
+    ) {
+      pushLog(
+        next.log,
+        skill.classId !== p.classId
+          ? '兼修之技，需主修更高境界方可驾驭。'
+          : '境界不足，技能尚未领悟。',
+        'status',
+      )
     } else if ((p.skillCd[skill.id] ?? 0) > 0) {
       pushLog(next.log, `${skill.name}尚在调息（CD ${p.skillCd[skill.id]}）。`, 'status')
     } else if (!canPaySkill(next, skill)) {
@@ -813,6 +853,11 @@ export function stepCombat(
     } else {
       paySkill(next, skill)
       p.skillCd[skill.id] = skill.cd ?? 0
+      // R-24：施展禁忌道途（魂道/魔道）之术，心魔随滋（单场至多 3 点）
+      if (isForbiddenPath(skill.classId) && next.forbiddenSkillCasts < FORBIDDEN_SKILL_GAIN_CAP) {
+        next.forbiddenSkillCasts += 1
+        pushLog(next.log, '禁忌之术反噬心性，心魔暗长。', 'status')
+      }
       const effects = skill.effects ?? []
       let extraMul = 1
       let pierce = skill.defPierce ?? 1
@@ -1010,6 +1055,12 @@ export function combatResultFromState(state: CombatEngineState): CombatEngineRes
     itemId: state.win ? e.loot.itemId : undefined,
     message: state.log[state.log.length - 1]?.text ?? '',
     rounds: state.round,
+    // R-24：每次禁忌技 +1 心魔，单场至多 +3
+    heartDemonGain: Math.min(
+      FORBIDDEN_SKILL_GAIN_CAP,
+      state.forbiddenSkillCasts * FORBIDDEN_SKILL_HEART_DEMON,
+    ),
+    maxSwordIntent: state.maxSwordIntent,
   }
 }
 
@@ -1051,7 +1102,7 @@ export function defaultAutoAction(
     if (healId) return { type: 'potion', itemId: healId }
   }
 
-  const skills = getUnlockedPlayerSkills(p.classId, playerRealm, playerLayer)
+  const skills = getUnlockedPlayerSkills(p, playerRealm, playerLayer)
   const usable = skills.filter(
     (s) => (p.skillCd[s.id] ?? 0) <= 0 && canPaySkill(state, s),
   )
@@ -1069,7 +1120,8 @@ export function defaultAutoAction(
     if ((s.autoPriority ?? 0) >= 40) return { type: 'skill', skillId: s.id }
   }
 
-  // defend if low energy
+  // defend if low energy（未择道时无技能，直接普攻）
+  if (skills.length === 0) return { type: 'attack' }
   const minCost = Math.min(...skills.map((s) => s.cost?.energy ?? 99))
   if (p.energy < minCost) return { type: 'defend' }
 

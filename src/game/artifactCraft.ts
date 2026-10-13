@@ -6,7 +6,7 @@ import {
   type ArtifactInstance,
   type ArtifactQuality,
 } from '../data/artifacts'
-import type { ClassId } from '../types'
+import { hasPath, pathIdsOf, type PathInput } from '../data/classes'
 
 interface CraftOutcome {
   ok: boolean
@@ -15,10 +15,10 @@ interface CraftOutcome {
   message: string
 }
 
-/** 炼器成功率：配方基础 + 器阁 + 器修 + 道痕 */
+/** 炼器成功率：配方基础 + 器阁 + 器道 + 道痕 */
 function artifactCraftRate(opts: {
   recipeId: string
-  classId: ClassId
+  paths: PathInput
   daoMarks: number
   forgeLevel: number
 }): number {
@@ -26,7 +26,7 @@ function artifactCraftRate(opts: {
   if (!recipe) return 0
   let rate = recipe.baseRate
   rate += forgeLevelDef(opts.forgeLevel).rateBonus
-  if (opts.classId === 'artifact') rate += 15
+  if (hasPath(opts.paths, 'artifact')) rate += 15
   rate += Math.min(10, Math.floor(opts.daoMarks / 25))
   return Math.max(15, Math.min(95, rate))
 }
@@ -70,18 +70,18 @@ export function consumeForgeMaterials(
 
 function rollCraftQuality(opts: {
   recipeId: string
-  classId: ClassId
+  paths: PathInput
   forgeLevel: number
   rng?: () => number
 }): ArtifactQuality {
   const recipe = ARTIFACT_RECIPE_MAP[opts.recipeId]
   const cap = forgeLevelDef(opts.forgeLevel).qualityCap
-  return rollQuality(cap, recipe?.qualityFloor, opts.classId, opts.rng)
+  return rollQuality(cap, recipe?.qualityFloor, opts.paths, opts.rng)
 }
 
 export function performCraft(opts: {
   recipeId: string
-  classId: ClassId
+  paths: PathInput
   daoMarks: number
   forgeLevel: number
   rng?: () => number
@@ -100,7 +100,7 @@ export function performCraft(opts: {
   }
   const quality = rollCraftQuality({
     recipeId: opts.recipeId,
-    classId: opts.classId,
+    paths: opts.paths,
     forgeLevel: opts.forgeLevel,
     rng,
   })
@@ -109,7 +109,7 @@ export function performCraft(opts: {
     itemId: recipe.itemId,
     quality,
     recipeId: recipe.id,
-    classId: opts.classId,
+    classId: pathIdsOf(opts.paths)[0],
     qualityCap,
     rng,
   })

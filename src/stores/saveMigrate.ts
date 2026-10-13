@@ -1,4 +1,7 @@
 import { emptyCollection } from '../data/codex'
+import { DEFAULT_APTITUDE, isAptitudeId } from '../data/aptitudes'
+import { isPathId, isForbiddenPath } from '../data/classes'
+import { DEFAULT_ORIGIN, isOriginId } from '../data/origins'
 import { GONGFAS, gongfaByScrollId, isMarketGongfa } from '../data/gongfa'
 import { questChainById, type SectQuestState } from '../data/sectQuests'
 import { PET_MAP, type PetState, type PetJob } from '../data/pets'
@@ -8,9 +11,12 @@ import { decryptSave } from '../game/saveCrypto'
 import type { SectRank } from '../data/sects'
 import { REALM_ORDER, realmIndex } from '../data/realms'
 import { isAscended } from '../game/reincarnate'
+import { clampHeartDemon, FORBIDDEN_PATH_HEART_DEMON } from '../game/heartDemon'
+import type { Alignment } from '../types'
 import type { SealedItem } from '../game/seal'
 import type {
   CheckinState,
+  ClassId,
   CollectionState,
   CompanionState,
   DailyState,
@@ -281,7 +287,17 @@ export function freshMeta(): MetaState {
     achievements: [],
     codexRewardClaimed: [],
     titles: [],
-    stats: { combatsWon: 0, pillsCrafted: 0, stonesPeak: 0, offlineSettled: 0 },
+    stats: {
+      combatsWon: 0,
+      combatsLost: 0,
+      pillsCrafted: 0,
+      artifactsForged: 0,
+      stonesPeak: 0,
+      offlineSettled: 0,
+      bestDanMarks: 0,
+      bestArtifactTier: 0,
+      maxSwordIntent: 0,
+    },
     lastOnlineAt: Date.now(),
   }
 }
@@ -305,9 +321,15 @@ export function migrateMeta(raw: unknown): MetaState {
     titles: uniqIds(r.titles ?? []),
     stats: {
       combatsWon: Number(r.stats?.combatsWon) || 0,
+      combatsLost: Number(r.stats?.combatsLost) || 0,
       pillsCrafted: Number(r.stats?.pillsCrafted) || 0,
+      artifactsForged: Number(r.stats?.artifactsForged) || 0,
       stonesPeak: Number(r.stats?.stonesPeak) || 0,
       offlineSettled: Number(r.stats?.offlineSettled) || 0,
+      // R-27 质变统计（旧档补 0）
+      bestDanMarks: Math.max(0, Math.min(5, Math.floor(Number(r.stats?.bestDanMarks) || 0))),
+      bestArtifactTier: Math.max(0, Math.min(4, Math.floor(Number(r.stats?.bestArtifactTier) || 0))),
+      maxSwordIntent: Math.max(0, Math.floor(Number(r.stats?.maxSwordIntent) || 0)),
     },
     lastOnlineAt:
       Number(r.lastOnlineAt) > 0 && Number(r.lastOnlineAt) <= Date.now()
@@ -431,22 +453,65 @@ function sanitizeStones(raw: unknown): number {
 }
 
 /**
- * v1.3 角色数值字段收敛：损坏档的缺失/非数值字段回退到安全值，
- * 防止 NaN 经 maxHp 计算等路径传播导致白屏。
+ * v1.5 道途/灵根/出身收敛。
+ * 旧档（saveVersion ≤ 16）创角时所选的「职业」升格为该角色的初立道途，保留为主修；
+ * 兼修列表为空；灵根默认杂灵根、出身默认山野遗孤 —— 二者在旧档数值上均为中性。
  */
-function sanitizePlayerNumbers(raw: PlayerState): PlayerState {
+function sanitizePlayerPaths(raw: PlayerState): PlayerState {
+  const primary: ClassId = isPathId(raw.classId) ? raw.classId : 'none'
+  const secondaries: ClassId[] = []
+  if (Array.isArray(raw.paths)) {
+    for (const id of raw.paths) {
+      if (!isPathId(id) || id === primary) continue
+      if (!secondaries.includes(id)) secondaries.push(id)
+    }
+  }
   return {
     ...raw,
-    exp: finiteOr(raw.exp, 0),
-    hp: finiteOr(raw.hp, 1, 0),
-    maxHp: finiteOr(raw.maxHp, 1, 1),
-    energy: finiteOr(raw.energy, 0),
-    maxEnergy: finiteOr(raw.maxEnergy, 1, 1),
-    shaqi: finiteOr(raw.shaqi, 0),
-    age: finiteOr(raw.age, 16, 0),
-    lifespanLeft: finiteOr(raw.lifespanLeft, 1, 1),
-    repRight: finiteOr(raw.repRight, 0),
-    repDemonic: finiteOr(raw.repDemonic, 0),
+    classId: primary,
+    paths: secondaries,
+    aptitude: isAptitudeId(raw.aptitude) ? raw.aptitude : DEFAULT_APTITUDE,
+    origin: isOriginId(raw.origin) ? raw.origin : DEFAULT_ORIGIN,
+  }
+}
+
+/**
+ * v1.3 角色数值字段收敛：损坏档的缺失/非数值字段回退到安全值，
+ * 防止 NaN 经 maxHp 计算等路径传播导致白屏。
+ *
+ * v18（R-24/R-31）：
+ * - heartDemon 收敛到 0–100；旧档（无此字段）若已立禁忌道途，补记 20 点心魔债；
+ * - alignment 仅接受三枚举，异常/缺省时删除（运行时由双声望推导 resolveAlignment）。
+ */
+function sanitizePlayerNumbers(raw: PlayerState): PlayerState {
+  const fixed = sanitizePlayerPaths(raw)
+  const ownsForbidden =
+    (fixed.classId !== 'none' && isForbiddenPath(fixed.classId)) ||
+    (fixed.paths ?? []).some((id) => isForbiddenPath(id))
+  const heartDemon =
+    fixed.heartDemon === undefined
+      ? ownsForbidden
+        ? FORBIDDEN_PATH_HEART_DEMON
+        : 0
+      : clampHeartDemon(fixed.heartDemon)
+  const alignmentValues: Alignment[] = ['righteous', 'neutral', 'demonic']
+  const alignment = alignmentValues.includes(fixed.alignment as Alignment)
+    ? fixed.alignment
+    : undefined
+  return {
+    ...fixed,
+    exp: finiteOr(fixed.exp, 0),
+    hp: finiteOr(fixed.hp, 1, 0),
+    maxHp: finiteOr(fixed.maxHp, 1, 1),
+    energy: finiteOr(fixed.energy, 0),
+    maxEnergy: finiteOr(fixed.maxEnergy, 1, 1),
+    shaqi: finiteOr(fixed.shaqi, 0),
+    age: finiteOr(fixed.age, 16, 0),
+    lifespanLeft: finiteOr(fixed.lifespanLeft, 1, 1),
+    repRight: finiteOr(fixed.repRight, 0),
+    repDemonic: finiteOr(fixed.repDemonic, 0),
+    heartDemon,
+    alignment,
   }
 }
 

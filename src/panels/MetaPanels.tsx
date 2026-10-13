@@ -291,9 +291,9 @@ function GeneralSettings() {
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">关于</div>
         <p className="text-xs text-text-dim leading-relaxed">
-          《问道》v1.4 · React + TypeScript + Zustand + Tailwind
+          《问道》v1.5 · React + TypeScript + Zustand + Tailwind
           <br />
-          战斗职业 · 离线修炼 · 图鉴成就 · 炼器词条 · 跳过战斗 · DLC · 加密存档
+          修仙道途（主修/兼修）· 灵根出身 · 离线修炼 · 图鉴成就 · 炼器词条 · DLC · 加密存档
         </p>
       </div>
     </>

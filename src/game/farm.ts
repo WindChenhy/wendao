@@ -1,5 +1,6 @@
 import { SEEDS, FARM_BASE_COLS, FARM_BASE_ROWS, FARM_MAX_COLS, FARM_MAX_ROWS, type RecipeDef } from '../data/abode'
-import type { AbodeState, ClassId, GameTime, PlotState } from '../types'
+import { hasPath, type PathInput } from '../data/classes'
+import type { AbodeState, GameTime, PlotState } from '../types'
 import { dayNumber } from './day'
 
 export function makeFarmGrid(cols: number, rows: number): PlotState[] {
@@ -90,10 +91,10 @@ export function harvestYield(seedId: string): number {
   return seed.yieldMin + Math.floor(Math.random() * (seed.yieldMax - seed.yieldMin + 1))
 }
 
-/** 炼丹成功率：基础 + 丹修加成 + 道痕 */
-export function craftRate(recipe: RecipeDef, classId: ClassId, daoMarks: number): number {
+/** 炼丹成功率：基础 + 丹道加成 + 道痕 */
+export function craftRate(recipe: RecipeDef, paths: PathInput, daoMarks: number): number {
   let rate = recipe.baseRate
-  if (classId === 'alchemy') rate += 12
+  if (hasPath(paths, 'alchemy')) rate += 12
   rate += Math.min(10, Math.floor(daoMarks / 20))
   return Math.max(20, Math.min(98, rate))
 }

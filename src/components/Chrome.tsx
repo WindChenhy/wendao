@@ -1,4 +1,4 @@
-import { CLASSES } from '../data/classes'
+import { CLASSES, isDemonic, isPathDefined, pathIdsOf } from '../data/classes'
 import { REALM_ORDER, realmLabel } from '../data/realms'
 import { formatNum } from '../game/format'
 import { weatherOf } from '../game/day'
@@ -26,7 +26,14 @@ export function StatusBar() {
   const legacy = useGameStore((s) => s.legacy)
   const activeCombat = useGameStore((s) => s.activeCombat)
   if (!player) return null
+  const demonic = isDemonic(player)
+  const pathCount = pathIdsOf(player).length
   const c = CLASSES[player.classId]
+  const pathLabel = isPathDefined(player.classId)
+    ? pathCount > 1
+      ? `${c.name}·兼修${pathCount - 1}`
+      : c.name
+    : '未定道途'
   const ri = REALM_ORDER.indexOf(player.realm)
 
   // 战斗中优先显示战斗内气血/灵力，避免与战斗面板不一致
@@ -39,7 +46,7 @@ export function StatusBar() {
   return (
     <header className="border-b border-border bg-ink-2 px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
       <span className="font-display text-gold text-sm">{player.name}</span>
-      <span className="text-text-dim">{c.name}</span>
+      <span className="text-text-dim">{pathLabel}</span>
       <span className="text-gold">
         {realmLabel(player.realm, player.layer)}
         {isAscended(player) && ' · 已飞升'}
@@ -54,10 +61,10 @@ export function StatusBar() {
         </span>
       </span>
       <span>
-        {player.classId === 'demon' ? '魔元' : '灵力'} {formatNum(enCur)}/{formatNum(enMax)}
+        {demonic ? '魔元' : '灵力'} {formatNum(enCur)}/{formatNum(enMax)}
         {inCombat && <span className="text-text-dim ml-1">（战斗）</span>}
       </span>
-      {player.classId === 'demon' && <span className="text-vermilion">煞气 {player.shaqi}</span>}
+      {demonic && <span className="text-vermilion">煞气 {player.shaqi}</span>}
       <span className="text-gold">灵石 {formatNum(stones)}</span>
       <span className="text-text-dim">
         {legacy.reincarnations > 0

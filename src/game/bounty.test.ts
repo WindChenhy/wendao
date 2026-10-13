@@ -47,6 +47,7 @@ describe('marketPremiumMul / marketPriceOf', () => {
     expect(marketPriceOf(100, { wanted: 4, repRight: 0 })).toBe(120)
     // 正道名宿：九折
     expect(marketPriceOf(100, { wanted: 0, repRight: 100 })).toBe(90)
+    expect(marketPriceOf(100, { wanted: 0, repRight: 100, repDemonic: 120 })).toBe(100)
     // 叠加：120 × 0.9 = 108
     expect(marketPriceOf(100, { wanted: 4, repRight: 100 })).toBe(108)
     expect(marketPriceOf(1, { wanted: 4, repRight: 0 })).toBeGreaterThanOrEqual(1)
@@ -73,18 +74,23 @@ describe('wantedLabel', () => {
 
 describe('reputationTitles', () => {
   it('未达 100 无称号', () => {
-    expect(reputationTitles(99, 99)).toEqual({ righteous: null, demonic: null })
+    expect(reputationTitles(99, 99)).toEqual({ righteous: null, demonic: null, mixed: false })
   })
 
-  it('正魔称号可同时持有', () => {
+  it('正魔称号互斥：两边都极盛只得「亦正亦邪」', () => {
     const t = reputationTitles(150, 120)
-    expect(t.righteous).toBe('正道名宿')
-    expect(t.demonic).toBe('魔道魁首')
+    expect(t.righteous).toBeNull()
+    expect(t.demonic).toBeNull()
+    expect(t.mixed).toBe(true)
+    expect(reputationTitles(150, 20).righteous).toBe('正道名宿')
+    expect(reputationTitles(20, 150).demonic).toBe('魔道魁首')
   })
 
-  it('档位判定与常量一致', () => {
+  it('档位判定与常量一致（且互斥）', () => {
     expect(isRighteousParagon(100)).toBe(true)
+    expect(isRighteousParagon(100, 120)).toBe(false)
     expect(isDemonicChampion(99)).toBe(false)
+    expect(isDemonicChampion(120, 150)).toBe(false)
     expect(REP_MARKET_DISCOUNT).toBe(0.9)
     expect(REP_TASK_CONTRIB_MUL).toBe(1.1)
   })

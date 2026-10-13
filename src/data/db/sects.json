@@ -118,7 +118,9 @@
         { "id": "js_jian", "name": "青云剑诀", "cost": 100, "desc": "攻击 +10%", "effect": "atk" },
         { "id": "js_xin", "name": "澄心诀", "cost": 60, "desc": "修炼速度 +8%", "effect": "cultivate" },
         { "id": "js_jiantai", "name": "青云剑胎", "cost": 360, "desc": "攻击 +20%", "effect": "atk" },
-        { "id": "js_taixu", "name": "青云太虚剑典", "cost": 1200, "desc": "攻击 +28%、受伤降低 5%", "effect": "atk" }
+        { "id": "js_taixu", "name": "青云太虚剑典", "cost": 1200, "desc": "攻击 +28%、受伤降低 5%", "effect": "atk" },
+        { "id": "gf_zhuxian", "name": "诛仙剑典", "cost": 3600, "desc": "仙阶镇阁之典：攻击 +55%、受伤降低 5%（大乘方可参悟，坊市无售）", "effect": "atk" },
+        { "id": "path_sword", "kind": "path", "pathId": "sword", "name": "剑道传承", "cost": 300, "minRank": "outer", "minRealm": "qi", "desc": "拜入剑宗门下，由师长亲授剑诀心印，无需百战自生剑意。元婴之前可拜师。" }
       ]
     },
     {
@@ -147,7 +149,9 @@
         { "id": "ty_dan", "name": "太一丹解", "cost": 80, "desc": "修炼速度 +12%", "effect": "cultivate" },
         { "id": "ty_ti", "name": "药体诀", "cost": 90, "desc": "气血 +15%", "effect": "hp" },
         { "id": "ty_danding", "name": "丹鼎真火录", "cost": 420, "desc": "修炼 +20%、气血 +8%", "effect": "cultivate" },
-        { "id": "ty_changsheng", "name": "长生药王经", "cost": 1100, "desc": "修炼 +22%、气血 +18%", "effect": "cultivate" }
+        { "id": "ty_changsheng", "name": "长生药王经", "cost": 1100, "desc": "修炼 +22%、气血 +18%", "effect": "cultivate" },
+        { "id": "gf_wangqing", "name": "太上忘情录", "cost": 3000, "desc": "仙阶镇阁之典：修炼 +50%、气血 +15%（大乘方可参悟，坊市无售）", "effect": "cultivate" },
+        { "id": "path_alchemy", "kind": "path", "pathId": "alchemy", "name": "丹道传承", "cost": 300, "minRank": "outer", "minRealm": "qi", "desc": "丹宗长老开小灶讲药辨火，代师授丹道，不必苦炼自悟。元婴之前可拜师。" }
       ]
     },
     {
@@ -166,7 +170,8 @@
       "library": [
         { "id": "ht_ti", "name": "浩天淬体篇", "cost": 120, "desc": "防御 +15%", "effect": "def" },
         { "id": "ht_mai", "name": "不灭经", "cost": 200, "desc": "气血 +25%", "effect": "hp" },
-        { "id": "ht_shenshen", "name": "神身合一法", "cost": 1000, "desc": "气血 +28%、防御 +18%", "effect": "hp" }
+        { "id": "ht_shenshen", "name": "神身合一法", "cost": 1000, "desc": "气血 +28%、防御 +18%", "effect": "hp" },
+        { "id": "path_body", "kind": "path", "pathId": "body", "name": "体道传承", "cost": 300, "minRank": "outer", "minRealm": "qi", "desc": "体宗执事以药池锤法替你易筋锻骨，代师立体道，不必先经挫败。元婴之前可拜师。" }
       ]
     },
     {
@@ -187,7 +192,8 @@
         { "id": "xs_sha", "name": "血煞魔功", "cost": 100, "desc": "攻击 +18%", "effect": "atk" },
         { "id": "xs_sui", "name": "噬魂秘录", "cost": 150, "desc": "修炼速度 +15%", "effect": "cultivate" },
         { "id": "xs_xuehai", "name": "血海魔身", "cost": 480, "desc": "攻击 +12%、气血 +20%", "effect": "hp" },
-        { "id": "xs_wangmo", "name": "万魔朝宗", "cost": 1300, "desc": "攻击 +32%", "effect": "atk" }
+        { "id": "xs_wangmo", "name": "万魔朝宗", "cost": 1300, "desc": "攻击 +32%", "effect": "atk" },
+        { "id": "path_demon", "kind": "path", "pathId": "demon", "name": "魔道传承", "cost": 500, "minRank": "outer", "minRealm": "qi", "desc": "魔宫长老主血誓，代师授魔道，不须煞名远播。血誓一成，正道声望立减 40。元婴之前可拜师。" }
       ]
     },
     {
@@ -212,7 +218,8 @@
       "library": [
         { "id": "ym_gui", "name": "幽冥引魂经", "cost": 180, "desc": "修炼速度 +20%", "effect": "cultivate" },
         { "id": "ym_zhanshen", "name": "幽冥斩神录", "cost": 620, "desc": "攻击 +26%、受伤降低 6%", "effect": "atk" },
-        { "id": "ym_lunhui", "name": "轮回鬼典", "cost": 1250, "desc": "修炼 +30%、受伤降低 8%", "effect": "cultivate" }
+        { "id": "ym_lunhui", "name": "轮回鬼典", "cost": 1250, "desc": "修炼 +30%、受伤降低 8%", "effect": "cultivate" },
+        { "id": "path_soul", "kind": "path", "pathId": "soul", "name": "魂道传承", "cost": 800, "minRank": "inner", "minRealm": "golden_core", "desc": "鬼宗密殿由长老亲押魂魄引路，代师授魂道，免十八层秘境之历；仍须以一年寿元为引。元婴之前可拜师。" }
       ]
     }
   ]

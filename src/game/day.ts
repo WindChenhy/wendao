@@ -1,6 +1,6 @@
-import { CLASSES } from '../data/classes'
+import { playerMults, type PathInput } from '../data/classes'
 import { realmIndex } from '../data/realms'
-import type { ClassId, GameTime, RealmId } from '../types'
+import type { GameTime, RealmId } from '../types'
 
 export function dayKey(t: GameTime): string {
   return `第${t.year}年${t.month}月${t.day}日`
@@ -40,21 +40,26 @@ export function advanceTime(t: GameTime, days: number): { time: GameTime; agedYe
 /**
  * 一日打坐修为。
  * 收益随境界缓慢上升，但远慢于 expNeeded 的指数抬升 —— 后期突破更难。
+ * 传入道途集合（主修全额、兼修拖累）或单个道途 id；损坏存档回退到基础速率。
+ * variance 为随机扰动（默认 0.85~1.15 均匀分布）；节奏测算/确定性测试可显式传 1（期望值）。
  */
-export function cultivateGain(classId: ClassId, realm: RealmId, layer: number): number {
-  // classId 来自存档，可能损坏；回退到基础修炼速率
-  const rate = CLASSES[classId]?.cultivateRate ?? 1
+export function cultivateGain(
+  paths: PathInput,
+  realm: RealmId,
+  layer: number,
+  variance: number = 0.85 + Math.random() * 0.3,
+): number {
+  const rate = playerMults(paths).cultivateRate
   const ri = Math.max(0, realmIndex(realm))
   const base = 12 * Math.pow(1.32, ri) * (1 + (layer - 1) * 0.18)
-  const variance = 0.85 + Math.random() * 0.3
   return Math.max(3, Math.floor(base * rate * variance))
 }
 
 /** 闭关多日总收益（略低效率换时间） */
-export function seclusionGain(classId: ClassId, realm: RealmId, layer: number, days: number): number {
+export function seclusionGain(paths: PathInput, realm: RealmId, layer: number, days: number): number {
   let total = 0
   for (let i = 0; i < days; i++) {
-    total += cultivateGain(classId, realm, layer)
+    total += cultivateGain(paths, realm, layer)
   }
   return Math.floor(total * 0.92)
 }

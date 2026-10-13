@@ -1,16 +1,18 @@
 import {
-  ENEMIES,
+  eventEnemy,
   enemyTemplateId,
   pickEnemy,
 } from '../../data/enemies'
 import { ITEMS, itemCategory } from '../../data/items'
 import {
+  PET_BEAST_CAPTURE_BONUS,
   PET_CAPTURE_PITY,
   PET_GUARD_LOSS_REDUCE,
   PET_MAP,
   type PetState,
 } from '../../data/pets'
-import { realmIndex, expNeeded } from '../../data/realms'
+import { hasPath } from '../../data/classes'
+import { ASCENSION_REALM, realmIndex, expNeeded } from '../../data/realms'
 import { canEnterRealm, isBossFloor, towerEnemy, SECRET_REALMS } from '../../data/secretRealms'
 import type { EventOutcome, WorldEventAction } from '../../data/events'
 import {
@@ -22,8 +24,10 @@ import {
 import { repDeltaOnKill } from '../../game/combatStats'
 import { clampWanted } from '../../game/bounty'
 import { advanceTime, dailyRecover, dayNumber } from '../../game/day'
+import { adjustHeartDemon } from '../../game/heartDemon'
 import { addItem, removeItem } from '../../game/inventory'
 import { isAscended } from '../../game/reincarnate'
+import { dissolvePath } from '../../game/paths'
 import {
   afterProgressSnapshot,
   applyCombatConsumables,
@@ -156,6 +160,10 @@ export function createExploreSlice(
         if (oc?.expPct) p.exp += Math.floor(expNeeded(p.realm, p.layer) * oc.expPct)
         if (oc?.repRight) p.repRight += oc.repRight
         if (oc?.repDemonic) p.repDemonic += oc.repDemonic
+        if (oc?.heartDemon) p.heartDemon = adjustHeartDemon(p.heartDemon, oc.heartDemon)
+        if (oc?.alignment) p.alignment = oc.alignment
+        // R-25 洗魔：散去指定道途（主修散则兼修顺位接任）
+        if (oc?.removePath) p = dissolvePath(p, oc.removePath)
         if (oc?.lifespan) p.lifespanLeft = Math.max(1, p.lifespanLeft - oc.lifespan)
         if (oc?.hpPct) p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * oc.hpPct))
         let legacyNext = legacy
@@ -163,6 +171,11 @@ export function createExploreSlice(
           legacyNext = { ...legacy, daoMarks: legacy.daoMarks + oc.daoMarks }
         }
         if (oc?.flag && !flags.includes(oc.flag)) flags.push(oc.flag)
+        // R-32：道侣好感增减（作用于当前道侣）
+        if (oc?.affinity && companion.spouseId) {
+          const cur = companion.affinity[companion.spouseId] ?? 0
+          companion.affinity[companion.spouseId] = Math.max(0, cur + oc.affinity)
+        }
         if (oc?.kind === 'unlock_companion' && oc.companionId) {
           if (!hidden.includes(oc.companionId)) hidden.push(oc.companionId)
           // 初见好感
@@ -193,7 +206,8 @@ export function createExploreSlice(
       }
 
       const runEventCombat = (bossId: string, win?: EventOutcome, lose?: EventOutcome) => {
-        const enemy = ENEMIES.find((e) => e.id === bossId) ?? ENEMIES[0]
+        // 按玩家大境界缩放的真实敌人：bossId 命中模板，未命中回退同境界寻常敌人
+        const enemy = eventEnemy(bossId, realmIndex(player.realm), player.layer)
         const actor = makePlayerCombatant(get, player, treasures, 1)
         const label = '奇遇战斗'
         const result = runCombatAuto(
@@ -221,6 +235,8 @@ export function createExploreSlice(
           inv,
         )
         const lines = result.log.map((l) => l.text)
+        // R-24：事件战斗中施展禁忌技同样滋长心魔
+        const hdAfterCombat = adjustHeartDemon(player.heartDemon, result.heartDemonGain)
         // 先扣行动代价中的灵石/贡献
         const costStones = action?.cost?.stones ?? 0
         const costContrib = action?.cost?.contribution ?? 0
@@ -269,11 +285,18 @@ export function createExploreSlice(
               ),
               repRight: player.repRight + rep.right + (extra?.repRight ?? 0),
               repDemonic: player.repDemonic + rep.demonic + (extra?.repDemonic ?? 0),
+              heartDemon: adjustHeartDemon(hdAfterCombat, extra?.heartDemon ?? 0),
+              ...(extra?.alignment ? { alignment: extra.alignment } : {}),
             },
             wanted: clampWanted(get().wanted + (extra?.wanted ?? 0)),
             meta: {
               ...metaEvt,
-              stats: { ...metaEvt.stats, combatsWon: metaEvt.stats.combatsWon + 1 },
+              stats: {
+                ...metaEvt.stats,
+                combatsWon: metaEvt.stats.combatsWon + 1,
+                // R-27 剑道质变：记录本场剑意峰值
+                maxSwordIntent: Math.max(metaEvt.stats.maxSwordIntent ?? 0, result.maxSwordIntent),
+              },
             },
           })
           unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
@@ -323,8 +346,14 @@ export function createExploreSlice(
               ),
               repRight: player.repRight + (extra?.repRight ?? 0),
               repDemonic: player.repDemonic + (extra?.repDemonic ?? 0),
+              heartDemon: adjustHeartDemon(hdAfterCombat, extra?.heartDemon ?? 0),
+              ...(extra?.alignment ? { alignment: extra.alignment } : {}),
             },
             wanted: clampWanted(get().wanted + (extra?.wanted ?? 0)),
+            meta: {
+              ...get().meta,
+              stats: { ...get().meta.stats, combatsLost: get().meta.stats.combatsLost + 1 },
+            },
           })
           if (extra?.itemId) unlockCodex(get, set, 'item', extra.itemId)
         }
@@ -354,7 +383,10 @@ export function createExploreSlice(
         const fails = get().petCaptureFails
         if (oc.captureRate != null) {
           const guaranteed = fails >= PET_CAPTURE_PITY
-          if (!guaranteed && Math.random() >= oc.captureRate) {
+          // R-29 御兽道：与兽同心，驯服灵兽更易（捕捉成功率上浮）
+          const beastBonus = hasPath(player, 'beast') ? PET_BEAST_CAPTURE_BONUS : 0
+          const rate = Math.min(0.98, oc.captureRate * (1 + beastBonus))
+          if (!guaranteed && Math.random() >= rate) {
             log(oc.failText ?? '小兽挣脱，跑掉了。', 'bad')
             if (fails + 1 >= PET_CAPTURE_PITY) {
               log('机缘已熟——下次安抚或捕捉，必有灵兽回应。', 'gold')
@@ -492,7 +524,7 @@ export function createExploreSlice(
       const realm = SECRET_REALMS.find((r) => r.id === realmId)
       if (!realm) return
       // v1.4 修复：飞升者仅可进入飞升秘境（太虚仙阙），不再被一刀切拦截
-      if (isAscended(player) && realm.minRealm !== 'ascended') {
+      if (isAscended(player) && realm.minRealm !== ASCENSION_REALM) {
         log('你已飞升，凡界秘境与你无缘。', 'dim')
         return
       }

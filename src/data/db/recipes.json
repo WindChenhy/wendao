@@ -307,7 +307,7 @@
         "count": 6
       },
       {
-        "itemId": "herb_goldmark",
+        "itemId": "herb_moon",
         "count": 1
       }
     ],
@@ -631,7 +631,7 @@
         "count": 5
       },
       {
-        "itemId": "herb_cloud",
+        "itemId": "herb_frost",
         "count": 1
       }
     ],
@@ -852,6 +852,158 @@
     "outputItemId": "pill_maha_w3",
     "outputCount": 1,
     "craftDays": 15,
+    "baseRate": 20
+  },
+  {
+    "id": "craft_pill_great_w3",
+    "name": "炼三纹凝元丹",
+    "desc": "同阶双料，纹自内生。",
+    "inputs": [
+      {
+        "itemId": "herb_blood",
+        "count": 4
+      },
+      {
+        "itemId": "herb_jade",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_great_w3",
+    "outputCount": 1,
+    "craftDays": 3,
+    "baseRate": 34
+  },
+  {
+    "id": "craft_pill_core_w5",
+    "name": "炼五纹金丹玉露丸",
+    "desc": "金纹入炉，五纹乃成。",
+    "inputs": [
+      {
+        "itemId": "herb_goldmark",
+        "count": 5
+      },
+      {
+        "itemId": "herb_cloud",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_core_w5",
+    "outputCount": 1,
+    "craftDays": 5,
+    "baseRate": 26
+  },
+  {
+    "id": "craft_pill_soul_w5",
+    "name": "炼五纹养婴丹",
+    "desc": "养婴之丹，纹数极难。",
+    "inputs": [
+      {
+        "itemId": "herb_soulorchid",
+        "count": 5
+      },
+      {
+        "itemId": "herb_nightjade",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_soul_w5",
+    "outputCount": 1,
+    "craftDays": 6,
+    "baseRate": 25
+  },
+  {
+    "id": "craft_pill_god_w5",
+    "name": "炼五纹化神丹",
+    "desc": "化神莲瓣为骨，星霜蕨为引。",
+    "inputs": [
+      {
+        "itemId": "herb_godpetal",
+        "count": 5
+      },
+      {
+        "itemId": "herb_starfern",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_god_w5",
+    "outputCount": 1,
+    "craftDays": 8,
+    "baseRate": 24
+  },
+  {
+    "id": "craft_pill_void_w5",
+    "name": "炼五纹虚空丹",
+    "desc": "虚空草承纹，阴阳藤锁气。",
+    "inputs": [
+      {
+        "itemId": "herb_voidgrass",
+        "count": 5
+      },
+      {
+        "itemId": "herb_yinyang",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_void_w5",
+    "outputCount": 1,
+    "craftDays": 10,
+    "baseRate": 23
+  },
+  {
+    "id": "craft_pill_join_w5",
+    "name": "炼五纹合体丹",
+    "desc": "封灵根定形，金莲子养纹。",
+    "inputs": [
+      {
+        "itemId": "herb_sealroot",
+        "count": 5
+      },
+      {
+        "itemId": "herb_goldlotus",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_join_w5",
+    "outputCount": 1,
+    "craftDays": 12,
+    "baseRate": 22
+  },
+  {
+    "id": "craft_pill_maha_w5",
+    "name": "炼五纹大乘道丹",
+    "desc": "道果为核，桃悟枝引纹。",
+    "inputs": [
+      {
+        "itemId": "herb_daofruit",
+        "count": 5
+      },
+      {
+        "itemId": "herb_taowu",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_maha_w5",
+    "outputCount": 1,
+    "craftDays": 15,
+    "baseRate": 21
+  },
+  {
+    "id": "craft_pill_trib_w5",
+    "name": "炼五纹渡劫金丹",
+    "desc": "渡劫花为引、道果为基，火候极难；五纹圆满，雷劫让三分。",
+    "inputs": [
+      {
+        "itemId": "herb_tribflower",
+        "count": 1
+      },
+      {
+        "itemId": "herb_daofruit",
+        "count": 1
+      }
+    ],
+    "outputItemId": "pill_trib_w5",
+    "outputCount": 1,
+    "craftDays": 18,
     "baseRate": 20
   }
 ]

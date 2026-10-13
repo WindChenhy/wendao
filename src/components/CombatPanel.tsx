@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { CLASSES } from '../data/classes'
+import { isDemonic, pathSummaryText } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { COMBAT_CONFIG } from '../data/skills'
 import { defaultAutoAction, getUnlockedPlayerSkills, formatStatuses } from '../game/combatEngine'
@@ -93,7 +93,7 @@ export function CombatPanel() {
   const st = activeCombat
   const p = st.player
   const e = st.enemy
-  const skills = getUnlockedPlayerSkills(player.classId, player.realm, player.layer)
+  const skills = getUnlockedPlayerSkills(player, player.realm, player.layer)
   const combatPotions = Object.entries(inventory).filter(([id, n]) => {
     if (n <= 0) return false
     const item = ITEMS[id]
@@ -103,8 +103,9 @@ export function CombatPanel() {
   })
   const potionLimit = st.potionLimit
   const potionsLeft = Math.max(0, potionLimit - p.potionsUsed)
-  const energyLabel = player.classId === 'demon' ? '魔元' : '灵力'
-  const className = CLASSES[player.classId]?.name ?? ''
+  const demonic = isDemonic(player)
+  const energyLabel = demonic ? '魔元' : '灵力'
+  const className = pathSummaryText(player)
 
   return (
     <div
