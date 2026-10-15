@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { ITEMS, MARKET_STOCK, TREASURE_BONUS, consumableExpGain, displayItemName } from './items'
+import { BREAKTHROUGH_MATERIALS, ITEMS, MARKET_STOCK, TREASURE_BONUS, consumableExpGain, displayItemName } from './items'
 import { HERB_ITEMS, RECIPE_LIST } from './abode'
 import { ARTIFACT_RECIPES } from './artifacts'
-import { ENEMY_TEMPLATES, hasEnemyTemplate } from './enemies'
+import { ENEMY_TEMPLATES, hasEnemyTemplate, previewEnemy } from './enemies'
 import { SECRET_REALMS } from './secretRealms'
 import {
   GONGFA_LIST,
@@ -439,6 +439,19 @@ describe('敌人模板完备性', () => {
     const seen = new Set(ENEMY_TEMPLATES.map((t) => t.faction))
     for (const f of FACTIONS) {
       expect(seen.has(f), `敌人表缺少阵营 ${f} 的模板`).toBe(true)
+    }
+  })
+
+  it('历练掉落材料与突破链一致（防手工映射表复制粘贴断链）', () => {
+    const matTemplate = ENEMY_TEMPLATES.find((t) => t.matOffset === 0)
+    expect(matTemplate, '缺少 matOffset=0 的历练模板').toBeTruthy()
+    // 材料表以「目标境界」为键：从 R 境出发所需材料 = BREAKTHROUGH_MATERIALS[nextRealm(R)]
+    for (const realm of CULTIVATABLE_REALMS) {
+      const target = nextRealm(realm)
+      const expected = target ? BREAKTHROUGH_MATERIALS[target] : undefined
+      if (!expected) continue // 渡劫 → 飞升无突破材料
+      const drop = previewEnemy(matTemplate!, realmIndex(realm), 1).loot.itemId
+      expect(drop, `${realm} 境历练掉落了错误的突破材料（应 ${expected}）`).toBe(expected)
     }
   })
 

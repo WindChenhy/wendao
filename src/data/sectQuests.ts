@@ -1,5 +1,6 @@
 import type { SectRank } from './sects'
 import type { RealmId } from '../types'
+import { BREAKTHROUGH_MATERIALS } from './items'
 import { realmIndex } from './realms'
 import { sectRankIndex } from './sects'
 import sectQuestsDb from './db/sect_quests.json'
@@ -53,7 +54,8 @@ export function questChainById(id: string): QuestChainDef | null {
 export function questDeliverCandidates(step: QuestStepDef): string[] {
   if (!step.itemId) return []
   if (step.itemId === 'any_mat') return ['snake_gall', 'fox_core', 'tiger_bone']
-  if (step.itemId === 'any_break') return ['mat_foundation', 'mat_core', 'mat_soul', 'mat_tribulation']
+  // 由突破材料表派生：8 种突破灵材全收，避免手工列举漏项（曾漏 mat_spirit/void/integration/mahayana）
+  if (step.itemId === 'any_break') return Object.values(BREAKTHROUGH_MATERIALS)
   if (step.itemId === 'any_special') return ['demon_shard', 'mat_foundation', 'mat_core', 'mat_soul']
   return [step.itemId]
 }

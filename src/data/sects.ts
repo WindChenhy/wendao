@@ -1,4 +1,4 @@
-import { realmIndex, realmCombatBase } from './realms'
+import { REALMS, realmIndex, realmCombatBase } from './realms'
 import type { ClassId, EnemyDef, RealmId } from '../types'
 import sectsDb from './db/sects.json'
 
@@ -78,13 +78,16 @@ export function sectExamOpponent(realm: RealmId, layer: number, tier: 1 | 2 | 3)
     2: '内门翘楚',
     3: '亲传首席',
   }
-  const base = realmCombatBase(realm, Math.min(9, layer + tier))
+  // 层数上限取该大境界实际层数（勿写死 9：终局 ascended 仅 1 层）
+  const maxLayer = REALMS[realm]?.layers ?? 9
+  const examLayer = Math.min(maxLayer, layer + tier)
+  const base = realmCombatBase(realm, examLayer)
   return {
     id: `sect_exam_${tier}`,
     name: names[tier],
     faction: 'righteous',
     realm,
-    layer: Math.min(9, layer + tier),
+    layer: examLayer,
     atk: Math.floor(base.atk * (0.9 + tier * 0.05)),
     def: Math.floor(base.def * (0.95 + tier * 0.05)),
     hp: Math.floor(base.hp * (0.85 + tier * 0.1)),
@@ -164,6 +167,8 @@ export function sectsFor(
     if (realmIndex(realm) < realmIndex(s.minRealm)) return false
     if (realm === s.minRealm && layer < s.minRealmLayer) return false
     if (s.alignment === 'righteous') return repRight >= s.minRep
+    // 魔道宗门沿用同一字段但取负值（xuesha −10 / youming −30），语义是：
+    // 「魔道声望 ≥ |minRep|」或「正道声望 ≤ minRep（即正道声望已跌为负值）」，二者取其一即可拜入。
     return repDemonic >= -s.minRep || repRight <= s.minRep
   })
 }

@@ -11,6 +11,7 @@ import {
   type PetState,
 } from '../../data/pets'
 import { ASCENSION_REALM, realmCombatBase } from '../../data/realms'
+import { COMBAT_CONFIG } from '../../data/skills'
 import { nextSectRank, SECT_RANKS } from '../../data/sects'
 import { SECRET_REALMS, isBossFloor } from '../../data/secretRealms'
 import { buildingAtkMul } from '../../data/sectBuildings'
@@ -69,7 +70,7 @@ export function makePlayerCombatant(get: MetaGet, player: PlayerState, treasures
     maxEnergy: player.maxEnergy,
     atk: Math.floor(base.atk * m.atkMul * tb.atk * gb.atk * (1 + petStatBonus(snap.pet).atk) * buildingAtkMul(snap.sect.buildings, { isExam: snap.activeCombat?.context?.kind === 'sect_exam' })),
     def: Math.floor(base.def * m.defMul * tb.def * gb.def),
-    dmgReduce: gb.dodge + extras.dmgReduce,
+    dmgReduce: Math.min(COMBAT_CONFIG.dmgReduceCap, gb.dodge + extras.dmgReduce),
     dodge: Math.min(0.25, tb.dodge),
     treasures,
     hpScale,

@@ -171,15 +171,16 @@ export function createExploreSlice(
           legacyNext = { ...legacy, daoMarks: legacy.daoMarks + oc.daoMarks }
         }
         if (oc?.flag && !flags.includes(oc.flag)) flags.push(oc.flag)
-        // R-32：道侣好感增减（作用于当前道侣）
+        // R-32：道侣好感增减（作用于当前道侣）；zustand 快照不可原地改写（StrictMode 下会破坏快照一致性）
+        const affinity = { ...companion.affinity }
         if (oc?.affinity && companion.spouseId) {
-          const cur = companion.affinity[companion.spouseId] ?? 0
-          companion.affinity[companion.spouseId] = Math.max(0, cur + oc.affinity)
+          const cur = affinity[companion.spouseId] ?? 0
+          affinity[companion.spouseId] = Math.max(0, cur + oc.affinity)
         }
         if (oc?.kind === 'unlock_companion' && oc.companionId) {
           if (!hidden.includes(oc.companionId)) hidden.push(oc.companionId)
           // 初见好感
-          companion.affinity[oc.companionId] = Math.max(companion.affinity[oc.companionId] ?? 0, 30)
+          affinity[oc.companionId] = Math.max(affinity[oc.companionId] ?? 0, 30)
         }
         log(oc?.text ?? fallbackText, oc?.kind === 'unlock_companion' ? 'gold' : 'info')
         set({
@@ -194,7 +195,7 @@ export function createExploreSlice(
             ...companion,
             flags: uniqIds(flags),
             hiddenUnlocked: uniqIds(hidden),
-            affinity: { ...companion.affinity },
+            affinity,
           },
           player: p,
         })
