@@ -6,23 +6,18 @@ import { defaultAutoAction, getUnlockedPlayerSkills, formatStatuses } from '../g
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
 
-function hpBar(cur: number, max: number) {
+/** 血条/灵力条：仅颜色类不同，共用一条实现 */
+function bar(cur: number, max: number, colorClass: string) {
   const pct = Math.max(0, Math.min(100, (cur / Math.max(1, max)) * 100))
   return (
     <div className="h-2 bg-ink border border-border">
-      <div className="h-full bg-vermilion/80" style={{ width: `${pct}%` }} />
+      <div className={`h-full ${colorClass}`} style={{ width: `${pct}%` }} />
     </div>
   )
 }
 
-function energyBar(cur: number, max: number) {
-  const pct = Math.max(0, Math.min(100, (cur / Math.max(1, max)) * 100))
-  return (
-    <div className="h-2 bg-ink border border-border">
-      <div className="h-full bg-jade/80" style={{ width: `${pct}%` }} />
-    </div>
-  )
-}
+/** 自动战斗出招间隔（毫秒） */
+const AUTO_COMBAT_TICK_MS = 280
 
 export function CombatPanel() {
   const activeCombat = useGameStore((s) => s.activeCombat)
@@ -73,21 +68,31 @@ export function CombatPanel() {
     }
 
     // 双 rAF：等布局完成后再滚，避免面板刚插入时位置未定
+    let inner = 0
     const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(scrollPanelIntoView)
+      inner = requestAnimationFrame(scrollPanelIntoView)
     })
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      cancelAnimationFrame(inner)
+    }
   }, [combatKey])
 
-  // 自动战斗：逐回合推进，保证面板始终可见
+  // 自动战斗：逐回合推进，保证面板始终可见。
+  // 依赖只挂「回合号」——若挂整个 player/inventory，掉落入包等无关变更会反复重置计时器，托管节奏抖动；
+  // 回调内改读 getState()，避免闭包捕获过期状态。
+  const autoRound =
+    autoCombat && activeCombat && !activeCombat.finished ? activeCombat.round : null
   useEffect(() => {
-    if (!autoCombat || !activeCombat || activeCombat.finished || !player) return
+    if (autoRound === null) return
     const timer = window.setTimeout(() => {
-      const action = defaultAutoAction(activeCombat, inventory, player.realm, player.layer)
-      combatAct(action)
-    }, 280)
+      const s = useGameStore.getState()
+      const combat = s.activeCombat
+      if (!s.autoCombat || !combat || combat.finished || !s.player) return
+      s.combatAct(defaultAutoAction(combat, s.inventory, s.player.realm, s.player.layer))
+    }, AUTO_COMBAT_TICK_MS)
     return () => window.clearTimeout(timer)
-  }, [autoCombat, activeCombat, player, inventory, combatAct])
+  }, [autoRound])
 
   if (!activeCombat || !player || activeCombat.finished) return null
   const st = activeCombat
@@ -128,11 +133,11 @@ export function CombatPanel() {
               回合 {st.round}/{COMBAT_CONFIG.maxRounds}
             </span>
           </div>
-          {hpBar(p.hp, p.maxHp)}
+          {bar(p.hp, p.maxHp, 'bg-vermilion/80')}
           <div className="text-xs text-text-dim mt-0.5">
             气血 {formatNum(p.hp)}/{formatNum(p.maxHp)}
           </div>
-          {energyBar(p.energy, p.maxEnergy)}
+          {bar(p.energy, p.maxEnergy, 'bg-jade/80')}
           <div className="text-xs text-text-dim mt-0.5">
             {energyLabel} {formatNum(p.energy)}/{formatNum(p.maxEnergy)}
             <span className="text-text-dim/80 ml-2">与顶栏同步</span>
@@ -144,7 +149,7 @@ export function CombatPanel() {
             {e.name}
             {e.isBoss && <span className="text-xs ml-2">镇守</span>}
           </div>
-          {hpBar(e.hp, e.maxHp)}
+          {bar(e.hp, e.maxHp, 'bg-vermilion/80')}
           <div className="text-xs text-text-dim mt-0.5">
             气血 {formatNum(e.hp)}/{formatNum(e.maxHp)}
           </div>

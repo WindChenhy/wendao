@@ -49,13 +49,13 @@ export function buildingUpgradeCost(def: SectBuildingDef, level: number): number
 /** 全宗修炼额外乘区（灵脉） */
 export function buildingCultivateMul(buildings: Record<string, number> | undefined): number {
   const lv = buildingLevel(buildings, 'spirit_vein')
-  return 1 + (SECT_BUILDING_MAP.spirit_vein.effects.cultivatePerLv ?? 0) * lv
+  return 1 + (SECT_BUILDING_MAP.spirit_vein?.effects?.cultivatePerLv ?? 0) * lv
 }
 
 /** 炼丹成功率百分点加成（丹房） */
 export function buildingCraftRateBonus(buildings: Record<string, number> | undefined): number {
   const lv = buildingLevel(buildings, 'alchemy_lab')
-  return (SECT_BUILDING_MAP.alchemy_lab.effects.craftRatePerLv ?? 0) * 100 * lv
+  return (SECT_BUILDING_MAP.alchemy_lab?.effects?.craftRatePerLv ?? 0) * 100 * lv
 }
 
 /** 战斗攻击乘区（剑冢）；isExam 时叠加大比加成 */
@@ -65,8 +65,8 @@ export function buildingAtkMul(
 ): number {
   const lv = buildingLevel(buildings, 'sword_grave')
   const def = SECT_BUILDING_MAP.sword_grave
-  let mul = 1 + (def.effects.atkPerLv ?? 0) * lv
-  if (opts?.isExam) mul += (def.effects.examAtkPerLv ?? 0) * lv
+  let mul = 1 + (def?.effects?.atkPerLv ?? 0) * lv
+  if (opts?.isExam) mul += (def?.effects?.examAtkPerLv ?? 0) * lv
   return mul
 }
 
@@ -78,6 +78,25 @@ export function describeBuildingEffect(def: SectBuildingDef, level: number): str
   if (e.atkPerLv) parts.push(`攻击 +${Math.round(e.atkPerLv * level * 100)}%`)
   if (e.examAtkPerLv) parts.push(`大比攻击 +${Math.round(e.examAtkPerLv * level * 100)}%`)
   return parts.join('、') || '无'
+}
+
+/**
+ * 藏经阁扩容 / 坊市让利（宗主建设）的唯一数值口径。
+ * 视图（SectPanel 显示折扣与升级价）与 store（sectSlice 实付扣减）共用，
+ * 避免两处各写一份公式后调数不一致。
+ */
+export const SECT_UPGRADE_MAX_LV = 3
+/** 藏经阁扩容每级折扣：参悟消耗 ×(1 − 0.05 × lv) */
+export function libraryDiscount(lv: number): number {
+  return 1 - 0.05 * Math.max(0, lv)
+}
+/** 坊市让利每级折扣：贡献兑换 ×(1 − 0.04 × lv) */
+export function marketDiscount(lv: number): number {
+  return 1 - 0.04 * Math.max(0, lv)
+}
+/** 藏经阁/坊市升级所需贡献（同一曲线：300×(lv+1) + 100×lv²） */
+export function sectUpgradeCost(lv: number): number {
+  return 300 * (lv + 1) + 100 * lv * lv
 }
 
 /** 灵石 → 池（10:1） */

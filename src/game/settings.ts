@@ -35,3 +35,18 @@ export function saveGameSettings(next: GameSettings): void {
     // 本地存储不可用时忽略，仅内存生效
   }
 }
+
+/**
+ * 开发调试菜单开关（方案 §2.7 MVP#8）：URL 带 ?debug=1 或 localStorage 标记时显示。
+ * 唯一来源；正式构建默认关闭，调试按钮不应常驻 UI。
+ */
+export const DEBUG_ENABLED = (() => {
+  try {
+    return (
+      new URLSearchParams(window.location.search).has('debug') ||
+      localStorage.getItem('wendao-debug') === '1'
+    )
+  } catch {
+    return false
+  }
+})()

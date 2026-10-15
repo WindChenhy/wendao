@@ -75,14 +75,21 @@ export const useGameStore = create<GameState>((set, get) => ({
 // v1.2 灵兽灵田协助：跨日自动结算（岗位为「灵田协助」时，无需手动点击）
 {
   let lastDay = dayNumber(useGameStore.getState().time)
-  useGameStore.subscribe((state, prev) => {
+  const unsub = useGameStore.subscribe((state, prev) => {
     if (state.time === prev.time) return
     const d = dayNumber(state.time)
-    if (d === lastDay) return
+    // d <= lastDay：转生（时间重置为第 1 年）与读档回拨同样落在此分支，
+    // 既防「对刚读入的存档立刻做一次自动收获」，也保证锚点随新时间轴归位
+    if (d <= lastDay) {
+      lastDay = d
+      return
+    }
     lastDay = d
     const snapshot = useGameStore.getState()
     if (!snapshot.player || !snapshot.player.alive) return
     if (snapshot.pet?.job !== 'farm' || snapshot.pet.jobOn === String(d)) return
     runPetFarmAssist(useGameStore.getState, useGameStore.setState, { auto: true })
   })
+  // Vite dev HMR 下本模块会被重复求值：不清理订阅会累积注册，跨日时重复自动收获
+  import.meta.hot?.dispose(() => unsub())
 }

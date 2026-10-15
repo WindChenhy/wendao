@@ -1,8 +1,8 @@
 /** 法宝/功法/战斗数值计算（纯函数，可单测）；旧版 combat.ts 的面板属性与击杀声望已并入此文件 */
 import { isDemonic, playerMults, type PathInput } from '../data/classes'
-import { GONGFA_STAGE_MUL, GONGFAS, gongfaInScope } from '../data/gongfa'
-import { activeSynergies, synergyBonus } from '../data/gongfaSynergy'
-import { TREASURE_BONUS } from '../data/items'
+import { gongfaStageMul, GONGFAS, gongfaInScope } from '../data/gongfa'
+import { activeSynergies, synergyBonusOf } from '../data/gongfaSynergy'
+import { TREASURE_BONUS, treasureBreakthroughBonus } from '../data/items'
 import { realmCombatBase } from '../data/realms'
 import {
   artifactBreakthroughBonus,
@@ -67,16 +67,7 @@ export function treasureBreakthroughTotal(
   treasures: string[],
   artifacts?: ArtifactInstance[],
 ): number {
-  let bonus = 0
-  const seen = new Set<string>()
-  for (const id of treasures) {
-    if (seen.has(id)) continue
-    const b = TREASURE_BONUS[id]
-    if (b?.breakthrough) {
-      seen.add(id)
-      bonus += b.breakthrough
-    }
-  }
+  let bonus = treasureBreakthroughBonus(treasures)
   if (artifacts?.length) bonus += artifactBreakthroughBonus(artifacts)
   return Math.min(TREASURE_BREAKTHROUGH_CAP, bonus)
 }
@@ -141,14 +132,16 @@ export function gongfaBonuses(learned: Record<string, GongfaLearned>, realm?: Re
     if (!g) continue
     if (realm && !gongfaInScope(g, realm as RealmId)) continue
     activeIds.push(id)
-    const mul = GONGFA_STAGE_MUL[Math.min(GONGFA_STAGE_MUL.length - 1, st.stage)]
+    const mul = gongfaStageMul(st.stage)
     if (g.effect.atk) atk *= 1 + g.effect.atk * mul
     if (g.effect.def) def *= 1 + g.effect.def * mul
     if (g.effect.hp) hp *= 1 + g.effect.hp * mul
     if (g.effect.cultivate) cultivate *= 1 + g.effect.cultivate * mul
     if (g.effect.dodge) dodge += g.effect.dodge * mul
   }
-  const syn = synergyBonus(activeIds)
+  // 羁绊只算一次：synergyBonus 内部即遍历 activeSynergies，勿重复计算
+  const synergies = activeSynergies(activeIds)
+  const syn = synergyBonusOf(synergies)
   atk *= 1 + syn.atk
   def *= 1 + syn.def
   hp *= 1 + syn.hp
@@ -161,6 +154,6 @@ export function gongfaBonuses(learned: Record<string, GongfaLearned>, realm?: Re
     cultivate,
     dodge,
     breakthrough: syn.breakthrough,
-    synergies: activeSynergies(activeIds),
+    synergies,
   }
 }

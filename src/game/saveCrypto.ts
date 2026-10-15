@@ -76,7 +76,8 @@ export async function downloadTextFile(filename: string, text: string): Promise<
   document.body.appendChild(a)
   a.click()
   a.remove()
-  URL.revokeObjectURL(url)
+  // 同步 revoke 会让部分浏览器（Firefox 旧版 / 部分 Android WebView）直接取消下载，延后一拍再回收
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 export function describeExportError(e: unknown): string {

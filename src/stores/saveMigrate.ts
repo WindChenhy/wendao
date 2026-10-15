@@ -6,7 +6,7 @@ import { GONGFAS, gongfaByScrollId, isMarketGongfa } from '../data/gongfa'
 import { questChainById, type SectQuestState } from '../data/sectQuests'
 import { PET_MAP, type PetState, type PetJob } from '../data/pets'
 import { itemCategory } from '../data/items'
-import { artifactDisplayName, createArtifactInstance, type ArtifactInstance, type ArtifactQuality } from '../data/artifacts'
+import { artifactDisplayName, createArtifactInstance, makeArtifactUid, type ArtifactInstance, type ArtifactQuality } from '../data/artifacts'
 import { decryptSave } from '../game/saveCrypto'
 import type { SectRank } from '../data/sects'
 import { REALM_ORDER, realmIndex } from '../data/realms'
@@ -550,7 +550,9 @@ export function decryptSnapshotJson(text: string): SlotSnapshot | null {
 export function migrateArtifacts(rawArtifacts: unknown, treasures: string[]): ArtifactInstance[] {
   const list: ArtifactInstance[] = Array.isArray(rawArtifacts)
     ? (rawArtifacts as Array<Record<string, unknown>>).map((a) => ({
-        uid: String(a.uid),
+        // 旧档缺 uid 时若用 String(undefined) 会得到字面量 "undefined"，
+        // 同档多件 uid 相同 → 洗练/认主/分解会一次命中多件，React key 也重复
+        uid: a.uid ? String(a.uid) : makeArtifactUid(),
         itemId: String(a.itemId ?? ''),
         name: artifactDisplayName(String(a.itemId), String(a.name ?? '')),
         quality: (a.quality as ArtifactQuality) ?? 'mortal',

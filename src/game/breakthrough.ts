@@ -24,7 +24,7 @@ const BREAKTHROUGH_OMEN: Record<string, string> = {
 }
 
 export function breakthroughRate(paths: PathInput, realm: RealmId): number {
-  const base = REALMS[realm].breakthroughBaseRate
+  const base = REALMS[realm]?.breakthroughBaseRate ?? 0
   const bonus = playerMults(paths).breakthroughBonus
   return Math.max(5, Math.min(92, base + bonus))
 }

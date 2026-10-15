@@ -1,6 +1,7 @@
 import { playerMults, type PathInput } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { realmIndex } from '../data/realms'
+import { TUNING } from './tuning'
 import type { AptitudeId, ClassId, RealmId } from '../types'
 
 /** 各大境界离线时长上限（小时） */
@@ -17,8 +18,8 @@ export const OFFLINE_HOUR_CAP: Record<RealmId, number> = {
   ascended: 48,
 }
 
-/** 低于该时长不弹结算（毫秒） */
-export const OFFLINE_MIN_MS = 5 * 60 * 1000
+/** 低于该时长不弹结算（毫秒）；分钟数取自 TUNING.offlineMinMinutes */
+export const OFFLINE_MIN_MS = TUNING.offlineMinMinutes * 60 * 1000
 /** 离线相对打坐的效率 */
 const OFFLINE_EFFICIENCY = 0.85
 /** 灵石加深额外收益比例 */
@@ -109,6 +110,8 @@ export function calcOfflineCultivation(opts: {
     deepenPillExp: 0,
   })
 
+  // now 非有限数时两个时间比较都会放行 → 全字段 NaN，故与 lastOnlineAt 一并校验
+  if (!Number.isFinite(now) || now <= 0) return empty('too_short')
   if (!Number.isFinite(lastOnlineAt) || lastOnlineAt <= 0) return empty('too_short')
 
   // 改系统时间回拨：不结算，避免刷收益

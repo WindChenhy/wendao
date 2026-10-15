@@ -1,7 +1,8 @@
 import { ASCENSION_REALM, realmIndex } from './realms'
 import { SECT_RANK_ORDER, type SectRank } from './sects'
 import { SECRET_REALMS } from './secretRealms'
-import type { CollectionState, LegacyState, MetaStats } from '../types'
+import type { CollectionState, LegacyState, MetaStats, RealmId } from '../types'
+import { describeRewardParts } from '../game/reward'
 import achievementsJson from './db/achievements.json'
 
 /** 太虚仙阙总层数（唯一来源：秘境表），成就阈值跟随它变化 */
@@ -66,7 +67,8 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
 
 export interface AchievementProgressInput {
   player: {
-    realm: string
+    /** 大境界 id（RealmId，勿放宽为 string：否则 realmIndex 需靠强制转型绕过检查） */
+    realm: RealmId
     layer: number
     ascended: boolean
     alive: boolean
@@ -133,7 +135,7 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
   const ri = input.player
     ? asc
       ? realmIndex(ASCENSION_REALM)
-      : Math.max(input.legacy.bestRealmIndex, realmIndex(input.player.realm as never))
+      : Math.max(input.legacy.bestRealmIndex, realmIndex(input.player.realm))
     : input.legacy.bestRealmIndex
   if (ri >= realmIndex('foundation')) push('realm_foundation')
   if (ri >= realmIndex('golden_core')) push('realm_core')
@@ -208,9 +210,5 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
 }
 
 export function describeReward(r: AchievementReward): string {
-  const parts: string[] = []
-  if (r.stones) parts.push(`灵石 +${r.stones}`)
-  if (r.daoMarks) parts.push(`道痕 +${r.daoMarks}`)
-  if (r.title) parts.push(`称号「${r.title}」`)
-  return parts.join(' · ') || '无'
+  return describeRewardParts(r, '无')
 }

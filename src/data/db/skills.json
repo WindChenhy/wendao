@@ -3,6 +3,7 @@
     "maxRounds": 28,
     "defendDmgReduce": 0.5,
     "defendEnergyRegen": 8,
+    "dmgReduceCap": 0.75,
     "combatPotionLimit": 2,
     "critBaseChance": 0.05,
     "critMultiplier": 1.6,

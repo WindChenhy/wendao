@@ -18,30 +18,43 @@ const SectPanel = lazy(() => import('./SectPanel').then((m) => ({ default: m.Sec
 const CompanionPanel = lazy(() => import('./CompanionPanel').then((m) => ({ default: m.CompanionPanel })))
 const SettingsPanel = lazy(() => import('./MetaPanels').then((m) => ({ default: m.SettingsPanel })))
 
+/** 在线心跳间隔：定时刷新 meta.lastOnlineAt，避免长时间只做历练/炼丹时在线时段被误算为离线收益 */
+const ONLINE_HEARTBEAT_MS = 60_000
+
 export function GameLayout() {
   const activePanel = useGameStore((s) => s.activePanel)
   const activeCombat = useGameStore((s) => s.activeCombat)
   const phase = useGameStore((s) => s.phase)
   const inCombat = Boolean(activeCombat && !activeCombat.finished)
 
-  // 回到前台时结算离线闭关；隐藏时不刷新锚点，让切出时长计入离线
+  // 回到前台时先结算离线闭关再刷新在线锚点；隐藏时不刷新锚点，让切出时长计入离线
   useEffect(() => {
     if (phase !== 'play') return
-    const recheck = () => useGameStore.getState().recheckOffline()
+    // 离线结算用的是隐藏前的旧锚点，故必须先 settle 再 touch，顺序不可颠倒
+    const recheck = () => {
+      useGameStore.getState().recheckOffline()
+      useGameStore.getState().touchOnline()
+    }
+    const heartbeat = window.setInterval(() => {
+      if (document.visibilityState === 'visible') useGameStore.getState().touchOnline()
+    }, ONLINE_HEARTBEAT_MS)
 
     // 原生壳内 visibilitychange 不可靠（系统挂起不派发事件），改订阅 App resume
     if (isNativeApp()) {
       let disposed = false
       let sub: { remove: () => Promise<void> } | null = null
-      void import('@capacitor/app').then(({ App }) => {
-        if (disposed) return
-        void App.addListener('resume', recheck).then((handle) => {
-          if (disposed) void handle.remove()
-          else sub = handle
+      void import('@capacitor/app')
+        .then(({ App }) => {
+          if (disposed) return
+          return App.addListener('resume', recheck).then((handle) => {
+            if (disposed) void handle.remove()
+            else sub = handle
+          })
         })
-      })
+        .catch((e) => console.warn('监听原生前台事件失败：', e))
       return () => {
         disposed = true
+        window.clearInterval(heartbeat)
         void sub?.remove()
       }
     }
@@ -50,7 +63,10 @@ export function GameLayout() {
       if (document.visibilityState === 'visible') recheck()
     }
     document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.clearInterval(heartbeat)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [phase])
 
   // 战斗中锁滚动，避免透过遮罩操作页面

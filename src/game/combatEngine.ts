@@ -263,7 +263,8 @@ function rollDamage(
   let raw = atk * multiplier - pierceDef + (Math.random() * 8 - 3)
   if (multiplier === 0) raw = 0
   let dmg = Math.max(0, Math.floor(raw))
-  dmg = Math.floor(dmg * (1 - dmgReduce))
+  // 双保险：dmgReduce 上游已按 COMBAT_CONFIG.dmgReduceCap 封顶，此处再夹取到 [0,1]
+  dmg = Math.max(0, Math.floor(dmg * (1 - Math.min(1, Math.max(0, dmgReduce)))))
   if (defending) dmg = Math.floor(dmg * cfg.defendDmgReduce)
   const crit = dmg > 0 && Math.random() < critChance
   if (crit) dmg = Math.floor(dmg * cfg.critMultiplier)
@@ -516,7 +517,9 @@ function applyOnHitPassives(
     const per = passive?.effects?.find((e) => e.type === 'energy_on_damage')
     if (per) {
       // simplified: +2 energy per hit over 100 dmg threshold scaled
-      const ticks = Math.floor(dmg / (per.per ?? 100))
+      // per.per 为 0 时 dmg/0 = Infinity（依赖数据），故夹取到正数分母
+      const perVal = per.per && per.per > 0 ? per.per : 100
+      const ticks = Math.floor(dmg / perVal)
       if (ticks > 0) {
         attacker.energy = Math.min(attacker.maxEnergy, attacker.energy + ticks * (per.gain ?? 2))
       }
@@ -574,22 +577,23 @@ function dealDamage(
   }
 
   defender.hp = Math.max(0, defender.hp - remain)
-  if (opts.multiplier > 0) {
+  if (opts.multiplier > 0 && remain > 0) {
     const critTag = crit ? '暴击！' : ''
-    pushLog(state.log, `${critTag}${opts.label}造成 ${dmg} 点伤害。`, crit ? 'crit' : opts.kind)
+    pushLog(state.log, `${critTag}${opts.label}造成 ${remain} 点伤害。`, crit ? 'crit' : opts.kind)
   }
 
-  applyOnHitPassives(state, attacker, dmg, opts.lifestealOverride)
+  // 吸血 / 剑意叠层 / 魂道回能一律按「护盾吸收后的实际掉血」结算
+  applyOnHitPassives(state, attacker, remain, opts.lifestealOverride)
 
   // counter
   const cr = counterRatio(defender)
-  if (cr > 0 && dmg > 0 && defender.hp > 0) {
-    const back = Math.max(1, Math.floor(dmg * cr))
+  if (cr > 0 && remain > 0 && defender.hp > 0) {
+    const back = Math.max(1, Math.floor(remain * cr))
     attacker.hp = Math.max(0, attacker.hp - back)
     pushLog(state.log, `${defender.name}反震 ${back} 点。`, 'status')
   }
 
-  return dmg
+  return remain
 }
 
 function tryPotion(state: CombatEngineState, itemId: string): boolean {
@@ -635,25 +639,37 @@ function blastMultiplier(itemId: string): number {
   return 1.2
 }
 
-function enemyAct(state: CombatEngineState) {
+/** 敌方眩晕回合：消耗眩晕并跳过该回合；返回 true 表示该回合敌方无法行动 */
+function enemyStunned(state: CombatEngineState): boolean {
   const e = state.enemy
-  const p = state.player
-  const cfg = COMBAT_CONFIG
-  if (e.hp <= 0 || state.finished) return
-
   const stun = getStatus(e, 'stun')
   if (stun?.turns && stun.turns > 0) {
     stun.turns = 0
     removeStatus(e, 'stun')
     pushLog(state.log, `${e.name}陷入眩晕，无法行动。`, 'status')
-    return
+    return true
   }
+  return false
+}
 
+/** 低血狂暴（一次性） */
+function maybeEnrage(state: CombatEngineState) {
+  const e = state.enemy
   if (e.hp <= e.maxHp * 0.3 && !getStatus(e, 'enrage')) {
     addStatus(e, 'enrage')
     pushLog(state.log, `${e.name}双目赤红，陷入狂暴！`, 'enemy')
   }
+}
 
+/**
+ * 敌方一次出手（技能或普攻）+ 镇守半血一次性回血。
+ * defending 为玩家防御姿态：伤害走防御减免。
+ * 原先防御分支复制了一份出手逻辑却漏掉 BOSS 回血，故统一到此函数。
+ */
+function enemyAttack(state: CombatEngineState, defending: boolean) {
+  const e = state.enemy
+  const p = state.player
+  const cfg = COMBAT_CONFIG
   const skill = e.enemySkills[0]
   const chance = cfg.enemySkillChance[e.tier] ?? 0.25
   const cdLeft = skill ? e.skillCd[skill.id] ?? 0 : 99
@@ -665,6 +681,7 @@ function enemyAct(state: CombatEngineState) {
       defPierce: skill.defPierce ?? 1,
       label: `${e.name}的${skill.name}`,
       kind: 'enemy',
+      defending,
     })
   } else {
     dealDamage(state, e, p, {
@@ -672,6 +689,7 @@ function enemyAct(state: CombatEngineState) {
       defPierce: 1,
       label: `${e.name}对你`,
       kind: 'enemy',
+      defending,
     })
   }
 
@@ -682,6 +700,13 @@ function enemyAct(state: CombatEngineState) {
     e.hp = Math.min(e.maxHp, e.hp + heal)
     pushLog(state.log, `${e.name}血气翻涌，回复 ${heal} 气血。`, 'enemy')
   }
+}
+
+function enemyAct(state: CombatEngineState) {
+  if (state.enemy.hp <= 0 || state.finished) return
+  if (enemyStunned(state)) return
+  maybeEnrage(state)
+  enemyAttack(state, false)
 }
 
 function decayIntent(state: CombatEngineState, acted: { hit: boolean }) {
@@ -747,6 +772,18 @@ function talismanChargeTick(state: CombatEngineState) {
   pushLog(state.log, `袖里符凝聚，符能×${stacks}。`, 'status')
 }
 
+/** 回合结束时双方技能 CD 递减（眩晕等提前返回路径也必须调用，否则该回合 CD 冻结） */
+function tickCooldowns(state: CombatEngineState) {
+  const p = state.player
+  const e = state.enemy
+  for (const k of Object.keys(e.skillCd)) {
+    if (e.skillCd[k] > 0 && e.skillCd[k] < 90) e.skillCd[k] -= 1
+  }
+  for (const k of Object.keys(p.skillCd)) {
+    if (p.skillCd[k] > 0) p.skillCd[k] -= 1
+  }
+}
+
 function checkEnd(state: CombatEngineState): boolean {
   const p = state.player
   const e = state.enemy
@@ -765,7 +802,10 @@ function checkEnd(state: CombatEngineState): boolean {
   }
   if (state.round >= cfg.maxRounds) {
     state.finished = true
-    state.win = e.hp / e.maxHp < p.hp / p.maxHp
+    // maxHp 为 0 时相除得 NaN，NaN < NaN === false 会无条件判负且不报错，故先夹取
+    const ePct = e.maxHp > 0 ? e.hp / e.maxHp : 0
+    const pPct = p.maxHp > 0 ? p.hp / p.maxHp : 0
+    state.win = ePct < pPct
     pushLog(state.log, '缠斗许久，双方暂退。', 'sys')
     return true
   }
@@ -800,6 +840,9 @@ export function stepCombat(
     pushLog(next.log, '你陷入眩晕，无法行动。', 'status')
     enemyAct(next)
     demonBacklash(next)
+    // 眩晕回合同样要结算剑意衰减与双方 CD，否则 CD 被冻结、惩罚被单方面放大
+    decayIntent(next, { hit: false })
+    tickCooldowns(next)
     checkEnd(next)
     return next
   }
@@ -984,43 +1027,16 @@ export function stepCombat(
   }
 
   if (e.hp <= 0) {
+    tickCooldowns(next)
     checkEnd(next)
     return next
   }
 
   if (defending) {
-    // 防御回合：敌方攻击享受减伤
-    const stun = getStatus(e, 'stun')
-    if (stun?.turns && stun.turns > 0) {
-      stun.turns = 0
-      removeStatus(e, 'stun')
-      pushLog(next.log, `${e.name}陷入眩晕，无法行动。`, 'status')
-    } else {
-      if (e.hp <= e.maxHp * 0.3 && !getStatus(e, 'enrage')) {
-        addStatus(e, 'enrage')
-        pushLog(next.log, `${e.name}双目赤红，陷入狂暴！`, 'enemy')
-      }
-      const eSkill = e.enemySkills[0]
-      const chance = cfg.enemySkillChance[e.tier] ?? 0.25
-      const cdLeft = eSkill ? e.skillCd[eSkill.id] ?? 0 : 99
-      if (eSkill && cdLeft <= 0 && Math.random() < chance) {
-        e.skillCd[eSkill.id] = eSkill.cd ?? 3
-        dealDamage(next, e, p, {
-          multiplier: eSkill.multiplier ?? 1,
-          defPierce: eSkill.defPierce ?? 1,
-          label: `${e.name}的${eSkill.name}`,
-          kind: 'enemy',
-          defending: true,
-        })
-      } else {
-        dealDamage(next, e, p, {
-          multiplier: 1,
-          defPierce: 1,
-          label: `${e.name}对你`,
-          kind: 'enemy',
-          defending: true,
-        })
-      }
+    // 防御回合：敌方同样出手（伤害走防御减免），眩晕与狂暴判定与常规敌方回合一致
+    if (!enemyStunned(next)) {
+      maybeEnrage(next)
+      enemyAttack(next, true)
     }
   } else if (!next.finished) {
     enemyAct(next)
@@ -1029,12 +1045,7 @@ export function stepCombat(
   decayIntent(next, { hit })
   demonBacklash(next)
 
-  for (const k of Object.keys(e.skillCd)) {
-    if (e.skillCd[k] > 0 && e.skillCd[k] < 90) e.skillCd[k] -= 1
-  }
-  for (const k of Object.keys(p.skillCd)) {
-    if (p.skillCd[k] > 0) p.skillCd[k] -= 1
-  }
+  tickCooldowns(next)
 
   checkEnd(next)
   return next

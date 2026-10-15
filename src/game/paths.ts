@@ -13,6 +13,7 @@ import {
   usedSecondarySlots,
 } from '../data/classes'
 import { REALMS, realmIndex } from '../data/realms'
+import { ARTIFACT_TIER_LABELS } from '../data/artifacts'
 import {
   FORBIDDEN_PATH_HEART_DEMON,
   adjustHeartDemon,
@@ -53,15 +54,17 @@ function statOf(src: PathProgressSource, key: PathStatKey): number {
   return Number.isFinite(v) ? Number(v) : 0
 }
 
-/** 法宝品质档中文名（R-27：0=未炼器, 1=凡品 … 4=仙器），避免依赖 data 层循环引用 */
-const ARTIFACT_TIER_LABEL = ['未炼器', '凡品', '灵器', '宝器', '仙器']
+/** 法宝品质档中文名（R-27：0=未炼器, 1=凡品 … 4=仙器）——唯一来源在 data/artifacts，勿另写一份 */
+function artifactTierLabel(tier: number): string {
+  return ARTIFACT_TIER_LABELS[tier] ?? String(tier)
+}
 
 /** 单条履历条件的展示文案（R-27：质变型条件更直观） */
 function pathStatText(key: PathStatKey, cur: number, need: number): string {
   const label = PATH_STAT_LABELS[key] ?? key
   if (key === 'bestDanMarks') return `最高丹纹 ${cur}纹/${need}纹（须出过 ${need} 纹丹）`
   if (key === 'bestArtifactTier') {
-    return `最高法宝品质 ${ARTIFACT_TIER_LABEL[cur] ?? cur}/${ARTIFACT_TIER_LABEL[need] ?? need}`
+    return `最高法宝品质 ${artifactTierLabel(cur)}/${artifactTierLabel(need)}`
   }
   if (key === 'maxSwordIntent') return `单场剑意峰值 ${cur}层/${need}层`
   return `${label} ${cur}/${need}`

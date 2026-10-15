@@ -392,7 +392,8 @@ export function createSaveSlice(
     },
 
     importSaveToSlot: (slot, fileContent) => {
-      if (slot < 0 || slot > 3) return false
+      // UI 只有 1..3 三槽；旧校验放行 0，会写入一个界面上永远读不到的槽位
+      if (slot < 1 || slot > 3) return false
       try {
         let json = fileContent.trim()
         const decrypted = decryptSave(json)

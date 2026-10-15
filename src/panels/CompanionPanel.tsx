@@ -1,4 +1,4 @@
-import { COMPANIONS, companionById, nextStoryBeat, storyEndingLabel } from '../data/companions'
+import { COMPANIONS, DUAL_CULTIVATE_AFFINITY_MIN, companionById, nextStoryBeat, storyEndingLabel } from '../data/companions'
 import { isDemonic } from '../data/classes'
 import { ITEMS, itemCategory } from '../data/items'
 import { isCrossAlignment } from '../game/reputation'
@@ -202,7 +202,12 @@ export function CompanionPanel() {
                   </button>
                   <button
                     className="pixel-btn text-xs"
-                    disabled={dead || aff < 40 || (!!companion.spouseId && !isSpouse) || lockedHidden}
+                    disabled={
+                      dead ||
+                      aff < DUAL_CULTIVATE_AFFINITY_MIN ||
+                      (!!companion.spouseId && !isSpouse) ||
+                      lockedHidden
+                    }
                     onClick={() => dualCultivate(c.id)}
                   >
                     双修

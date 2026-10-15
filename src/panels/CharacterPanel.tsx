@@ -19,6 +19,7 @@ import { formatNum } from '../game/format'
 import { atonementCost, wantedLabel } from '../game/bounty'
 import { reputationTitles, resolveAlignment } from '../game/reputation'
 import { useGameStore, gongfaBonuses, treasureBonus } from '../stores/useGameStore'
+import { useMemo } from 'react'
 
 export function CharacterPanel() {
   const player = useGameStore((s) => s.player)
@@ -29,24 +30,30 @@ export function CharacterPanel() {
   const favor = useGameStore((s) => s.favor)
   const stones = useGameStore((s) => s.stones)
   const atoneWanted = useGameStore((s) => s.atoneWanted)
-  if (!player) return null
+  // 功法/法宝/面板战力只随这三者变化：编辑期缓存，避免每次渲染重算整条属性链（P2-8）
+  const derived = useMemo(() => {
+    if (!player) return null
+    const mults = playerMults(player)
+    const gb = gongfaBonuses(gongfa.learned)
+    const tb = treasureBonus(treasures)
+    const stats = playerCombatStats(
+      player,
+      player.realm,
+      player.layer,
+      player.hp,
+      player.maxHp,
+      gb.atk * tb.atk,
+      gb.def * tb.def,
+    )
+    return { mults, stats }
+  }, [player, gongfa.learned, treasures])
+  if (!player || !derived) return null
+  const { mults, stats } = derived
   const paths = pathIdsOf(player)
   const hasPrimary = isPathDefined(primaryPathId(player))
   const c = CLASSES[player.classId]
   const apt = aptitudeOf(player)
   const origin = originOf(player)
-  const mults = playerMults(player)
-  const gb = gongfaBonuses(gongfa.learned)
-  const tb = treasureBonus(treasures)
-  const stats = playerCombatStats(
-    player,
-    player.realm,
-    player.layer,
-    player.hp,
-    player.maxHp,
-    gb.atk * tb.atk,
-    gb.def * tb.def,
-  )
   const power = combatPower(player.realm, player.layer, stats.atk, stats.def, player.maxHp)
   const titles = reputationTitles(player.repRight, player.repDemonic)
   const atoneCost = atonementCost(wanted, player.realm)

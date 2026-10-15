@@ -1,4 +1,4 @@
-import { realmIndex, realmCombatBase } from './realms'
+import { REALMS, realmIndex, realmCombatBase } from './realms'
 import type { RealmId } from '../types'
 import secretRealmsDb from './db/secret_realms.json'
 
@@ -52,6 +52,10 @@ export function isBossFloor(realm: SecretRealmDef, floor: number): boolean {
  */
 export function towerEnemy(realmId: string, floor: number, boss: boolean) {
   const realm = SECRET_REALMS.find((r) => r.id === realmId)
+  if (!realm) {
+    // 秘境 id 写错时静默降级为练气敌人会让玩家一击秒杀且无从察觉，故留一条告警
+    console.warn(`未知秘境 id「${realmId}」，已按练气基准生成临时敌人。`)
+  }
   const minRealm: RealmId = realm?.minRealm ?? 'qi'
   const ri = realmIndex(minRealm)
   const floors = realm?.floors ?? 30
@@ -73,7 +77,7 @@ export function towerEnemy(realmId: string, floor: number, boss: boolean) {
       : `${realm?.name ?? '秘境'}守卫·${floor}`,
     faction: 'beast' as const,
     realm: minRealm,
-    layer: Math.max(1, Math.min(9, floor)),
+    layer: Math.max(1, Math.min(REALMS[minRealm]?.layers ?? 9, floor)),
     atk: Math.floor(refAtk * (0.75 + 0.35 * (ramp - 1)) * bm.atk),
     def: Math.floor(refDef * (0.9 + 0.3 * (ramp - 1)) * bm.def),
     hp: Math.floor(refHp * (0.55 + 0.45 * (ramp - 1)) * bm.hp),

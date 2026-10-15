@@ -55,8 +55,8 @@ function matForRealmOffset(realmIdx: number, offset: number): string | undefined
     spirit_sea: 'mat_void',
     void: 'mat_integration',
     integration: 'mat_mahayana',
-    mahayana: 'mat_mahayana',
-    // 大乘头目 / 渡劫期历练可掉渡劫令
+    // 大乘圆满冲渡劫必修「渡劫令」；杂兵线（matOffset 0）与头目线（matOffset 1）皆可用
+    mahayana: 'mat_tribulation',
     tribulation: 'mat_tribulation',
   }
   return map[realm]
@@ -71,7 +71,8 @@ function scaleEnemyToPlayer(t: EnemyTemplate, realmIdx: number, playerLayer: num
   const ri = Math.max(0, Math.min(REALM_ORDER.indexOf('tribulation'), realmIdx))
   const realm = REALM_ORDER[ri]
   const layerBias = t.tier === 'boss' ? 2 : t.tier === 'elite' ? 1 : t.tier === 'minion' ? -2 : 0
-  const layer = Math.max(1, Math.min(9, playerLayer + layerBias))
+  // 层数上限取该大境界实际层数（勿写死 9：终局 ascended 仅 1 层）
+  const layer = Math.max(1, Math.min(REALMS[realm]?.layers ?? 9, playerLayer + layerBias))
   const base = realmCombatBase(realm, layer)
   const p = t.power
 

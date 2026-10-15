@@ -5,6 +5,7 @@ import { GONGFA_LIST } from './gongfa'
 import { ITEMS, itemCategory } from './items'
 import { ASCENSION_REALM, REALMS, REALM_ORDER } from './realms'
 import { SECRET_REALMS } from './secretRealms'
+import { describeRewardParts } from '../game/reward'
 import type { CollectionState } from '../types'
 
 export type CodexPageId = 'realm' | 'enemy' | 'gongfa' | 'item' | 'companion' | 'secret'
@@ -26,7 +27,7 @@ interface CodexPageReward {
  * 图鉴页元数据：src/data/db/codex.json
  *
  * R-17：奖励节点按各页条目数差异化——条目少的页（境界 10、秘境 12、道侣约 10）
- * 仅 3~4 档薄赏；条目多的页（敌人 27、丹药法宝近 80、功法 103）设 5 档、
+ * 仅 3~4 档薄赏；条目多的页（敌人 27、丹药法宝约 100、功法 103）设 5 档、
  * 集齐道痕更厚，使「集齐难度」与条目数成正比。milestones 必须升序且末档为 100。
  */
 export const CODEX_PAGE_META: Record<
@@ -59,7 +60,18 @@ export const FACTION_LABEL: Record<string, string> = {
   rogue: '邪修',
 }
 
+/** 图鉴条目按页缓存：内容全静态，页面每次渲染重建整张表纯属浪费（P2-8） */
+const ENTRIES_CACHE = new Map<CodexPageId, CodexEntry[]>()
+
 export function codexEntries(page: CodexPageId): CodexEntry[] {
+  const cached = ENTRIES_CACHE.get(page)
+  if (cached) return cached
+  const list = buildCodexEntries(page)
+  ENTRIES_CACHE.set(page, list)
+  return list
+}
+
+function buildCodexEntries(page: CodexPageId): CodexEntry[] {
   switch (page) {
     case 'realm':
       return REALM_ORDER.map((id) => ({
@@ -174,11 +186,7 @@ export function codexRewardKey(page: CodexPageId, pct: number): string {
 }
 
 export function describeCodexReward(r: CodexPageReward): string {
-  const parts: string[] = []
-  if (r.stones) parts.push(`灵石 +${r.stones}`)
-  if (r.daoMarks) parts.push(`道痕 +${r.daoMarks}`)
-  if (r.title) parts.push(`称号「${r.title}」`)
-  return parts.join(' · ')
+  return describeRewardParts(r)
 }
 
 /** 待领取的图鉴节点（按百分比阈值，且未领取） */

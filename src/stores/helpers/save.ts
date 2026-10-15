@@ -27,6 +27,7 @@ export function snapshotOf(s: GameState): SlotSnapshot {
     legacy: s.legacy,
     meta: { ...s.meta, lastOnlineAt: Date.now() },
     pet: s.pet,
+    petCaptureFails: s.petCaptureFails,
     daily: s.daily,
     checkin: s.checkin,
     wanted: s.wanted,

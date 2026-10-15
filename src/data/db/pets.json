@@ -7,7 +7,8 @@
       "skillId": "pet_heal",
       "skillName": "衔草",
       "skillDesc": "每 3 回合为你回复少量气血（约 0.6 次普攻量级）",
-      "jobFlavor": ["farm", "guard"]
+      "jobFlavor": ["farm", "guard"],
+      "atkBias": 0.6
     },
     {
       "id": "pet_bird",
@@ -16,7 +17,8 @@
       "skillId": "pet_debuff",
       "skillName": "清啼",
       "skillDesc": "每 3 回合使敌虚弱 1 回合（攻击 −15%）",
-      "jobFlavor": ["farm", "guard"]
+      "jobFlavor": ["farm", "guard"],
+      "atkBias": 0.6
     },
     {
       "id": "pet_turtle",
@@ -25,7 +27,8 @@
       "skillId": "pet_shield",
       "skillName": "负碑",
       "skillDesc": "每 3 回合为你张开小盾（约 0.5 次普攻）",
-      "jobFlavor": ["guard", "farm"]
+      "jobFlavor": ["guard", "farm"],
+      "atkBias": 0.6
     },
     {
       "id": "pet_fox",
@@ -34,7 +37,8 @@
       "skillId": "pet_debuff",
       "skillName": "魅影",
       "skillDesc": "每 3 回合使敌虚弱 1 回合（攻击 −15%）",
-      "jobFlavor": ["farm"]
+      "jobFlavor": ["farm"],
+      "atkBias": 1.2
     }
   ],
   "maxLevel": 20,

@@ -1,61 +1,58 @@
 import { describe, expect, it } from 'vitest'
 import {
   ITEMS,
-  MARKET_CLUE_LOOKAHEAD,
   MARKET_STOCK,
-  marketEntryStatus,
-  marketGateRealm,
-  visibleStock,
+  itemCategory,
+  itemUsageHint,
+  itemUsageRealm,
+  itemUsableAt,
+  marketStock,
 } from './items'
-import { realmIndex } from './realms'
 
-describe('R-14 坊市分级上架（visibleStock 纯函数）', () => {
-  it('无境界限制的货物在任何境界都可成交', () => {
-    // 坊市流通的功法秘籍不带物品 minRealm（品阶参悟门槛另由 gongfaGradeOk 管）
-    const free = MARKET_STOCK.gongfa.find((id) => marketGateRealm(id) === null)
-    expect(free).toBeDefined()
-    expect(marketEntryStatus(free!, 'qi')).toEqual({ ok: true })
-    expect(marketEntryStatus(free!, 'tribulation')).toEqual({ ok: true })
-  })
-
-  it('超前 1–2 境的货物显示为线索（locked），更远的货物不出现', () => {
-    const entries = visibleStock('qi', 'pill')
-    for (const e of entries) {
-      if (!e.status.ok) {
-        const gap = realmIndex(e.status.minRealm) - realmIndex('qi')
-        expect(gap).toBeGreaterThanOrEqual(1)
-        expect(gap).toBeLessThanOrEqual(MARKET_CLUE_LOOKAHEAD)
+/**
+ * 口径（用户拍板）：**境界只约束「使用」，不约束「买卖」**。
+ * 坊市货架不再按境界隐藏/灰锁，任何境界都能买；售卖同样不限境界（见 store 层测试）。
+ */
+describe('坊市买卖不限境界（境界只约束使用）', () => {
+  it('每个分区的货架覆盖全部在售货物，且与境界无关', () => {
+    for (const tab of ['pill', 'herb', 'material', 'gongfa', 'treasure'] as const) {
+      const ids = marketStock(tab)
+      expect(ids.length, `${tab} 分区不应为空`).toBeGreaterThan(0)
+      for (const id of ids) {
+        expect(itemCategory(id), `${id} 分类与分区 ${tab} 不符`).toBe(tab)
+        expect(ITEMS[id], `${id} 缺少物品定义`).toBeDefined()
       }
     }
-    // 练气货架中确有筑基/金丹的线索货
-    const clues = entries.filter((e) => !e.status.ok)
-    expect(clues.some((e) => e.status.ok === false && e.status.minRealm === 'foundation')).toBe(true)
-    // 元婴及以上的丹药在练气期彻底不现（不剧透）
-    expect(
-      entries.some((e) => !e.status.ok && realmIndex(e.status.minRealm) >= realmIndex('nascent_soul')),
-    ).toBe(false)
-  })
-
-  it('境界达到后线索货转为可成交', () => {
-    const entries = visibleStock('golden_core', 'pill')
-    const gcItem = MARKET_STOCK.pill.find((id) => ITEMS[id]?.minRealm === 'golden_core')
-    expect(gcItem).toBeDefined()
-    const hit = entries.find((e) => e.id === gcItem)
-    expect(hit?.status).toEqual({ ok: true })
-  })
-
-  it('渡劫令：练气/化神期不现，炼虚期线索，大乘期可成交', () => {
-    expect(visibleStock('qi', 'all').some((e) => e.id === 'mat_tribulation')).toBe(false)
-    expect(visibleStock('spirit_sea', 'all').some((e) => e.id === 'mat_tribulation')).toBe(false)
-    const clue = visibleStock('void', 'all').find((e) => e.id === 'mat_tribulation')
-    expect(clue?.status).toEqual({ ok: false, minRealm: 'mahayana' })
-    const open = visibleStock('mahayana', 'all').find((e) => e.id === 'mat_tribulation')
-    expect(open?.status).toEqual({ ok: true })
-  })
-
-  it('分区过滤生效（法宝分区不含丹药）', () => {
-    for (const e of visibleStock('qi', 'treasure')) {
-      expect(e.id.startsWith('treasure_')).toBe(true)
+    // 法宝分区覆盖全部 25 件在售法宝（不再按境界隐藏）
+    const treasureTabs = marketStock('treasure')
+    expect(treasureTabs.length).toBe(MARKET_STOCK.treasure.length)
+    // 全部 = 各分区并集（去重）
+    const all = new Set(marketStock('all'))
+    for (const tab of ['pill', 'herb', 'material', 'gongfa', 'treasure'] as const) {
+      for (const id of marketStock(tab)) expect(all.has(id)).toBe(true)
     }
+  })
+
+  it('高境界法宝在练气期同样上架（不因境界被剔除）', () => {
+    // 金丹期才能「使用」的悟道莲台，练气期照样在货架上
+    expect(marketStock('treasure')).toContain('treasure_lotus')
+    expect(ITEMS.treasure_lotus.minRealm).toBe('golden_core')
+    expect(itemUsableAt('treasure_lotus', 'qi')).toBe(false)
+    expect(itemUsableAt('treasure_lotus', 'golden_core')).toBe(true)
+    expect(itemUsageHint('treasure_lotus')).toContain('金丹')
+  })
+
+  it('渡劫令：买卖不设闸门，仅使用门槛为大乘', () => {
+    expect(marketStock('material')).toContain('mat_tribulation')
+    expect(itemUsageRealm('mat_tribulation')).toBe('mahayana')
+    expect(itemUsableAt('mat_tribulation', 'qi')).toBe(false)
+    expect(itemUsableAt('mat_tribulation', 'mahayana')).toBe(true)
+  })
+
+  it('无 minRealm 的货物：无使用门槛（功法秘籍等）', () => {
+    const free = MARKET_STOCK.gongfa.find((id) => itemUsageRealm(id) === null)
+    expect(free).toBeDefined()
+    expect(itemUsableAt(free!, 'qi')).toBe(true)
+    expect(itemUsageHint(free!)).toBe('')
   })
 })

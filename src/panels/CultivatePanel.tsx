@@ -17,16 +17,18 @@ import { activeSynergies, describeSynergyEffects } from '../data/gongfaSynergy'
 import { REALMS, expNeeded } from '../data/realms'
 import { ITEMS, bestBreakthroughPill, requiredMaterial, treasureBreakthroughBonus } from '../data/items'
 import { canBreakthrough } from '../game/breakthrough'
-import { breakthroughSuccessRate } from '../game/rules/breakthrough'
+import { MAJOR_BREAKTHROUGH_RATE_MAX, breakthroughSuccessRate } from '../game/rules/breakthrough'
 import { seclusionYearOptions, GAME_DAYS_PER_YEAR } from '../game/day'
 import { formatNum } from '../game/format'
 import { daoBonuses, isAscended, reincarnateGain } from '../game/reincarnate'
 import { heartDemonOf } from '../game/heartDemon'
 import { sealDaoCost, sealSlots, describeSealed, type SealedItem } from '../game/seal'
 import { TRIBULATION_PLANS, isTribulationMoment, type TribulationPlanId } from '../data/tribulation'
+import { TRIB_TOKEN_BREAKTHROUGH_BONUS } from '../data/tribulation'
 import { DailyCard } from '../components/DailyCard'
 import { useGameStore } from '../stores/useGameStore'
 import { currentRules } from '../stores/helpers/shared'
+import { DEBUG_ENABLED } from '../game/settings'
 import { useState } from 'react'
 
 function SealPicker({
@@ -114,20 +116,22 @@ export function CultivatePanel() {
   const treasureBt = treasureBreakthroughBonus(treasures)
   const breakPill = bestBreakthroughPill(inventory, player.realm)
   const pillBt = breakPill?.rate ?? 0
-  const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? 5 : 0
+  const tribTokenBt = (inventory.mat_tribulation ?? 0) > 0 ? TRIB_TOKEN_BREAKTHROUGH_BONUS : 0
   const ready = canBreakthrough(player.realm, player.layer, player.exp)
   const c = CLASSES[player.classId]
   const hasPrimary = isPathDefined(player.classId)
   // 飞升与道消互斥：已飞升则不再显示道消
-  const win = isAscended(player)
-  const dead = !player.alive && !win
+  const ascended = isAscended(player)
+  const dead = !player.alive && !ascended
   const def = REALMS[player.realm]
   const isMajor = player.layer >= def.layers
   const matId = requiredMaterial(player.realm, player.layer)
   const matCount = matId ? inventory[matId] ?? 0 : 0
   const matOk = !matId || matCount > 0
   const options = seclusionYearOptions(player.realm)
-  const nextGain = dead || win ? reincarnateGain(player, Boolean(companion.spouseId), favor) : null
+  // 转生收益预估（唯一口径）：须带 favor，否则仙缘折算漏算、显示低于真实结算值
+  const gainEstimate = reincarnateGain(player, Boolean(companion.spouseId), favor)
+  const nextGain = dead || ascended ? gainEstimate : null
   const synList = activeSynergies(Object.keys(gongfa.learned))
   const synBt = synList.reduce((n, s) => n + (s.rule.effects.breakthrough ?? 0), 0)
   // 与结算同源：成功率一律走 game/rules/breakthrough（大境界另有 70% 上限）
@@ -213,20 +217,25 @@ export function CultivatePanel() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="pixel-btn primary" disabled={dead || win} onClick={meditate}>
+          <button className="pixel-btn primary" disabled={dead || ascended} onClick={meditate}>
             打坐一日
           </button>
           {options.map((d) => (
-            <button key={d} className="pixel-btn" disabled={dead || win} onClick={() => seclude(d)}>
+            <button key={d} className="pixel-btn" disabled={dead || ascended} onClick={() => seclude(d)}>
               {d >= GAME_DAYS_PER_YEAR
                 ? `闭关 ${d / GAME_DAYS_PER_YEAR} 年`
                 : `闭关 ${d} 日`}
             </button>
           ))}
-          <button className="pixel-btn" disabled={dead || win} onClick={() => advanceDays(1)}>
+          <button className="pixel-btn" disabled={dead || ascended} onClick={() => advanceDays(1)}>
             渡过一日
           </button>
-          <button className="pixel-btn" onClick={recoverFull} disabled={win}>
+          <button
+            className="pixel-btn"
+            onClick={recoverFull}
+            disabled={ascended}
+            hidden={!DEBUG_ENABLED}
+          >
             调息回满（调试）
           </button>
         </div>
@@ -274,7 +283,8 @@ export function CultivatePanel() {
           )}
           {isMajor && (
             <span className="text-vermilion ml-1">
-              （大境界冲关逢天劫，成功率上限 70%：丹药护持可增胜算，不可力保）
+              （大境界冲关逢天劫，成功率上限 {MAJOR_BREAKTHROUGH_RATE_MAX}
+              %：丹药护持可增胜算，不可力保）
             </span>
           )}
           （含道途、灵根、宗门、道侣、道痕、法宝、丹药与羁绊加成）。失败将按混合规则惩罚：轻则损气血修为，大境界失败可能掉层。
@@ -313,7 +323,8 @@ export function CultivatePanel() {
           </div>
         )}
         <p className="text-xs text-text-dim mb-2">
-          持有「渡劫令」可使冲击壁垒成功率 +5%（不消耗）；渡劫圆满→飞升则必须消耗一枚。
+          持有「渡劫令」可使冲击壁垒成功率 +{TRIB_TOKEN_BREAKTHROUGH_BONUS}
+          %（不消耗）；渡劫圆满→飞升则必须消耗一枚。
         </p>
         {planOpen ? (
           <div className="mb-3">
@@ -362,7 +373,7 @@ export function CultivatePanel() {
         ) : null}
         <button
           className="pixel-btn primary"
-          disabled={!ready || !matOk || dead || win}
+          disabled={!ready || !matOk || dead || ascended}
           onClick={() => breakthrough(planOpen ? planId : 'normal')}
         >
           {!ready
@@ -378,7 +389,7 @@ export function CultivatePanel() {
         )}
       </div>
 
-      {win && (
+      {ascended && (
         <div className="panel-box p-4 border-gold">
           <div className="font-display text-gold text-lg mb-1">霞举飞升</div>
           <p className="text-sm text-text-dim">你已超脱此界。可转世重修，将此生修为化作道痕。</p>
@@ -460,7 +471,7 @@ export function CultivatePanel() {
           </div>
         </div>
       )}
-      {!dead && !win && (
+      {!dead && !ascended && (
         <div className="panel-box p-4">
           <div className="font-display text-gold mb-2">转生（周目）</div>
           <p className="text-xs text-text-dim leading-relaxed mb-2">
@@ -489,10 +500,8 @@ export function CultivatePanel() {
             </div>
             <div>
               当前若此刻转生，预估道痕{' '}
-              <span className="text-gold">
-                +{reincarnateGain(player, Boolean(companion.spouseId)).daoMarks}
-              </span>
-              （{reincarnateGain(player, Boolean(companion.spouseId)).desc}）
+              <span className="text-gold">+{gainEstimate.daoMarks}</span>
+              （{gainEstimate.desc}）
               <span className="text-text-dim"> · 实际以终局时数值为准</span>
             </div>
             <div>
@@ -560,7 +569,7 @@ export function CultivatePanel() {
                   {!maxed && (
                     <button
                       className="pixel-btn text-xs primary shrink-0"
-                      disabled={dead || win || player.exp < cost}
+                      disabled={dead || ascended || player.exp < cost}
                       onClick={() => advanceGongfaStage(id)}
                     >
                       进阶 · {nextStage}
@@ -595,7 +604,7 @@ export function CultivatePanel() {
                 </div>
                 <button
                   className="pixel-btn text-xs primary shrink-0"
-                  disabled={dead || win || !realmOk}
+                  disabled={dead || ascended || !realmOk}
                   onClick={() => comprehendGongfa(id)}
                 >
                   {realmOk ? '参悟' : '境界不足'}

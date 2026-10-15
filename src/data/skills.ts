@@ -1,4 +1,5 @@
 import type { ClassId, RealmId } from '../types'
+import { TREASURE_BONUS } from './items'
 import { realmIndex } from './realms'
 import skillsDb from './db/skills.json'
 
@@ -53,6 +54,8 @@ interface CombatConfig {
   maxRounds: number
   defendDmgReduce: number
   defendEnergyRegen: number
+  /** 受伤降低 dmgReduce 上限（功法 dodge 累加与法宝词条共用同一槽位，须封顶防无敌） */
+  dmgReduceCap: number
   combatPotionLimit: number
   critBaseChance: number
   critMultiplier: number
@@ -154,19 +157,16 @@ export function secondarySkillCapRealm(primaryRealm: RealmId): number {
   return realmIndex(primaryRealm) - 1
 }
 
-export const ATTACK_TREASURES = new Set([
-  'treasure_sword',
-  'treasure_fan',
-  'treasure_seal',
-  'treasure_sword_imm',
-  'treasure_ropes',
-])
-export const DEF_TREASURES = new Set([
-  'treasure_mirror',
-  'treasure_pagoda',
-  'treasure_bell',
-  'treasure_net',
-  'treasure_mirror_imm',
-  'treasure_umbrella',
-  'treasure_pagoda9',
-])
+/**
+ * 器道被动的攻/防分类：由法宝数据派生（items.json → TREASURE_BONUS 的 atk / def 通道）。
+ * 原先为 11 个 id 的手工集合，与 25 件法宝靠人工同步 —— 新增法宝漏登记即静默失去器道加成。
+ * 纯修炼/突破类法宝（既无 atk 也无 def）两边都不入，器道被动不为其加成。
+ */
+export const ATTACK_TREASURES = new Set(
+  Object.keys(TREASURE_BONUS).filter((id) => (TREASURE_BONUS[id]?.atk ?? 0) > 0),
+)
+export const DEF_TREASURES = new Set(
+  Object.keys(TREASURE_BONUS).filter(
+    (id) => (TREASURE_BONUS[id]?.atk ?? 0) <= 0 && (TREASURE_BONUS[id]?.def ?? 0) > 0,
+  ),
+)
