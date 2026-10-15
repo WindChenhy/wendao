@@ -1,6 +1,7 @@
 import { realmIndex } from './realms'
 import { heartDemonTribulation } from '../game/heartDemon'
 import tribulationDb from './db/tribulation.json'
+import type { RealmId } from '../types'
 
 /** v1.0 天劫选择：冲击大境界/渡劫时的冲关方案 */
 export type TribulationPlanId = 'normal' | 'golden_pill' | 'spouse' | 'force'
@@ -56,6 +57,12 @@ export const TRIBULATION_PLANS: TribulationPlanDef[] = DB.plans
 /** 劫类型表：src/data/db/tribulation.json（calamities） */
 export const CALAMITIES: CalamityDef[] = DB.calamities
 
+/**
+ * 持有「渡劫令」（mat_tribulation）对冲击壁垒的成功率加成（百分点，不消耗）。
+ * 唯一口径：面板文案与突破结算同读此处（原先两处各写一个 5）。
+ */
+export const TRIB_TOKEN_BREAKTHROUGH_BONUS = 5
+
 export function tribulationPlan(id: TribulationPlanId): TribulationPlanDef {
   return TRIBULATION_PLANS.find((p) => p.id === id) ?? TRIBULATION_PLANS[0]
 }
@@ -92,8 +99,8 @@ export interface DrawnCalamity {
 }
 
 /** 各境界序号对应的抽劫数目：低境 1、化神起 2、大乘起 3 */
-export function calamityCountFor(realm: string): number {
-  const ri = realmIndex(realm as never)
+export function calamityCountFor(realm: RealmId): number {
+  const ri = realmIndex(realm)
   if (ri >= realmIndex('mahayana')) return 3
   if (ri >= realmIndex('spirit_sea')) return 2
   return 1
@@ -106,11 +113,11 @@ export function calamityCountFor(realm: string): number {
  * - 按境界抽取 1–3 类，不重复。
  */
 export function drawCalamities(
-  realm: string,
+  realm: RealmId,
   heartDemon: number,
   rng: () => number = Math.random,
 ): CalamityDef[] {
-  const ri = realmIndex(realm as never)
+  const ri = realmIndex(realm)
   const pool = CALAMITIES.filter((c) => ri >= (c.minRealmIndex ?? 0))
   if (pool.length === 0) return []
   const count = Math.min(calamityCountFor(realm), pool.length)

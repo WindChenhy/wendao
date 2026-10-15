@@ -10,8 +10,13 @@ function getCtx(): AudioContext | null {
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AC) return null
     if (!ctx) ctx = new AC()
+    // iOS / 严格自动播放策略下 AudioContext 会以 'suspended' 创建成功：不 resume 则全程无声
+    if (ctx.state === 'suspended') {
+      void ctx.resume().catch((e) => console.warn('音频恢复失败：', e))
+    }
     return ctx
-  } catch {
+  } catch (e) {
+    console.warn('音频初始化失败：', e)
     return null
   }
 }

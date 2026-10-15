@@ -51,7 +51,8 @@ export function cultivateGain(
 ): number {
   const rate = playerMults(paths).cultivateRate
   const ri = Math.max(0, realmIndex(realm))
-  const base = 12 * Math.pow(1.32, ri) * (1 + (layer - 1) * 0.18)
+  // layer 下界夹取与 offline.ts 同口径，防 layer=0 时两处速率不一致
+  const base = 12 * Math.pow(1.32, ri) * (1 + (Math.max(1, layer) - 1) * 0.18)
   return Math.max(3, Math.floor(base * rate * variance))
 }
 
@@ -74,7 +75,8 @@ export function dailyRecover(maxHp: number, maxEnergy: number): { hp: number; en
 
 export function weatherOf(t: GameTime): string {
   const list = ['晴', '多云', '细雨', '雷雨', '大风', '薄雾']
-  const seed = (t.year * 372 + t.month * 31 + t.day) % list.length
+  // 复用 dayNumber（已做正数夹取），避免负年份/负数月日产生负索引取到 undefined
+  const seed = dayNumber(t) % list.length
   return list[seed]
 }
 

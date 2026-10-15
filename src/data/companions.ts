@@ -233,6 +233,11 @@ const HIDDEN_COMPANION: CompanionDef = {
 
 export const COMPANIONS: CompanionDef[] = [...BASE_COMPANIONS, HIDDEN_COMPANION]
 
+/** 双修最低好感（唯一口径：面板按钮与 store 判定共用，勿各写一个 40） */
+export const DUAL_CULTIVATE_AFFINITY_MIN = 40
+/** 正魔之恋额外好感门槛（在 marryAt / 双修门槛之上再加） */
+export const CROSS_ALIGNMENT_AFFINITY_EXTRA = 40
+
 /** 非隐藏（默认展示） */
 
 export function companionById(id: string): CompanionDef | undefined {

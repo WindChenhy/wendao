@@ -7,6 +7,7 @@ import {
   type ArtifactQuality,
 } from '../data/artifacts'
 import { hasPath, pathIdsOf, type PathInput } from '../data/classes'
+import { removeItem } from './inventory'
 
 interface CraftOutcome {
   ok: boolean
@@ -61,8 +62,7 @@ export function consumeForgeMaterials(
   let nextStones = stones
   if (!recipe) return { inventory: inv, stones: nextStones }
   for (const input of recipe.inputs) {
-    inv[input.itemId] = (inv[input.itemId] ?? 0) - input.count
-    if ((inv[input.itemId] ?? 0) <= 0) delete inv[input.itemId]
+    removeItem(inv, input.itemId, input.count)
   }
   nextStones = Math.max(0, nextStones - recipe.stoneCost)
   return { inventory: inv, stones: nextStones }

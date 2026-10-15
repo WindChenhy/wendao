@@ -41,6 +41,8 @@ export function CreateCharacter() {
   }
 
   const chosen = picked !== null ? options[picked] : null
+  // 道号校验：空串 / 纯空格不可创建无名角色
+  const nameOk = name.trim().length > 0
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
@@ -153,13 +155,18 @@ export function CreateCharacter() {
           </button>
           <button
             className="pixel-btn primary flex-1"
-            disabled={!chosen}
+            disabled={!chosen || !nameOk}
             onClick={() => {
-              if (!chosen) return
-              createCharacter({ name, gender, aptitude: chosen.aptitude, origin: chosen.origin })
+              if (!chosen || !nameOk) return
+              createCharacter({
+                name: name.trim(),
+                gender,
+                aptitude: chosen.aptitude,
+                origin: chosen.origin,
+              })
             }}
           >
-            {chosen ? '开始修行' : '请先选定一卷天命'}
+            {!nameOk ? '请先输入道号' : chosen ? '开始修行' : '请先选定一卷天命'}
           </button>
         </div>
       </div>

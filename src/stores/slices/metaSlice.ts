@@ -7,6 +7,7 @@ import { expNeeded, realmIndex } from '../../data/realms'
 import { SECRET_REALMS } from '../../data/secretRealms'
 import { advanceTime, dailyRecover, dayKey } from '../../game/day'
 import { freshAbode } from '../../game/farm'
+import { addItem } from '../../game/inventory'
 import { daoBonuses, isAscended, reincarnateGain } from '../../game/reincarnate'
 import { saveGameSettings } from '../../game/settings'
 import {
@@ -178,7 +179,8 @@ export function createMetaSlice(
       const startItems = originStartItems(input)
       const inventory = { ...defaultInventory() }
       for (const [id, n] of Object.entries(startItems)) {
-        if (n > 0) inventory[id] = (inventory[id] ?? 0) + n
+        // 统一走 addItem 原语（内部已做 n<=0 / 非有限数校验）
+        addItem(inventory, id, n)
       }
       log(
         `行囊：灵石 ${originStartStones(input) + dao.startStones}，${Object.entries(startItems)

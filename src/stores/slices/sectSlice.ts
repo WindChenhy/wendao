@@ -11,9 +11,13 @@ import {
 } from '../../data/sects'
 import {
   SECT_BUILDING_MAP,
+  SECT_UPGRADE_MAX_LV,
   buildingLevel,
   buildingUpgradeCost,
   commissionPoolCutOf,
+  libraryDiscount,
+  marketDiscount,
+  sectUpgradeCost,
   stonesToPool,
 } from '../../data/sectBuildings'
 import { availableQuestChains, questChainById, questStepMatchesDeliver } from '../../data/sectQuests'
@@ -26,6 +30,7 @@ import { enshrinePath, pathCost, pathEnshrineText } from '../../game/paths'
 import { isAscended } from '../../game/reincarnate'
 import { isRighteousParagon, REP_TASK_CONTRIB_MUL, resolveAlignment } from '../../game/reputation'
 import { playBell, playChime } from '../../game/sfx'
+import { TUNING } from '../../game/tuning'
 import {
   afterProgressSnapshot,
   bumpDaily,
@@ -131,8 +136,8 @@ export function createSectSlice(
         log('未入宗门。', 'bad')
         return
       }
-      // 坊市让利：宗主建设折扣
-      const actual = Math.max(1, Math.floor(cost * (1 - 0.04 * sect.marketLv)))
+      // 坊市让利：宗主建设折扣（与 SectPanel 显示同一口径）
+      const actual = Math.max(1, Math.floor(cost * marketDiscount(sect.marketLv)))
       if (sect.contribution < actual) {
         log('贡献不足。', 'bad')
         return
@@ -238,8 +243,8 @@ export function createSectSlice(
         return
       }
 
-      // 藏经阁扩容折扣
-      const actual = Math.max(1, Math.floor(cost * (1 - 0.05 * sect.libraryLv)))
+      // 藏经阁扩容折扣（与 SectPanel 显示同一口径）
+      const actual = Math.max(1, Math.floor(cost * libraryDiscount(sect.libraryLv)))
       if (sect.contribution < actual) {
         log('贡献不足。', 'bad')
         return
@@ -518,11 +523,11 @@ export function createSectSlice(
         return
       }
       const lv = which === 'library' ? sect.libraryLv : sect.marketLv
-      if (lv >= 3) {
+      if (lv >= SECT_UPGRADE_MAX_LV) {
         log('此建筑已至当前上限。', 'dim')
         return
       }
-      const cost = 300 * (lv + 1) + 100 * lv * lv
+      const cost = sectUpgradeCost(lv)
       if (sect.contribution < cost) {
         log(`建设需自贡献池支取 ${cost} 贡献，当前不足。`, 'bad')
         return
@@ -631,8 +636,8 @@ export function createSectSlice(
     redeemSectFragment: () => {
       const { sect, player, inventory, gongfa, treasures, legacy } = get()
       if (!player || !sect.sectId) return
-      if ((inventory.sect_fragment ?? 0) < 3) {
-        log('集齐 3 张藏经残页方可参悟。', 'bad')
+      if ((inventory.sect_fragment ?? 0) < TUNING.sectFragmentCost) {
+        log(`集齐 ${TUNING.sectFragmentCost} 张藏经残页方可参悟。`, 'bad')
         return
       }
       const cur = SECTS.find((s) => s.id === sect.sectId)
@@ -655,7 +660,7 @@ export function createSectSlice(
       }
       const pick = candidates[Math.floor(Math.random() * candidates.length)]
       const inv = { ...inventory }
-      removeItem(inv, 'sect_fragment', 3)
+      removeItem(inv, 'sect_fragment', TUNING.sectFragmentCost)
       const learned = { ...gongfa.learned, [pick.id]: { stage: 0 } }
       const p = recomputeVitals(get, { ...player }, treasures, learned, legacy.daoMarks, player.realm)
       log(`残页合一，灵光乍现：《${pick.name}》参悟入门。`, 'gold')

@@ -1,5 +1,6 @@
 import { SEED_LIST, SEEDS } from '../../data/abode'
 import {
+  CROSS_ALIGNMENT_AFFINITY_EXTRA,
   companionById,
   giftAffinity,
   storyEndingKey,
@@ -282,10 +283,11 @@ export function createCompanionSlice(
         log('结缘需置办双修洞府与礼数，灵石不足 200。', 'bad')
         return
       }
-      // 正魔恋需更高好感
+      // 正魔恋需更高好感（marryAt 之上再加一笔固定门槛）
       const isCross = isCrossAlignment(isDemonic(player), c.align)
-      if (isCross && aff < c.marryAt + 40) {
-        log(`正魔之恋阻力极大，${c.name}还需更多坚定。（需好感 ${c.marryAt + 40}）`, 'bad')
+      const crossNeed = c.marryAt + CROSS_ALIGNMENT_AFFINITY_EXTRA
+      if (isCross && aff < crossNeed) {
+        log(`正魔之恋阻力极大，${c.name}还需更多坚定。（需好感 ${crossNeed}）`, 'bad')
         return
       }
       log(`${c.name}应允了。自此结为道侣，祸福与共。`, 'gold')

@@ -6,10 +6,11 @@ import { TUNING } from '../game/tuning'
 import type { ItemDef } from '../types'
 
 describe('丹纹与适用范围', () => {
-  it('丹纹倍率 5 纹为 1.75', () => {
-    expect(danMarkMul(5)).toBeCloseTo(1 + 5 * TUNING.danMarkPerStack)
+  it('丹纹倍率：5 纹 1.75（锁值断言，不再与实现同源）', () => {
     expect(danMarkMul(0)).toBe(1)
-    expect(danMarkMul(9)).toBeCloseTo(1 + 5 * TUNING.danMarkPerStack)
+    expect(danMarkMul(5)).toBeCloseTo(1.75)
+    // 脏数据超 5 纹按 5 纹封顶
+    expect(danMarkMul(9)).toBeCloseTo(1.75)
   })
 
   it('itemEffectWithMarks 按丹纹放大药效', () => {
@@ -25,6 +26,20 @@ describe('丹纹与适用范围', () => {
     const eff = itemEffectWithMarks(pill)
     expect(eff.hp).toBe(Math.floor(100 * danMarkMul(2)))
     expect(eff.exp).toBe(Math.floor(50 * danMarkMul(2)))
+  })
+
+  it('突破率丹纹加成同样封顶 5 纹（脏数据 danMarks 99 不得无限放大）', () => {
+    const dirty: ItemDef = {
+      id: 't2',
+      name: '测',
+      type: 'consumable',
+      desc: '',
+      price: 1,
+      danMarks: 99,
+      effect: { breakthroughRate: 10 },
+    }
+    const eff = itemEffectWithMarks(dirty)
+    expect(eff.breakthroughRate).toBe(Math.floor(10 * (1 + 5 * TUNING.danMarkBreakthroughPerStack)))
   })
 
   it('起步境界与适用范围', () => {

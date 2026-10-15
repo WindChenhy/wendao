@@ -1,4 +1,5 @@
 import { GONGFAS, type GongfaKind } from './gongfa'
+import { SECTS } from './sects'
 import synergyJson from './db/gongfa_synergy.json'
 
 type SynergyType = 'school_count' | 'kind_count' | 'mixed_faction' | 'combo'
@@ -28,8 +29,19 @@ interface SynergyRule {
 
 const SYNERGY_RULES: SynergyRule[] = synergyJson.rules as SynergyRule[]
 
-/** 功法所属脉系：宗门前缀派生；市井功法为 wandering */
+/**
+ * 宗门藏经阁反查表：非前缀命名的镇派仙经（如 `gf_zhuxian` 诛仙剑典、`gf_wangqing` 太上忘情录）
+ * 只能由 sects.json 的 library 判定归属脉系。
+ * 原先仅凭 id 前缀派生，会把 85 部 `gf_*` 功法（含宗门仙经）一律归为「市井」。
+ */
+const SECT_LIBRARY_SCHOOL: Map<string, string> = new Map(
+  SECTS.flatMap((s) => s.library.filter((l) => l.kind !== 'path').map((l) => [l.id, s.id] as const)),
+)
+
+/** 功法所属脉系：先查宗门藏经阁，再按宗门前缀派生；市井功法为 wandering */
 function gongfaSchool(id: string): string {
+  const bySect = SECT_LIBRARY_SCHOOL.get(id)
+  if (bySect) return bySect
   if (id.startsWith('js_')) return 'qingyun'
   if (id.startsWith('ty_')) return 'taiyi'
   if (id.startsWith('ht_')) return 'haoti'
@@ -50,7 +62,7 @@ const SCHOOL_LABEL: Record<string, string> = {
 const RIGHT_SCHOOLS = new Set(['qingyun', 'taiyi', 'haoti', 'wandering'])
 const DEMON_SCHOOLS = new Set(['xuesha', 'youming'])
 
-interface ActiveSynergy {
+export interface ActiveSynergy {
   rule: SynergyRule
   /** 激活说明 */
   note: string
@@ -99,7 +111,8 @@ export function activeSynergies(learnedIds: string[]): ActiveSynergy[] {
       continue
     }
     if (rule.type === 'kind_count') {
-      const n = kindCount.get(rule.kind!) ?? 0
+      if (!rule.kind) continue
+      const n = kindCount.get(rule.kind) ?? 0
       if (n >= (rule.min ?? 3)) {
         out.push({ rule, note: `${rule.kind} ×${n}` })
       }
@@ -121,10 +134,10 @@ export function activeSynergies(learnedIds: string[]): ActiveSynergy[] {
   return out
 }
 
-/** 羁绊总加成（可叠乘/加算 dodge 与 breakthrough） */
-export function synergyBonus(learnedIds: string[]): Required<SynergyEffects> {
+/** 羁绊总加成（可叠乘/加算 dodge 与 breakthrough）；吃已算好的激活列表，避免重复判定 */
+export function synergyBonusOf(synergies: ActiveSynergy[]): Required<SynergyEffects> {
   const base = { atk: 0, def: 0, hp: 0, cultivate: 0, dodge: 0, breakthrough: 0 }
-  for (const { rule } of activeSynergies(learnedIds)) {
+  for (const { rule } of synergies) {
     base.atk += rule.effects.atk ?? 0
     base.def += rule.effects.def ?? 0
     base.hp += rule.effects.hp ?? 0
@@ -133,6 +146,11 @@ export function synergyBonus(learnedIds: string[]): Required<SynergyEffects> {
     base.breakthrough += rule.effects.breakthrough ?? 0
   }
   return base
+}
+
+/** 羁绊总加成（按功法 id 列表判定后再求和） */
+export function synergyBonus(learnedIds: string[]): Required<SynergyEffects> {
+  return synergyBonusOf(activeSynergies(learnedIds))
 }
 
 export function describeSynergyEffects(e: SynergyEffects): string {

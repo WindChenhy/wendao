@@ -96,7 +96,9 @@ function qualityLabel(q: ArtifactQuality): string {
 }
 
 export function forgeLevelDef(level: number): ForgeLevelDef {
-  const lv = Math.max(0, Math.min(FORGE_LEVELS.length - 1, Math.floor(level)))
+  // 非有限数（NaN/undefined 运算结果）先归 0，否则 Math.max(0, NaN) = NaN → 数组取到 undefined
+  const safe = Number.isFinite(level) ? Math.floor(level) : 0
+  const lv = Math.max(0, Math.min(FORGE_LEVELS.length - 1, safe))
   return FORGE_LEVELS[lv]
 }
 
@@ -123,6 +125,12 @@ export const ARTIFACT_QUALITY_CLASS = {
   treasure: 'text-gold',
   immortal: 'text-vermilion',
 } as const
+
+/**
+ * 品质档位中文名（0=未炼器，1=凡品 … 4=仙器），与 artifactQualityTier 共用同一套下标约定。
+ * 原先 paths.ts 另写一份等长数组，新增品质档时两边会不同步且 TS 查不出（见 P3）。
+ */
+export const ARTIFACT_TIER_LABELS: string[] = ['未炼器', ...QUALITY_ORDER.map((q) => qualityLabel(q))]
 
 /**
  * 品质档位（1=凡品 … 4=仙器），用于存档统计 bestArtifactTier（R-27 器道质变门槛）。
@@ -199,11 +207,13 @@ export function makeArtifactUid(): string {
 export function artifactDisplayName(itemId: string, fallback?: string): string {
   const item = ITEMS[itemId]?.name
   if (item) return item
-  // 兜底：历史脏数据里 name 存了 id 时也不展示 treasure_xxx / art_xxx
-  if (fallback && fallback !== itemId && itemCategory(fallback) !== 'treasure' && !fallback.startsWith('art_')) {
-    return fallback
-  }
-  return fallback && fallback !== itemId ? fallback : itemId
+  // 历史脏数据可能把 id 存进了 name（treasure_xxx / art_xxx 之类），这类「名字」不可作展示名
+  const usable =
+    fallback !== undefined &&
+    fallback !== itemId &&
+    itemCategory(fallback) !== 'treasure' &&
+    !fallback.startsWith('art_')
+  return usable ? (fallback as string) : itemId
 }
 
 export function createArtifactInstance(opts: {

@@ -3,24 +3,13 @@ import { BUILTIN_DLC } from '../dlc/builtin'
 import { loadEnabledDlc, saveEnabledDlc } from '../dlc/types'
 import { DLC_ACHIEVEMENT_PACK } from '../data/achievements'
 import { describeExportError, downloadTextFile } from '../game/saveCrypto'
+import { DEBUG_ENABLED } from '../game/settings'
 import { buildSaveFileName, describeSaveTimeline } from '../game/reincarnate'
 import { isNativeApp } from '../platform/native'
 import { useGameStore } from '../stores/useGameStore'
 import { AchievementSection, CodexSection } from './CodexPanels'
 
 type SettingsTab = 'general' | 'codex' | 'achievement'
-
-/** 开发调试菜单开关（方案 §2.7 MVP#8）：URL 带 ?debug=1 或 localStorage 标记时显示 */
-const DEBUG_ENABLED = (() => {
-  try {
-    return (
-      new URLSearchParams(window.location.search).has('debug') ||
-      localStorage.getItem('wendao-debug') === '1'
-    )
-  } catch {
-    return false
-  }
-})()
 
 export function SettingsPanel() {
   const [tab, setTab] = useState<SettingsTab>('general')
@@ -75,6 +64,7 @@ function GeneralSettings() {
   const debugUnlockTowerFloors = useGameStore((s) => s.debugUnlockTowerFloors)
   const [enabled, setEnabled] = useState<string[]>(() => loadEnabledDlc())
   const [exportMsg, setExportMsg] = useState('')
+  const [exporting, setExporting] = useState(false)
   const dlcAchievements = useGameStore((s) => s.meta.achievements)
 
   const toggleDlc = (id: string) => {
@@ -105,7 +95,9 @@ function GeneralSettings() {
     : ''
 
   const handleExportFile = async () => {
-    if (!player) return
+    // 导出含 AES 加密 + 下载，耗时可达数百毫秒：加 busy 态防连点并发导出
+    if (!player || exporting) return
+    setExporting(true)
     try {
       const cipher = exportSaveEncrypted()
       const fname = buildFileName()
@@ -116,6 +108,8 @@ function GeneralSettings() {
       )
     } catch (e) {
       setExportMsg(describeExportError(e))
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -201,15 +195,25 @@ function GeneralSettings() {
               <button className="pixel-btn text-xs" onClick={() => saveToSlot(i)}>
                 存入 {i}
               </button>
-              <button className="pixel-btn text-xs" onClick={() => loadFromSlot(i)}>
+              <button
+                className="pixel-btn text-xs"
+                onClick={() => {
+                  // 读档会整体覆盖当前进度（含未存档部分），故先确认
+                  if (window.confirm(`读取存档位 ${i}？当前未存档的进度将被覆盖。`)) loadFromSlot(i)
+                }}
+              >
                 读取 {i}
               </button>
             </div>
           ))}
         </div>
         <div className="mt-4">
-          <button className="pixel-btn text-xs" disabled={!player} onClick={() => void handleExportFile()}>
-            导出存档
+          <button
+            className="pixel-btn text-xs"
+            disabled={!player || exporting}
+            onClick={() => void handleExportFile()}
+          >
+            {exporting ? '导出中…' : '导出存档'}
           </button>
         </div>
         {player && (

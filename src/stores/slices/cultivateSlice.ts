@@ -1,8 +1,9 @@
-import { companionById } from '../../data/companions'
+import { companionById, CROSS_ALIGNMENT_AFFINITY_EXTRA, DUAL_CULTIVATE_AFFINITY_MIN } from '../../data/companions'
 import { isDemonic, secondarySlots } from '../../data/classes'
 import { bestBreakthroughPill, requiredMaterial, ITEMS, itemMinRealmOk } from '../../data/items'
 import { ASCENSION_REALM, expNeeded, REALMS, realmIndex } from '../../data/realms'
 import {
+  TRIB_TOKEN_BREAKTHROUGH_BONUS,
   calamityLogText,
   calamitySolutionBonus,
   drawCalamities,
@@ -37,6 +38,7 @@ import {
 import { daoBonuses, isAscended, reincarnateGain } from '../../game/reincarnate'
 import { isCrossAlignment } from '../../game/reputation'
 import { sealDaoCost, sealSlots, type SealedItem } from '../../game/seal'
+import { TUNING } from '../../game/tuning'
 import {
   afterProgressSnapshot,
   bumpDaily,
@@ -265,7 +267,7 @@ export function createCultivateSlice(
       // 金丹护道已扣渡劫金丹，不再从自动突破丹里重复扣
       const pillBt =
         usedPlan.id === 'golden_pill' ? 0 : breakPill?.rate ?? 0
-      const tribTokenBt = (inv.mat_tribulation ?? 0) > 0 ? 5 : 0
+      const tribTokenBt = (inv.mat_tribulation ?? 0) > 0 ? TRIB_TOKEN_BREAKTHROUGH_BONUS : 0
       // 突破成功率规则集中在 game/rules/breakthrough：基础率 + 各加成线性叠加后钳制 5..95
       const rate = breakthroughSuccessRate({
         classId: player.classId,
@@ -385,11 +387,14 @@ export function createCultivateSlice(
       if (usedPlan.softenFail) severity = softenSeverity(severity)
 
       if (usedPlan.spouseRisk && spouse) {
-        const until = dayNumber(get().time) + 7
+        const until = dayNumber(get().time) + TUNING.spouseHurtDays
         set({
           companion: { ...get().companion, spouseHurtUntilDay: until },
         })
-        log(`${spouse.name}护法被雷劫余波所伤，七日内无法助战/代劳。`, 'bad')
+        log(
+          `${spouse.name}护法被雷劫余波所伤，${TUNING.spouseHurtDays} 日内无法助战/代劳。`,
+          'bad',
+        )
       }
 
       log(result.message, 'bad')
@@ -485,7 +490,7 @@ export function createCultivateSlice(
       const c = companionById(id)
       if (!c) return
       const aff = companion.affinity[id] ?? 0
-      if (aff < 40) {
+      if (aff < DUAL_CULTIVATE_AFFINITY_MIN) {
         log(`${c.name}与你尚不熟稔，婉拒双修。`, 'bad')
         return
       }
@@ -504,7 +509,7 @@ export function createCultivateSlice(
       }
       // 正魔恋惩罚
       const isCross = isCrossAlignment(isDemonic(player), c.align)
-      if (isCross && aff < 80) {
+      if (isCross && aff < DUAL_CULTIVATE_AFFINITY_MIN + CROSS_ALIGNMENT_AFFINITY_EXTRA) {
         log(`正魔殊途，${c.name}仍心存顾虑。`, 'bad')
         return
       }

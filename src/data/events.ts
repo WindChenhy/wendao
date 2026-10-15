@@ -1,5 +1,6 @@
 import { realmIndex } from './realms'
 import { sectRankIndex, type SectRank } from './sects'
+import { TUNING } from '../game/tuning'
 import type { Alignment, ClassId, RealmId } from '../types'
 import eventsDb from './db/events.json'
 
@@ -183,8 +184,8 @@ export const eventGatePasses = eventPassesGates
 /** 本体事件池（含 v0.9 主题包）；DLC 追加事件由 rules.extraEvents 合并 */
 export const WORLD_EVENTS: WorldEvent[] = eventsDb.events as WorldEvent[]
 
-/** 奇遇触发率：约 12% */
-const WORLD_EVENT_RATE = 0.12
+/** 奇遇触发率：约 12%（唯一来源 TUNING.worldEventRate，勿在此处再写一份） */
+const WORLD_EVENT_RATE = TUNING.worldEventRate
 
 /**
  * 按门槛过滤后加权抽取。ctx 不完整时退化为仅境界过滤。

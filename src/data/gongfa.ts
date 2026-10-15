@@ -140,8 +140,8 @@ export function isMarketGongfa(g: GongfaDef): boolean {
   return g.price > 0
 }
 
-/** 功法在当前阶段的加成倍率（0.5/0.75/1/1.5） */
-function gongfaStageMul(stage: number): number {
+/** 功法在当前阶段的加成倍率（0.5/0.75/1/1.5）；上下界均夹取，防脏数据下标越界得 undefined */
+export function gongfaStageMul(stage: number): number {
   return GONGFA_STAGE_MUL[Math.min(GONGFA_STAGE_MUL.length - 1, Math.max(0, stage))]
 }
 

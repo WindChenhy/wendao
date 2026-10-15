@@ -12,6 +12,8 @@ interface PetDef {
   skillName: string
   skillDesc: string
   jobFlavor: PetJob[]
+  /** 出战属性偏向：atk 分量系数（1.2 偏攻 / 0.6 偏血）；hp 分量由 1.2 − atkBias×0.4 推出 */
+  atkBias: number
 }
 
 interface PetConfig {
@@ -95,8 +97,8 @@ export function petStatBonus(pet: PetState | null): { atk: number; hp: number } 
   const def = PET_MAP[pet.petId]
   if (!def) return { atk: 0, hp: 0 }
   const mul = petAttrBonus(pet)
-  // 角色向：狐偏攻，兔/龟/雀偏血
-  const atkBias = def.id === 'pet_fox' ? 1.2 : 0.6
+  // 角色向：狐偏攻，兔/龟/雀偏血（atkBias 为数据字段，新增灵兽在 db/pets.json 中自定）
+  const atkBias = def.atkBias
   return {
     atk: Math.min(PET_ATTR_CAP, mul * atkBias),
     hp: Math.min(PET_ATTR_CAP, mul * (1.2 - atkBias * 0.4)),
