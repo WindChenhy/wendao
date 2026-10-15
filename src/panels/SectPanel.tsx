@@ -15,13 +15,18 @@ import { useGameStore } from '../stores/useGameStore'
 import { useState } from 'react'
 import {
   SECT_BUILDINGS,
+  SECT_UPGRADE_MAX_LV,
   buildingLevel,
   buildingUpgradeCost,
   describeBuildingEffect,
+  libraryDiscount,
+  marketDiscount as marketDiscountOf,
+  sectUpgradeCost,
   type SectBuildingId,
 } from '../data/sectBuildings'
-import { useCountUp } from '../components/useCountUp'
+import { CountUpValue } from '../components/CountUpValue'
 import { DONATE_STONES_PER_POOL } from '../data/sectBuildings'
+import { TUNING } from '../game/tuning'
 
 export function SectPanel() {
   const [customDonation, setCustomDonation] = useState('')
@@ -41,7 +46,6 @@ export function SectPanel() {
   const allocateToPool = useGameStore((s) => s.allocateToPool)
   const upgradeSectBuildingYard = useGameStore((s) => s.upgradeSectBuildingYard)
   const proposeSectBuilding = useGameStore((s) => s.proposeSectBuilding)
-  const poolDisplay = useCountUp(sect.pool)
   const redeemSectFragment = useGameStore((s) => s.redeemSectFragment)
   const sectExchange = useGameStore((s) => s.sectExchange)
   const sectLearn = useGameStore((s) => s.sectLearn)
@@ -98,8 +102,11 @@ export function SectPanel() {
   const openChains = availableQuestChains(sect.rank, player.realm, current?.alignment ?? 'righteous')
   const isMaster = sect.rank === 'master' || sect.rank === 'supreme'
   const fragCount = inventory.sect_fragment ?? 0
-  const libDiscount = 1 - 0.05 * sect.libraryLv
-  const marketDiscount = 1 - 0.04 * sect.marketLv
+  const libDiscount = libraryDiscount(sect.libraryLv)
+  const marketDiscount = marketDiscountOf(sect.marketLv)
+  // 藏经阁已参悟清单只算一次（原为两次相同 filter，P2-8）
+  const learnedInLibrary = current ? current.library.filter((l) => gongfa.learned[l.id]) : []
+  const candidateIds = new Set(candidates.map((s) => s.id))
 
   const reqMark = (ok: boolean) => (ok ? <span className="text-jade">✔</span> : <span className="text-vermilion">✘</span>)
 
@@ -214,7 +221,7 @@ export function SectPanel() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button className="pixel-btn primary" onClick={sectTask}>
+            <button className="pixel-btn primary" disabled={dead || inCombat} onClick={sectTask}>
               完成今日委托
             </button>
           </div>
@@ -329,14 +336,15 @@ export function SectPanel() {
             <div className="font-display text-gold mb-3">藏经残页</div>
             <div className="flex justify-between items-center gap-2">
               <div className="text-xs text-text-dim">
-                持有 <span className="text-gold">{fragCount}</span> 张 · 集齐 3 张可参悟一部未习宗门秘法。
+                持有 <span className="text-gold">{fragCount}</span> 张 · 集齐{' '}
+                {TUNING.sectFragmentCost} 张可参悟一部未习宗门秘法。
                 {sect.fragmentsUsed > 0 && (
                   <span className="ml-2">已参悟 {sect.fragmentsUsed} 次</span>
                 )}
               </div>
               <button
                 className="pixel-btn text-xs"
-                disabled={fragCount < 3 || inCombat}
+                disabled={fragCount < TUNING.sectFragmentCost || inCombat}
                 onClick={redeemSectFragment}
               >
                 残页参悟
@@ -348,7 +356,7 @@ export function SectPanel() {
             <div className="font-display text-gold mb-3">贡献池 · 宗门建筑</div>
             <div className="flex flex-wrap items-center gap-2 text-sm mb-3">
               <span>
-                公共账房 <span className="text-gold">{poolDisplay}</span> 池
+                公共账房 <span className="text-gold"><CountUpValue value={sect.pool} /></span> 池
               </span>
               <span className="text-xs text-text-dim">（委托抽成 10% · {DONATE_STONES_PER_POOL} 灵石=1 池）</span>
               <button className="pixel-btn text-xs" disabled={dead || stones < 100 || inCombat} onClick={() => donateToPool(100)}>
@@ -443,12 +451,12 @@ export function SectPanel() {
                 </div>
                 <button
                   className="pixel-btn text-xs"
-                  disabled={!isMaster || sect.libraryLv >= 3 || inCombat}
+                  disabled={!isMaster || sect.libraryLv >= SECT_UPGRADE_MAX_LV || inCombat}
                   onClick={() => upgradeSectBuilding('library')}
                 >
-                  {sect.libraryLv >= 3
+                  {sect.libraryLv >= SECT_UPGRADE_MAX_LV
                     ? '已满级'
-                    : `升级（${300 * (sect.libraryLv + 1) + 100 * sect.libraryLv * sect.libraryLv} 贡献）`}
+                    : `升级（${sectUpgradeCost(sect.libraryLv)} 贡献）`}
                 </button>
               </div>
               <div className="border border-border px-3 py-2 flex justify-between items-center">
@@ -461,12 +469,12 @@ export function SectPanel() {
                 </div>
                 <button
                   className="pixel-btn text-xs"
-                  disabled={!isMaster || sect.marketLv >= 3 || inCombat}
+                  disabled={!isMaster || sect.marketLv >= SECT_UPGRADE_MAX_LV || inCombat}
                   onClick={() => upgradeSectBuilding('market')}
                 >
-                  {sect.marketLv >= 3
+                  {sect.marketLv >= SECT_UPGRADE_MAX_LV
                     ? '已满级'
-                    : `升级（${300 * (sect.marketLv + 1) + 100 * sect.marketLv * sect.marketLv} 贡献）`}
+                    : `升级（${sectUpgradeCost(sect.marketLv)} 贡献）`}
                 </button>
               </div>
             </div>
@@ -649,12 +657,9 @@ export function SectPanel() {
           <div className="panel-box p-4 text-xs text-text-dim">
             <div className="text-xs text-text-dim">
               已参悟功法：
-              {current.library.filter((l) => gongfa.learned[l.id]).length === 0
+              {learnedInLibrary.length === 0
                 ? '无'
-                : current.library
-                    .filter((l) => gongfa.learned[l.id])
-                    .map((l) => l.name)
-                    .join('、')}
+                : learnedInLibrary.map((l) => l.name).join('、')}
             </div>
             <div className="mt-2">
               持有材料：
@@ -712,7 +717,7 @@ export function SectPanel() {
             <div className="panel-box p-4">
               <div className="text-xs text-text-dim mb-2">尚未达标的宗门</div>
               {allOfAlign
-                .filter((s) => !candidates.includes(s))
+                .filter((s) => !candidateIds.has(s.id))
                 .map((s) => (
                   <div key={s.id} className="text-xs text-text-dim py-1 border-b border-border/40">
                     {s.name} — 需 {realmLabel(s.minRealm, s.minRealmLayer)}

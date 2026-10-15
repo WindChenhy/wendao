@@ -23,8 +23,16 @@ import type { CompanionState, GameTime, PlayerState, SectState } from '../../typ
 import type { MetaGet, MetaSet } from '../gameState'
 import { log } from './log'
 
+/** 运行时规则缓存：按「已启用 DLC id」为键，避免渲染期反复合并全部数据包（P2-1） */
+let rulesCache: { key: string; rules: RuntimeRules } | null = null
+
 export function currentRules(): RuntimeRules {
-  return combineRules(BUILTIN_DLC, loadEnabledDlc())
+  const ids = loadEnabledDlc()
+  const key = ids.join('|')
+  if (rulesCache?.key !== key) {
+    rulesCache = { key, rules: combineRules(BUILTIN_DLC, ids) }
+  }
+  return rulesCache.rules
 }
 
 /** 打造法宝所需天数（配方缺省 2 日） */

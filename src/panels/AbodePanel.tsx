@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import {
   SEEDS,
   SEED_LIST,
@@ -21,7 +21,8 @@ import { useGameStore } from '../stores/useGameStore'
 import { PETS, petExpNeed, describePet } from '../data/pets'
 import { isAscended } from '../game/reincarnate'
 
-function PlotTile({
+/** 单格灵田：只订阅自己那一格（abode.plots[index]），播种/收获不会牵动其余 127 格重渲染 */
+const PlotTile = memo(function PlotTile({
   index,
   plantSeedId,
 }: {
@@ -29,10 +30,9 @@ function PlotTile({
   plantSeedId: string | null
 }) {
   const time = useGameStore((s) => s.time)
-  const abode = useGameStore((s) => s.abode)
+  const plot = useGameStore((s) => s.abode.plots[index])
   const plantSeed = useGameStore((s) => s.plantSeed)
   const harvestPlot = useGameStore((s) => s.harvestPlot)
-  const plot = abode.plots[index]
   if (!plot) return <div className="aspect-square border border-border/40 bg-ink-2/40" />
 
   const prog = plotProgress(plot, time)
@@ -83,7 +83,7 @@ function PlotTile({
       )}
     </button>
   )
-}
+})
 
 export function AbodePanel() {
   const player = useGameStore((s) => s.player)
@@ -113,6 +113,16 @@ export function AbodePanel() {
     () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
     [inventory],
   )
+  // 一次遍历同时统计「可收」与「空地」，避免对最多 128 格做两轮 filter + plotProgress（P2-8）
+  const { readyCount, emptyCount } = useMemo(() => {
+    let ready = 0
+    let empty = 0
+    for (const p of abode.plots) {
+      if (!p.seedId) empty += 1
+      else if (plotProgress(p, time).ready) ready += 1
+    }
+    return { readyCount: ready, emptyCount: empty }
+  }, [abode.plots, time])
 
   if (!player) return null
   const paths = pathIdsOf(player)
@@ -124,8 +134,6 @@ export function AbodePanel() {
   const rowCost = expandRowCost(rows)
   const canCol = canExpandFarmCols(cols) && stones >= colCost
   const canRow = canExpandFarmRows(rows) && stones >= rowCost
-  const readyCount = abode.plots.filter((p) => p.seedId && plotProgress(p, time).ready).length
-  const emptyCount = abode.plots.filter((p) => !p.seedId).length
   const planted = total - emptyCount
 
   return (

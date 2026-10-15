@@ -7,6 +7,7 @@ import {
 import { ITEMS } from '../data/items'
 import { realmIndex } from '../data/realms'
 import { useGameStore } from '../stores/useGameStore'
+import { useMemo } from 'react'
 
 export function ExplorePanel() {
   const player = useGameStore((s) => s.player)
@@ -17,10 +18,16 @@ export function ExplorePanel() {
   const clearCombat = useGameStore((s) => s.clearCombat)
   const skipExploreCombat = useGameStore((s) => s.skipExploreCombat)
   const setSkipExploreCombat = useGameStore((s) => s.setSkipExploreCombat)
+  // 预览数值只取决于玩家大境界/层数，逐模板重算没必要（P2-8）
+  const ri = Math.max(0, realmIndex(player?.realm ?? 'qi'))
+  const layer = player?.layer ?? 1
+  const previews = useMemo(
+    () => ENEMY_TEMPLATES.map((t) => ({ t, e: previewEnemy(t, ri, layer) })),
+    [ri, layer],
+  )
 
   if (!player) return null
   const dead = !player.alive
-  const ri = Math.max(0, realmIndex(player.realm))
   const inCombat = Boolean(activeCombat && !activeCombat.finished)
 
   return (
@@ -83,8 +90,7 @@ export function ExplorePanel() {
           <div className="text-xs text-text-dim">按你当前境界动态预估</div>
         </div>
         <div className="space-y-2">
-          {ENEMY_TEMPLATES.map((t) => {
-            const e = previewEnemy(t, ri, player.layer)
+          {previews.map(({ t, e }) => {
             return (
               <div key={t.id} className="border border-border px-3 py-2 text-xs flex gap-3 justify-between">
                 <div className="min-w-0">

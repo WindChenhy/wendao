@@ -30,19 +30,32 @@ export interface DlcPack {
 
 const DLC_LIST_KEY = 'wendao-dlc-enabled'
 
+/**
+ * 已启用 DLC id 的内存缓存。
+ * 面板渲染期会高频调用 currentRules()（默认面板 CultivatePanel 即其一），
+ * 若每次都 getItem + JSON.parse，纯读盘开销会落在每一帧上；缓存由 saveEnabledDlc 负责失效。
+ */
+let enabledCache: string[] | null = null
+
 export function loadEnabledDlc(): string[] {
+  if (enabledCache) return enabledCache
   try {
     const raw = localStorage.getItem(DLC_LIST_KEY)
-    if (!raw) return []
+    if (!raw) {
+      enabledCache = []
+      return enabledCache
+    }
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : []
+    enabledCache = Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : []
   } catch (e) {
-      console.warn(e)
-    return []
+    console.warn(e)
+    enabledCache = []
   }
+  return enabledCache
 }
 
 export function saveEnabledDlc(ids: string[]): void {
+  enabledCache = [...ids]
   try {
     localStorage.setItem(DLC_LIST_KEY, JSON.stringify(ids))
   } catch (e) {
