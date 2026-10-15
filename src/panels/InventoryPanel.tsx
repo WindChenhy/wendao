@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, treasureEffectText, type ItemCategory } from '../data/items'
 import {
-  GONGFAS,
   canLearnGongfaFull as canLearnGongfa,
+  gongfaByScrollId,
   gongfaRealmText,
 } from '../data/gongfa'
 import { formatNum } from '../game/format'
@@ -28,9 +28,9 @@ export function InventoryPanel() {
   const visible = entries.filter(([id]) => {
     if (itemCategory(id) === 'treasure') return false
     if (itemCategory(id) === 'gongfa') {
-      const gid = id.slice('scroll_'.length)
+      const g = gongfaByScrollId(id)
       // 已参悟的秘籍不再显示（无法再参悟）；仅保留未参悟的待学习秘籍
-      if (gongfa.learned[gid]) return false
+      if (g && gongfa.learned[g.id]) return false
     }
     return tab === 'all' || itemCategory(id) === tab
   })
@@ -89,7 +89,7 @@ export function InventoryPanel() {
             const item = ITEMS[id]
             if (!item) return null
             const isGongfa = itemCategory(id) === 'gongfa'
-            const g = isGongfa ? GONGFAS[id.slice('scroll_'.length)] : null
+            const g = isGongfa ? gongfaByScrollId(id) : null
             return (
               <div
                 key={id}

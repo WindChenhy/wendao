@@ -5,7 +5,7 @@ import {
   MARKET_STOCK,
   itemCategory,
   itemTierText,
-  visibleStock,
+  marketStock,
 } from './items'
 
 describe('R-18 突破灵材分页语义', () => {
@@ -24,12 +24,12 @@ describe('R-18 突破灵材分页语义', () => {
     for (const id of MARKET_STOCK.material) {
       expect(id.startsWith('mat_'), `${id} 放在灵材货架却不是 mat_*`).toBe(true)
     }
-    // 全部货架中能找到筑基丹（低境界即可见）
-    const all = visibleStock('qi', 'all').map((e) => e.id)
+    // 全部货架中能找到筑基丹（买卖不限境界）
+    const all = marketStock('all')
     expect(all).toContain('mat_foundation')
     // material 分区中不含丹药/灵药/法宝
-    for (const e of visibleStock('qi', 'material')) {
-      expect(itemCategory(e.id)).toBe('material')
+    for (const id of marketStock('material')) {
+      expect(itemCategory(id)).toBe('material')
     }
   })
 

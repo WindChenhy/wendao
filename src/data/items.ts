@@ -69,9 +69,9 @@ export const TREASURE_BONUS: Record<
   }
 > = itemsDb.treasureBonus
 
-/** 丹纹效果倍率：基础 × (1 + danMarks * 0.15)，5 纹 = 1.75× */
+/** 丹纹效果倍率：基础 × (1 + danMarks * 0.15)，5 纹 = 1.75×（口径取 TUNING.danMarkPerStack） */
 export function danMarkMul(danMarks: number | undefined): number {
-  return 1 + Math.max(0, Math.min(5, danMarks ?? 0)) * 0.15
+  return 1 + Math.max(0, Math.min(5, danMarks ?? 0)) * TUNING.danMarkPerStack
 }
 
 /** 境界序号 */
@@ -124,7 +124,13 @@ export function itemEffectWithMarks(item: ItemDef): NonNullable<ItemDef['effect'
   if (e.exp) out.exp = Math.floor(e.exp * mul)
   if (e.energy) out.energy = Math.floor(e.energy * mul)
   if (e.stone) out.stone = Math.floor(e.stone * mul)
-  if (e.breakthroughRate) out.breakthroughRate = Math.floor(e.breakthroughRate * (1 + (item.danMarks ?? 0) * 0.04))
+  // 突破率丹纹加成另用一套系数（TUNING.danMarkBreakthroughPerStack），同样封顶 5 纹
+  if (e.breakthroughRate) {
+    const marks = Math.max(0, Math.min(5, item.danMarks ?? 0))
+    out.breakthroughRate = Math.floor(
+      e.breakthroughRate * (1 + marks * TUNING.danMarkBreakthroughPerStack),
+    )
+  }
   return out
 }
 
@@ -199,7 +205,7 @@ export function displayItemName(id: string): string {
  * （`foundation: mat_foundation` = 练气圆满冲筑基需「筑基丹」）。
  * 故查询时必须先取 nextRealm，否则会整体错开一位（历史上练气→筑基零消耗）。
  */
-const BREAKTHROUGH_MATERIALS: Partial<Record<RealmId, string>> =
+export const BREAKTHROUGH_MATERIALS: Partial<Record<RealmId, string>> =
   itemsDb.breakthroughMaterials as Partial<Record<RealmId, string>>
 
 /** 大境界满层时所需材料（按目标境界取，飞升无材料） */
@@ -239,66 +245,45 @@ export const MARKET_STOCK: Record<'herb' | 'material' | 'gongfa' | 'treasure' | 
 }
 
 /**
- * 坊市境界闸门（R-14）。
- * 除物品自身的 minRealm 外，少数流通物另有开市境界（如渡劫令须大乘后方有市）。
- * 闸门是买入拦截与货架展示的共同依据，勿只在 UI 隐藏。
+ * 使用该货物所需的最低境界（= 物品自身 minRealm；无限制为 null）。
+ *
+ * 口径（用户拍板）：**境界只约束「使用」，不约束「买卖」**。
+ * 坊市不因境界拦买卖：想买随时买，买回来用不了是自己的事（丹药照服会药效大减/被门槛拦在服用环节，
+ * 功法照买但要到境界才能参悟，突破灵材照买但要到境界才有用）。售卖同样不限境界。
  */
-export const MARKET_REALM_GATES: Record<string, RealmId> = {
-  mat_tribulation: 'mahayana',
+export function itemUsageRealm(id: string): RealmId | null {
+  return ITEMS[id]?.minRealm ?? null
 }
 
-/** 该货物在坊市流通所需的最低境界（物品 minRealm 与特殊闸门取高者；无限制为 null） */
-export function marketGateRealm(id: string): RealmId | null {
-  const item = ITEMS[id]
-  const candidates: RealmId[] = []
-  if (item?.minRealm) candidates.push(item.minRealm)
-  const gate = MARKET_REALM_GATES[id]
-  if (gate) candidates.push(gate)
-  if (candidates.length === 0) return null
-  return candidates.reduce((a, b) => (ri(b) > ri(a) ? b : a))
+/** 当前境界是否可「使用」该货物（与实际使用环节同源；买卖不看它） */
+export function itemUsableAt(id: string, realm: RealmId): boolean {
+  const need = itemUsageRealm(id)
+  return !need || ri(realm) >= ri(need)
 }
 
-export type MarketEntryStatus = { ok: true } | { ok: false; minRealm: RealmId }
-
-/** 某境界下该货物可否成交（买入拦截唯一入口） */
-export function marketEntryStatus(id: string, realm: RealmId): MarketEntryStatus {
-  const need = marketGateRealm(id)
-  if (!need || ri(realm) >= ri(need)) return { ok: true }
-  return { ok: false, minRealm: need }
+/** 未达使用境界时的说明文案（提示用，不拦买卖） */
+export function itemUsageHint(id: string): string {
+  const need = itemUsageRealm(id)
+  if (!need) return ''
+  return `需${REALMS[need]?.name ?? need}修为方可使用`
 }
 
 /** 货架分区类型（含「全部」） */
 export type MarketTab = 'all' | 'herb' | 'material' | 'gongfa' | 'treasure' | 'pill'
 
-/** 超前多少个大境界的货物仍以「线索」形式挂在货架上（更远的彻底不现） */
-export const MARKET_CLUE_LOOKAHEAD = 2
-
-export interface MarketStockEntry {
-  id: string
-  status: MarketEntryStatus
-}
-
 /**
- * 某境界、某分区下的货架（R-14：纯函数，UI 与测试共用）。
- * 可成交货物正常上架；超前 ≤ MARKET_CLUE_LOOKAHEAD 个大境界的货物只显示线索
- * （「与你无缘，需 XX 修为」），更远的货物不出现 —— 有探索感而不剧透终局。
+ * 某分区的全部上架货物。
+ * 买卖不受境界限制，故货架与玩家境界无关 —— 所有在售货物一律列出（不再隐藏、不再灰锁）。
  */
-export function visibleStock(realm: RealmId, tab: MarketTab): MarketStockEntry[] {
+export function marketStock(tab: MarketTab): string[] {
   const cats = ['herb', 'material', 'gongfa', 'treasure', 'pill'] as const
   const seen = new Set<string>()
-  const out: MarketStockEntry[] = []
+  const out: string[] = []
   for (const id of cats.flatMap((c) => MARKET_STOCK[c])) {
     if (seen.has(id)) continue
     seen.add(id)
     if (tab !== 'all' && itemCategory(id) !== tab) continue
-    const status = marketEntryStatus(id, realm)
-    if (!status.ok && ri(status.minRealm) > ri(realm) + MARKET_CLUE_LOOKAHEAD) continue
-    out.push({ id, status })
+    out.push(id)
   }
   return out
-}
-
-/** 未达境界货物的线索文案（货架灰显用） */
-export function marketClueText(minRealm: RealmId): string {
-  return `此物与你无缘——需${REALMS[minRealm]?.name ?? minRealm}修为方可承受。`
 }

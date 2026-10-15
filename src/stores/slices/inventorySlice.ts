@@ -22,8 +22,6 @@ import {
   itemOverScope,
   itemScopeText,
   itemTierText,
-  marketClueText,
-  marketEntryStatus,
 } from '../../data/items'
 import { ASCENSION_REALM, REALMS } from '../../data/realms'
 import { addItem, removeItem } from '../../game/inventory'
@@ -235,23 +233,7 @@ export function createInventorySlice(
       const { inventory, stones, player, treasures } = get()
       const item = ITEMS[id]
       if (!item || !player) return
-      // 坊市不出售超出你境界承受范围的丹药/灵物（药力过猛者经文未足）
-      if (!itemMinRealmOk(item, player.realm)) {
-        log(
-          `「${item.name}」非${REALMS[item.minRealm as keyof typeof REALMS]?.name ?? ''}以上修为不可承受，坊市不售。`,
-          'bad',
-        )
-        return
-      }
-      // R-14：坊市境界闸门（如渡劫令须大乘后）与货架线索同源
-      const gate = marketEntryStatus(id, player.realm)
-      if (!gate.ok) {
-        log(
-          `「${item.name}」${marketClueText(gate.minRealm)}坊市不售。`,
-          'bad',
-        )
-        return
-      }
+      // 境界只约束「使用」，不约束买卖：此处不再按境界拦购（买不买得起是灵石的事）
       // v1.4 成交价：通缉溢价（≥4）与正道名宿九折叠加
       const price = marketPriceOf(item.price, {
         wanted: get().wanted,

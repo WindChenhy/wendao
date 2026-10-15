@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, marketClueText, treasureEffectText, visibleStock, type MarketTab } from '../data/items'
+import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, itemUsageHint, itemUsableAt, marketStock, treasureEffectText, type MarketTab } from '../data/items'
 import {
   GONGFA_GRADE_CLASS,
   GONGFA_STAGE_LABELS,
-  GONGFAS,
   canLearnGongfaFull as canLearnGongfa,
+  gongfaByScrollId,
   gongfaScopeText,
   gongfaRealmText,
 } from '../data/gongfa'
-import { REALMS } from '../data/realms'
 import { formatNum } from '../game/format'
 import { marketPriceOf } from '../game/bounty'
 import { useGameStore } from '../stores/useGameStore'
@@ -43,13 +42,15 @@ export function MarketPanel() {
     })
   }
 
-  // R-14：货架可见性抽成纯函数（visibleStock）；超前 1–2 境的货物只显示线索
-  const entries = player ? visibleStock(player.realm, tab) : []
+  // 买卖不受境界限制：货架与境界无关，全部在售货物一并列出（境界只影响「使用」，见各行提示）
+  const entries = player ? marketStock(tab) : []
+  // 本分区「能真正买下」的货物数：用于在整区都买不了时给出明确解释（否则看着像功能坏了）
+  const buyableCount = entries.filter((id) => stones >= priceOf(id)).length
 
   const requestBuy = (id: string) => {
     const item = ITEMS[id]
     if (!item || stones < priceOf(id)) return
-    const g = itemCategory(id) === 'gongfa' ? GONGFAS[id.slice('scroll_'.length)] : null
+    const g = gongfaByScrollId(id)
     if (g && learned[g.id]) {
       setPendingBuyId(id)
       return
@@ -58,10 +59,7 @@ export function MarketPanel() {
   }
 
   const pendingItem = pendingBuyId ? ITEMS[pendingBuyId] : null
-  const pendingG =
-    pendingBuyId && itemCategory(pendingBuyId) === 'gongfa'
-      ? GONGFAS[pendingBuyId.slice('scroll_'.length)]
-      : null
+  const pendingG = pendingBuyId ? gongfaByScrollId(pendingBuyId) : null
   const pendingStage = pendingG ? learned[pendingG.id] : null
 
   return (
@@ -83,20 +81,31 @@ export function MarketPanel() {
           ))}
         </div>
         <p className="text-xs text-text-dim mb-3">{TAB_HINT[tab]}</p>
+        {entries.length > 0 && buyableCount === 0 && (
+          <p className="text-xs text-vermilion mb-2 leading-relaxed">
+            本分区暂无可成交的货物：灵石不足（现持 {' '}{formatNum(stones)}
+            {' '}灵石，见各行标价）——境界不影响买卖，只影响买入后能不能用。
+          </p>
+        )}
         <div className="space-y-2">
-          {entries.map(({ id, status }) => {
+          {entries.map((id) => {
             const item = ITEMS[id]
             if (!item) return null
-            const locked = !status.ok
-            const g = itemCategory(id) === 'gongfa' ? GONGFAS[id.slice('scroll_'.length)] : null
+            const g = gongfaByScrollId(id)
             const owned = inventory[id] ?? 0
             const st = g ? learned[g.id] : null
+            // 售价只算一次（原同一行内 3 次调用 priceOf，P2-8）
+            const price = priceOf(id)
+            // 买不起时禁用必须说明原因，否则「按钮点不动」会被当成缺陷
+            const poor = stones < price
+            // 境界只约束使用：仅非功法行补充使用门槛提示
+            // （功法行的境界要求已由 gongfaRealmText「需元婴」与适用范围文案给出，勿重复）
+            const usageHint =
+              player && !g && !itemUsableAt(id, player.realm) ? itemUsageHint(id) : ''
             return (
               <div
                 key={id}
-                className={`border px-3 py-2 flex justify-between items-center gap-2 ${
-                  locked ? 'border-border/50 opacity-60' : 'border-border'
-                }`}
+                className="border border-border px-3 py-2 flex justify-between items-center gap-2"
               >
                 <div className="min-w-0">
                   <div className="text-sm">
@@ -128,42 +137,41 @@ export function MarketPanel() {
                     {owned > 0 && <span className="text-xs text-jade ml-2">已有 ×{owned}</span>}
                   </div>
                   <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
-                  {locked ? (
-                    <div className="text-[11px] text-vermilion mt-0.5">
-                      {marketClueText(status.minRealm)}
-                      {g ? `（${REALMS[status.minRealm]?.name ?? status.minRealm}后方可参悟）` : ''}
+                  {(item.pillGrade || item.herbTier || item.treasureTier) && (
+                    <div className="text-[11px] text-jade mt-0.5">
+                      {itemTierText(item)}
+                      {itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}
                     </div>
-                  ) : (
-                    <>
-                      {(item.pillGrade || item.herbTier || item.treasureTier) && (
-                        <div className="text-[11px] text-jade mt-0.5">
-                          {itemTierText(item)}
-                          {itemScopeText(item) ? ` · ${itemScopeText(item)}` : ''}
-                        </div>
-                      )}
-                      {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
-                      {st && g && (
-                        <div className="text-xs text-bamboo mt-0.5">
-                          此功法已参悟，再次购买秘籍无法重复参悟。
-                        </div>
-                      )}
-                      {itemCategory(id) === 'treasure' && (
-                        <div className="text-xs text-jade mt-0.5">加成：{treasureEffectText(id)}</div>
-                      )}
-                    </>
+                  )}
+                  {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
+                  {st && g && (
+                    <div className="text-xs text-bamboo mt-0.5">
+                      此功法已参悟，再次购买秘籍无法重复参悟。
+                    </div>
+                  )}
+                  {itemCategory(id) === 'treasure' && (
+                    <div className="text-xs text-jade mt-0.5">加成：{treasureEffectText(id)}</div>
+                  )}
+                  {usageHint && (
+                    <div className="text-[11px] text-gold-dim mt-0.5">{usageHint}</div>
+                  )}
+                  {poor && (
+                    <div className="text-[11px] text-vermilion mt-0.5">
+                      灵石不足，尚缺 {formatNum(price - stones)}
+                    </div>
                   )}
                 </div>
                 <button
                   className="pixel-btn text-xs shrink-0"
-                  disabled={locked || stones < priceOf(id)}
+                  disabled={poor}
                   onClick={() => requestBuy(id)}
                 >
-                  {locked ? (
-                    `需${REALMS[status.minRealm]?.name ?? status.minRealm}修为`
+                  {poor ? (
+                    `灵石不足 · ${formatNum(price)}`
                   ) : (
                     <>
-                      {formatNum(priceOf(id))} 灵石
-                      {priceOf(id) !== item.price && (
+                      {formatNum(price)} 灵石
+                      {price !== item.price && (
                         <span className="ml-1 text-[10px]">
                           （原价 {formatNum(item.price)}）
                         </span>
