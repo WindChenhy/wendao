@@ -82,7 +82,7 @@ export function GameLayout() {
   return (
     <div className="h-full flex flex-col">
       <StatusBar />
-      <div className="flex-1 flex flex-col md:flex-row min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">
         <SideNav />
         <main
           className={`flex-1 min-w-0 overflow-y-auto scroll-thin bg-ink p-0 ${
@@ -90,7 +90,8 @@ export function GameLayout() {
           }`}
           aria-hidden={inCombat}
         >
-          <Suspense fallback={<div className="p-4 text-xs text-text-dim">载入中…</div>}>
+          <div className="mx-auto w-full max-w-4xl">
+            <Suspense fallback={<div className="p-4 text-xs text-text-dim">载入中…</div>}>
             {activePanel === 'cultivate' && <CultivatePanel />}
             {activePanel === 'character' && <CharacterPanel />}
             {activePanel === 'explore' && <ExplorePanel />}
@@ -101,7 +102,8 @@ export function GameLayout() {
             {activePanel === 'sect' && <SectPanel />}
             {activePanel === 'companion' && <CompanionPanel />}
             {activePanel === 'settings' && <SettingsPanel />}
-          </Suspense>
+            </Suspense>
+          </div>
         </main>
       </div>
       <LogPanel />

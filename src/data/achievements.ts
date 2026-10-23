@@ -78,7 +78,9 @@ export interface AchievementProgressInput {
   gongfaCount: number
   treasureCount: number
   companion: {
-    spouseId: string | null
+    /** 已结缘对象 id（道侣 + 结拜兄弟） */
+    spouseIds: string[]
+    swornIds?: string[]
     heartsSeen: Record<string, number>
     affinity: Record<string, number>
     endings?: Record<string, 'he' | 'be'>
@@ -186,7 +188,7 @@ export function evaluateAchievementIds(input: AchievementProgressInput): string[
   }
 
   if (hasHeartEvent(input.companion.heartsSeen)) push('heart')
-  if (input.companion.spouseId) push('marry')
+  if (input.companion.spouseIds.length > 0) push('marry')
 
   const endings = Object.values(input.companion.endings ?? {})
   if (endings.includes('he')) push('spouse_story_he')

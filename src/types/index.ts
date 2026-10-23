@@ -502,14 +502,27 @@ export interface SectState {
   buildings: Record<string, number>
 }
 
-/** 道侣关系状态 */
+/** 每日互动计数（闲谈/收礼），按日 key 重置 */
+export interface CompanionDailyInteract {
+  day: string
+  /** 今日已闲谈次数 */
+  chat: number
+  /** 今日已收礼次数 */
+  gift: number
+}
+
+/** 道侣/结拜关系状态 */
 export interface CompanionState {
   /** companionId → 好感 */
   affinity: Record<string, number>
   /** 已触发心事件索引 */
   heartsSeen: Record<string, number>
-  /** 已结缘 */
-  spouseId: string | null
+  /** 已结缘的道侣（仅女性，可多位） */
+  spouseIds: string[]
+  /** 结拜兄弟（仅男性） */
+  swornIds: string[]
+  /** v1.6 每日闲谈/收礼计数：companionId → 计数 */
+  dailyInteract?: Record<string, CompanionDailyInteract>
   /** 双修冷却日 key */
   dualDoneOn: string
   /** v0.9 结缘后剧情进度 */

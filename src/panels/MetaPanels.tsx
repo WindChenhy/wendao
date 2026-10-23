@@ -18,7 +18,7 @@ export function SettingsPanel() {
   const codexTotal = Object.values(collection).reduce((n, list) => n + list.length, 0)
 
   return (
-    <div className="p-4 space-y-4 max-w-3xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="flex flex-wrap gap-2">
         <button
           className={`pixel-btn text-xs ${tab === 'general' ? 'primary' : ''}`}

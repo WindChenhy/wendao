@@ -98,8 +98,8 @@ export interface GameState {
   resolveEvent: (actionId: string) => void
   /** v0.9 结缘后剧情抉择 */
   resolveStory: (choiceId: string | null) => void
-  /** 手动触发道侣长线剧情（若可） */
-  triggerSpouseStory: () => void
+  /** 手动触发道侣长线剧情（若可；可指定道侣 id） */
+  triggerSpouseStory: (id?: string) => void
   /** 道侣代劳：打理灵田（每日一次） */
   spouseFarmHelp: () => void
   /** 道侣代劳：代炼低阶丹（每日一次） */

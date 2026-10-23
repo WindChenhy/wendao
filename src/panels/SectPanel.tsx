@@ -111,7 +111,7 @@ export function SectPanel() {
   const reqMark = (ok: boolean) => (ok ? <span className="text-jade">✔</span> : <span className="text-vermilion">✘</span>)
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       {current ? (
         <>
           <div className="panel-box p-4">

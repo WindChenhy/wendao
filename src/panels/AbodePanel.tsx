@@ -137,7 +137,7 @@ export function AbodePanel() {
   const planted = total - emptyCount
 
   return (
-    <div className="p-4 space-y-4 max-w-3xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="panel-box p-4">
         <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
           <div className="font-display text-gold">洞府灵田</div>

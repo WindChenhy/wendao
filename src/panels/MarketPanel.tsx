@@ -1,5 +1,16 @@
-import { useState } from 'react'
-import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, itemUsageHint, itemUsableAt, marketStock, treasureEffectText, type MarketTab } from '../data/items'
+import { useMemo, useState } from 'react'
+import {
+  CATEGORY_LABELS,
+  ITEMS,
+  itemCategory,
+  itemScopeText,
+  itemTierText,
+  itemUsageHint,
+  itemUsableAt,
+  marketStockFor,
+  treasureEffectText,
+  type MarketTab,
+} from '../data/items'
 import {
   GONGFA_GRADE_CLASS,
   GONGFA_STAGE_LABELS,
@@ -42,10 +53,18 @@ export function MarketPanel() {
     })
   }
 
-  // 买卖不受境界限制：货架与境界无关，全部在售货物一并列出（境界只影响「使用」，见各行提示）
-  const entries = player ? marketStock(tab) : []
+  // 买卖不受境界限制：集合与境界无关，全部在售货物一并列出（境界只影响「使用」，见各行提示）。
+  // 境界只决定排序 —— 把当前境界正用得上的法宝/功法排到前面；
+  // 依赖里显式带上 realm，大境界一突破即在同一帧按新境界重排，无需退出坊市重进。
+  // player 为 null（未创角/已回主菜单）时不出货，与原行为一致。
+  const realm = player?.realm ?? null
+  const hasPlayer = Boolean(player)
+  const entries = useMemo(
+    () => (hasPlayer ? marketStockFor(realm, tab) : []),
+    [hasPlayer, realm, tab],
+  )
   // 本分区「能真正买下」的货物数：用于在整区都买不了时给出明确解释（否则看着像功能坏了）
-  const buyableCount = entries.filter((id) => stones >= priceOf(id)).length
+  const buyableCount = entries.filter((e) => stones >= priceOf(e.id)).length
 
   const requestBuy = (id: string) => {
     const item = ITEMS[id]
@@ -63,7 +82,7 @@ export function MarketPanel() {
   const pendingStage = pendingG ? learned[pendingG.id] : null
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="panel-box p-4">
         <div className="flex justify-between items-center mb-3">
           <div className="font-display text-gold">坊市</div>
@@ -87,8 +106,12 @@ export function MarketPanel() {
             {' '}灵石，见各行标价）——境界不影响买卖，只影响买入后能不能用。
           </p>
         )}
+        {/* 兜底：任何情况下都不留一块无声的空白（真无货也要说清楚，别让人以为界面坏了） */}
+        {entries.length === 0 && (
+          <p className="text-xs text-text-dim">本区暂无在售货物。</p>
+        )}
         <div className="space-y-2">
-          {entries.map((id) => {
+          {entries.map(({ id }) => {
             const item = ITEMS[id]
             if (!item) return null
             const g = gongfaByScrollId(id)

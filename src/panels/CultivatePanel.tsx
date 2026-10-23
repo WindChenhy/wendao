@@ -1,5 +1,4 @@
 import { CLASSES, isPathDefined } from '../data/classes'
-import { companionById } from '../data/companions'
 import { SECTS } from '../data/sects'
 import {
   GONGFA_GRADE_CLASS,
@@ -27,7 +26,7 @@ import { TRIBULATION_PLANS, isTribulationMoment, type TribulationPlanId } from '
 import { TRIB_TOKEN_BREAKTHROUGH_BONUS } from '../data/tribulation'
 import { DailyCard } from '../components/DailyCard'
 import { useGameStore } from '../stores/useGameStore'
-import { currentRules } from '../stores/helpers/shared'
+import { currentRules, bondedDefs } from '../stores/helpers/shared'
 import { DEBUG_ENABLED } from '../game/settings'
 import { useState } from 'react'
 
@@ -111,8 +110,9 @@ export function CultivatePanel() {
   const need = expNeeded(player.realm, player.layer)
   const sdef = sect.sectId ? SECTS.find((x) => x.id === sect.sectId) : null
   const dao = daoBonuses(legacy.daoMarks)
-  const spouse = companion.spouseId ? companionById(companion.spouseId) : null
-  const spouseBonus = spouse?.breakthroughBonus ?? 0
+  const bondedList = bondedDefs(companion)
+  const spouseBonus =
+    bondedList.length > 0 ? Math.max(...bondedList.map((c) => c.breakthroughBonus ?? 0)) : 0
   const treasureBt = treasureBreakthroughBonus(treasures)
   const breakPill = bestBreakthroughPill(inventory, player.realm)
   const pillBt = breakPill?.rate ?? 0
@@ -130,7 +130,7 @@ export function CultivatePanel() {
   const matOk = !matId || matCount > 0
   const options = seclusionYearOptions(player.realm)
   // 转生收益预估（唯一口径）：须带 favor，否则仙缘折算漏算、显示低于真实结算值
-  const gainEstimate = reincarnateGain(player, Boolean(companion.spouseId), favor)
+  const gainEstimate = reincarnateGain(player, companion.spouseIds.length > 0, favor)
   const nextGain = dead || ascended ? gainEstimate : null
   const synList = activeSynergies(Object.keys(gongfa.learned))
   const synBt = synList.reduce((n, s) => n + (s.rule.effects.breakthrough ?? 0), 0)
@@ -192,7 +192,7 @@ export function CultivatePanel() {
   )
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <DailyCard />
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">洞府静修</div>
@@ -306,7 +306,7 @@ export function CultivatePanel() {
               {synBt}%
             </div>
           )}
-          {spouse && spouseHurt && (
+          {bondedList.length > 0 && spouseHurt && (
             <div className="text-vermilion">道侣重伤未愈，护法加成暂失效</div>
           )}
         </div>
@@ -333,7 +333,7 @@ export function CultivatePanel() {
               {TRIBULATION_PLANS.map((p) => {
                 const can =
                   (!p.costItemId || (inventory[p.costItemId] ?? 0) >= (p.costCount ?? 1)) &&
-                  (!p.spouseRisk || (Boolean(companion.spouseId) && !spouseHurt))
+                  (!p.spouseRisk || (companion.spouseIds.length > 0 && !spouseHurt))
                 return (
                   <label
                     key={p.id}

@@ -63,7 +63,7 @@ export function CharacterPanel() {
   const heartDemon = player.heartDemon ?? 0
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="panel-box p-4">
         <div className="font-display text-gold text-lg mb-1">{player.name}</div>
         <div className="text-sm text-text-dim mb-3">
