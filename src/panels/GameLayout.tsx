@@ -82,7 +82,7 @@ export function GameLayout() {
   return (
     <div className="h-full flex flex-col">
       <StatusBar />
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-row md:flex-col min-h-0">
         <SideNav />
         <main
           className={`flex-1 min-w-0 overflow-y-auto scroll-thin bg-ink p-0 ${

@@ -88,7 +88,7 @@ export function SideNav() {
   const player = useGameStore((s) => s.player)
 
   return (
-    <nav className="w-full shrink-0 border-b border-border bg-ink-2 flex overflow-x-auto">
+    <nav className="w-14 sm:w-20 shrink-0 border-r border-border bg-ink-2 flex flex-col overflow-y-auto scroll-thin md:w-full md:flex-row md:border-r-0 md:border-b md:overflow-x-auto">
       {NAV.map((n) => {
         const locked =
           (n.id === 'sect' || n.id === 'companion' || n.id === 'secret_realm' || n.id === 'abode') &&
@@ -98,14 +98,14 @@ export function SideNav() {
             key={n.id}
             disabled={locked}
             onClick={() => setPanel(n.id)}
-            className={`flex-1 min-w-fit px-4 py-3 text-sm whitespace-nowrap border-b-2 ${
+            className={`w-full px-2 py-3 text-xs whitespace-nowrap text-left border-l-2 md:flex-1 md:min-w-fit md:px-4 md:py-3 md:text-sm md:text-center md:border-l-0 md:border-b-2 ${
               activePanel === n.id
-                ? 'text-gold bg-[#2a2618] border-b-gold'
-                : 'text-text-dim hover:text-text border-b-transparent'
+                ? 'text-gold bg-[#2a2618] border-l-gold md:border-l-transparent md:border-b-gold'
+                : 'text-text-dim hover:text-text border-l-transparent md:border-b-transparent'
             } ${locked ? 'opacity-40' : ''}`}
           >
             {n.label}
-            {locked && <span className="block text-[10px]">未开放</span>}
+            {locked && <span className="block text-[9px] leading-tight">未开放</span>}
           </button>
         )
       })}
