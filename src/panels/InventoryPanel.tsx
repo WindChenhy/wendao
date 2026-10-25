@@ -7,6 +7,12 @@ import {
 } from '../data/gongfa'
 import { formatNum } from '../game/format'
 import { PagedList } from '../components/PagedList'
+import { ListToolbar } from '../components/ListToolbar'
+import {
+  matchesName,
+  matchesRealm,
+  type RealmFilterMode,
+} from '../data/itemFilter'
 import { useGameStore } from '../stores/useGameStore'
 
 type Tab = 'all' | ItemCategory
@@ -16,6 +22,8 @@ const BAG_PAGE_SIZE = 10
 
 export function InventoryPanel() {
   const [tab, setTab] = useState<Tab>('all')
+  const [query, setQuery] = useState('')
+  const [realmFilter, setRealmFilter] = useState<RealmFilterMode>('all')
   const player = useGameStore((s) => s.player)
   const inventory = useGameStore((s) => s.inventory)
   const treasures = useGameStore((s) => s.treasures)
@@ -37,23 +45,31 @@ export function InventoryPanel() {
     }
     return tab === 'all' || itemCategory(id) === tab
   })
-  const hasVisibleGongfaScrolls = visible.some(([id]) => itemCategory(id) === 'gongfa')
+  // 搜索 + 境界筛选（唯一口径见 data/itemFilter.ts）
+  const filtered = visible.filter(
+    ([id]) =>
+      matchesName(id, query) && matchesRealm(id, realmFilter, player ? player.realm : null),
+  )
+  const hasVisibleGongfaScrolls = filtered.some(([id]) => itemCategory(id) === 'gongfa')
 
   // 同类法宝合并计数：以 treasures 列表为主，兼看 inventory（坊市购入可能只写 inventory）
-  const treasureGroups: { id: string; count: number }[] = (() => {
+  const treasureAll: { id: string; count: number }[] = (() => {
     const map = new Map<string, number>()
     for (const id of treasures) map.set(id, (map.get(id) ?? 0) + 1)
     for (const [id, n] of Object.entries(inventory)) {
       if (itemCategory(id) !== 'treasure' || n <= 0) continue
       map.set(id, Math.max(map.get(id) ?? 0, n))
     }
-    return [...map.entries()]
-      .filter(([, n]) => n > 0)
-      .map(([id, count]) => ({ id, count }))
+    return [...map.entries()].filter(([, n]) => n > 0).map(([id, count]) => ({ id, count }))
   })()
+  const treasureGroups = treasureAll.filter(
+    ({ id }) =>
+      matchesName(id, query) && matchesRealm(id, realmFilter, player ? player.realm : null),
+  )
   const showTreasureList = (tab === 'all' || tab === 'treasure') && treasureGroups.length > 0
   // 主列表为空时，若法宝区仍有内容，不能误报「此类暂无物品」
-  const showBagEmptyHint = visible.length === 0 && !showTreasureList && tab !== 'gongfa'
+  const showBagEmptyHint = filtered.length === 0 && !showTreasureList && tab !== 'gongfa'
+  const filtering = query.trim() !== '' || realmFilter !== 'all'
 
   return (
     <div className="p-4 space-y-4 max-w-3xl mx-auto">
@@ -74,23 +90,39 @@ export function InventoryPanel() {
           ))}
         </div>
 
+        <ListToolbar
+          query={query}
+          onQuery={setQuery}
+          filter={realmFilter}
+          onFilter={setRealmFilter}
+          count={filtered.length + treasureGroups.length}
+          total={visible.length + treasureAll.length}
+          placeholder="搜索物品/功法名"
+        />
+
         {/* 功法：已参悟条目不在此展示，进阶请至修炼页 */}
         {tab === 'gongfa' && !hasVisibleGongfaScrolls && (
           <div className="text-xs text-text-dim mb-2">
-            暂无待参悟秘籍。已参悟功法请在修炼页查看与进阶；坊市或藏经阁可获取新秘籍。
+            {filtering
+              ? '当前搜索/境界筛选下没有匹配的秘籍。'
+              : '暂无待参悟秘籍。已参悟功法请在修炼页查看与进阶；坊市或藏经阁可获取新秘籍。'}
           </div>
         )}
 
         {/* 物品列表 */}
         {showBagEmptyHint && (
           <div className="text-xs text-text-dim">
-            {tab === 'all' ? '空空如也。' : '此类暂无物品。'}
+            {filtering
+              ? '没有符合条件的物品（试试清空搜索或改为「境界：不限」）。'
+              : tab === 'all'
+                ? '空空如也。'
+                : '此类暂无物品。'}
           </div>
         )}
         <PagedList
-          items={visible}
+          items={filtered}
           pageSize={BAG_PAGE_SIZE}
-          resetKey={tab}
+          resetKey={`${tab}|${query}|${realmFilter}`}
           bodyClassName="h-[520px]"
           renderItem={([id, n]) => {
             const item = ITEMS[id]
@@ -161,7 +193,7 @@ export function InventoryPanel() {
           <PagedList
             items={treasureGroups}
             pageSize={BAG_PAGE_SIZE}
-            resetKey={tab}
+            resetKey={`${tab}|${query}|${realmFilter}`}
             bodyClassName="h-[260px]"
             renderItem={({ id, count }) => {
               const item = ITEMS[id]
