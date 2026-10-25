@@ -5,13 +5,15 @@ import {
   previewEnemy,
 } from '../data/enemies'
 import { ITEMS } from '../data/items'
-import { realmIndex } from '../data/realms'
+import { REALMS, realmIndex } from '../data/realms'
+import { EXPLORE_MAX_FIGHTS, EXPLORE_SPANS, exploreSpanUnlocked } from '../game/day'
 import { useGameStore } from '../stores/useGameStore'
 import { useMemo } from 'react'
 
 export function ExplorePanel() {
   const player = useGameStore((s) => s.player)
   const explore = useGameStore((s) => s.explore)
+  const exploreDays = useGameStore((s) => s.exploreDays)
   const exploring = useGameStore((s) => s.exploring)
   const activeCombat = useGameStore((s) => s.activeCombat)
   const lastCombat = useGameStore((s) => s.lastCombat)
@@ -40,6 +42,11 @@ export function ExplorePanel() {
             ? '当前已开启「跳过战斗」，点击后直接结算。'
             : '战斗中可手动放技能，或勾选「自动」托管；也可在设置中开启跳过战斗。'}
         </p>
+        <p className="text-[11px] text-text-dim mb-2 leading-relaxed">
+          可选时长：单日（随时）· 一月（{REALMS.nascent_soul?.name}起）· 半年（
+          {REALMS.void?.name}起）· 一年（{REALMS.mahayana?.name}起）。远行一次性结算，途中遭遇按
+          实际天数计（最多 {EXPLORE_MAX_FIGHTS} 场），重伤则提前折返；未达境界的时长置灰。
+        </p>
         <div className="flex flex-wrap items-center gap-3 mb-2">
           <button className="pixel-btn primary" disabled={dead || exploring || inCombat} onClick={explore}>
             {inCombat || exploring
@@ -48,6 +55,26 @@ export function ExplorePanel() {
                 ? '踏入山野（跳过战斗）'
                 : '踏入山野（消耗一日）'}
           </button>
+          {EXPLORE_SPANS.map((s) => {
+            const ok = exploreSpanUnlocked(player.realm, s.days)
+            const need = REALMS[s.minRealm]?.name ?? s.minRealm
+            return (
+              <button
+                key={s.days}
+                className="pixel-btn"
+                disabled={dead || exploring || inCombat || !ok}
+                title={
+                  ok
+                    ? `出门远行 ${s.label}，一次结算（最多 ${Math.min(s.days, EXPLORE_MAX_FIGHTS)} 场遭遇）`
+                    : `需${need}及以上方可远行 ${s.label}`
+                }
+                onClick={() => exploreDays(s.days)}
+              >
+                远行 {s.label}
+                {!ok ? `（需${need}）` : ''}
+              </button>
+            )
+          })}
           <label className="text-xs text-text-dim flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"

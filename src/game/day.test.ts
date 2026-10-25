@@ -5,6 +5,9 @@ import {
   dailyRecover,
   dayKey,
   dayNumber,
+  EXPLORE_SPANS,
+  exploreSpanOptions,
+  exploreSpanUnlocked,
   GAME_DAYS_PER_YEAR,
   seclusionGain,
 } from './day'
@@ -69,5 +72,34 @@ describe('游戏日历', () => {
     } finally {
       spy.mockRestore()
     }
+  })
+})
+
+describe('历练时长解锁（v1.7）', () => {
+  it('练气/筑基/金丹：无长时历练可选', () => {
+    expect(exploreSpanOptions('qi')).toEqual([])
+    expect(exploreSpanOptions('foundation')).toEqual([])
+    expect(exploreSpanOptions('golden_core')).toEqual([])
+  })
+
+  it('元婴起解锁一月；练虚起解锁半年；大乘起解锁一年', () => {
+    expect(exploreSpanOptions('nascent_soul').map((s) => s.days)).toEqual([30])
+    expect(exploreSpanOptions('void').map((s) => s.days)).toEqual([30, 180])
+    expect(exploreSpanOptions('mahayana').map((s) => s.days)).toEqual([30, 180, 360])
+  })
+
+  it('门槛判定：低境界不可越级，高境界向下兼容', () => {
+    expect(exploreSpanUnlocked('golden_core', 30)).toBe(false)
+    expect(exploreSpanUnlocked('nascent_soul', 30)).toBe(true)
+    expect(exploreSpanUnlocked('nascent_soul', 180)).toBe(false)
+    expect(exploreSpanUnlocked('void', 180)).toBe(true)
+    expect(exploreSpanUnlocked('void', 360)).toBe(false)
+    expect(exploreSpanUnlocked('mahayana', 360)).toBe(true)
+    expect(exploreSpanUnlocked('mahayana', 999)).toBe(false)
+  })
+
+  it('时长换算与游戏年历一致（一年 = 360 日）', () => {
+    const year = EXPLORE_SPANS.find((s) => s.days === 360)
+    expect(year?.days).toBe(GAME_DAYS_PER_YEAR)
   })
 })

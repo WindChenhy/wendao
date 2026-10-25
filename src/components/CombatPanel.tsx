@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { isDemonic, pathSummaryText } from '../data/classes'
+import { pathSummaryText } from '../data/classes'
 import { ITEMS } from '../data/items'
 import { COMBAT_CONFIG } from '../data/skills'
 import { defaultAutoAction, getUnlockedPlayerSkills, formatStatuses } from '../game/combatEngine'
 import { formatNum } from '../game/format'
+import { resolveQiType } from '../game/qi'
 import { useGameStore } from '../stores/useGameStore'
 
 /** 血条/灵力条：仅颜色类不同，共用一条实现 */
@@ -108,8 +109,8 @@ export function CombatPanel() {
   })
   const potionLimit = st.potionLimit
   const potionsLeft = Math.max(0, potionLimit - p.potionsUsed)
-  const demonic = isDemonic(player)
-  const energyLabel = demonic ? '魔元' : '灵力'
+  // v1.7：灵气名与人物页/状态栏同源（game/qi.ts 唯一口径）
+  const energyLabel = resolveQiType(player).label
   const className = pathSummaryText(player)
 
   return (

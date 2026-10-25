@@ -48,6 +48,11 @@ import {
 import { worldEventById, type WorldEvent } from '../../data/events'
 import { clampWanted, wantedHuntChance, wantedLabel } from '../../game/bounty'
 import { isDemonicChampion, REP_EXPLORE_STONE_MUL, resolveAlignment } from '../../game/reputation'
+import {
+  SHAQI_MAX,
+  SHAQI_ON_KILL,
+  SHAQI_ON_KILL_BEAST,
+} from '../../data/shaqi'
 import { adjustHeartDemon } from '../../game/heartDemon'
 
 export function makePlayerCombatant(get: MetaGet, player: PlayerState, treasures: string[], hpScale = 1): CombatActor {
@@ -205,10 +210,13 @@ function settleExploreCombat(args: SettleArgs) {
       exp: player.exp + result.expGain,
       repRight: player.repRight + rep.right,
       repDemonic: player.repDemonic + rep.demonic,
-      shaqi:
-        isDemonic(player)
-          ? clamp(player.shaqi + (enemy.faction === 'beast' ? 2 : 5), 0, 100)
-          : player.shaqi,
+      shaqi: isDemonic(player)
+        ? clamp(
+            player.shaqi + (enemy.faction === 'beast' ? SHAQI_ON_KILL_BEAST : SHAQI_ON_KILL),
+            0,
+            SHAQI_MAX,
+          )
+        : player.shaqi,
     }
     set({
       time: advanced.time,

@@ -24,6 +24,7 @@ import {
   itemTierText,
 } from '../../data/items'
 import { ASCENSION_REALM, REALMS } from '../../data/realms'
+import { SHAQI_CLEANSE } from '../../data/shaqi'
 import { addItem, removeItem } from '../../game/inventory'
 import { marketPriceOf } from '../../game/bounty'
 import {
@@ -80,7 +81,7 @@ export function createInventorySlice(
       }
       if (eff.special === 'cleanse') {
         if (isDemonic(p) && p.shaqi > 0) {
-          p.shaqi = Math.max(0, p.shaqi - 15)
+          p.shaqi = Math.max(0, p.shaqi - SHAQI_CLEANSE)
         }
         // R-24：清心丹亦化解心魔（−15），此为心魔两大常规削减手段之一
         if ((p.heartDemon ?? 0) > 0) {

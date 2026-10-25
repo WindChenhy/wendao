@@ -6,10 +6,13 @@ import {
   gongfaRealmText,
 } from '../data/gongfa'
 import { formatNum } from '../game/format'
+import { PagedList } from '../components/PagedList'
 import { useGameStore } from '../stores/useGameStore'
 
 type Tab = 'all' | ItemCategory
 const TABS: Tab[] = ['all', 'pill', 'herb', 'material', 'gongfa', 'treasure', 'misc']
+/** 背包每页条数（与修炼页功法区同口径） */
+const BAG_PAGE_SIZE = 10
 
 export function InventoryPanel() {
   const [tab, setTab] = useState<Tab>('all')
@@ -84,8 +87,12 @@ export function InventoryPanel() {
             {tab === 'all' ? '空空如也。' : '此类暂无物品。'}
           </div>
         )}
-        <div className="space-y-2">
-          {visible.map(([id, n]) => {
+        <PagedList
+          items={visible}
+          pageSize={BAG_PAGE_SIZE}
+          resetKey={tab}
+          bodyClassName="h-[520px]"
+          renderItem={([id, n]) => {
             const item = ITEMS[id]
             if (!item) return null
             const isGongfa = itemCategory(id) === 'gongfa'
@@ -146,13 +153,17 @@ export function InventoryPanel() {
                 </div>
               </div>
             )
-          })}
-        </div>
+          }}
+        />
 
         {/* 法宝/装备：同类合并为 ×N，不再逐件罗列 */}
         {showTreasureList && (
-          <div className="space-y-2 mt-3">
-            {treasureGroups.map(({ id, count }) => {
+          <PagedList
+            items={treasureGroups}
+            pageSize={BAG_PAGE_SIZE}
+            resetKey={tab}
+            bodyClassName="h-[260px]"
+            renderItem={({ id, count }) => {
               const item = ITEMS[id]
               if (!item) return null
               return (
@@ -185,8 +196,8 @@ export function InventoryPanel() {
                   </button>
                 </div>
               )
-            })}
-          </div>
+            }}
+          />
         )}
       </div>
     </div>

@@ -18,21 +18,43 @@ export interface ReputationTitles {
   demonic: string | null
   /** 正魔声望皆极盛：骑墙之辈，两边都不认 */
   mixed: boolean
+  /**
+   * 称号被当前立场遮蔽：声望够格，但立场与之相悖（如魔道立场却顶着正道声望）。
+   * 仅在确有遮蔽时出现该字段（旧调用点的 toEqual 断言不受影响）。
+   */
+  masked?: 'demonic' | 'righteous'
 }
 
 /**
  * 双声望称号：正/魔称号互斥 —— 只有声望明显占优的一方可得称号。
  * 两边都过线时只得「亦正亦邪」，避免「正道名宿」与「魔道魁首」同时加身。
+ *
+ * v1.7：加入立场。声望是「江湖口碑」，立场是「此身自处」，两者本不同源；
+ * 但魔道立场者顶着「正道名宿」会与灵气类型（魔元）自相矛盾，故此处让立场遮蔽相悖称号。
  */
-export function reputationTitles(repRight: number, repDemonic: number): ReputationTitles {
+export function reputationTitles(
+  repRight: number,
+  repDemonic: number,
+  alignment?: Alignment,
+): ReputationTitles {
   const rightOk = repRight >= REP_TITLE_THRESHOLD
   const demonOk = repDemonic >= REP_TITLE_THRESHOLD
-  if (rightOk && demonOk) return { righteous: null, demonic: null, mixed: true }
-  return {
-    righteous: rightOk ? '正道名宿' : null,
-    demonic: demonOk ? '魔道魁首' : null,
-    mixed: false,
+  let righteous: string | null = rightOk ? '正道名宿' : null
+  let demonic: string | null = demonOk ? '魔道魁首' : null
+  let masked: 'demonic' | 'righteous' | undefined
+  // 魔道立场：不授正道称号；正道立场：不授魔道称号
+  if (alignment === 'demonic' && righteous) {
+    righteous = null
+    masked = 'demonic'
   }
+  if (alignment === 'righteous' && demonic) {
+    demonic = null
+    masked = 'righteous'
+  }
+  if (righteous && demonic) return { righteous: null, demonic: null, mixed: true }
+  const out: ReputationTitles = { righteous, demonic, mixed: false }
+  if (masked) out.masked = masked
+  return out
 }
 
 export function isRighteousParagon(repRight: number, repDemonic = 0): boolean {
