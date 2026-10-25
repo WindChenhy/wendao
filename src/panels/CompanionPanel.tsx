@@ -148,7 +148,7 @@ export function CompanionPanel() {
         <div className="font-display text-gold mb-2">红尘缘法</div>
         <p className="text-xs text-text-dim leading-relaxed">
           赠礼、闲谈可增好感：每人每日闲谈前 {CHAT_AFFINITY_DAILY_LIMIT} 次加好感，收礼至多{' '}
-          {GIFT_DAILY_LIMIT} 次，再多便婉拒。达阈值触发心事件。女性可结为道侣（可有多位），男性则义结金兰、结拜为兄弟。正魔之恋阻力更大。结缘后另有长线剧情，抉择会进入图鉴结局。
+          {GIFT_DAILY_LIMIT} 次，再多便婉拒。达阈值触发心事件。女性可结为道侣（可有多位），男性则义结金兰、结拜为兄弟。唯有结为道侣后方可双修。正魔之恋阻力更大。结缘后另有长线剧情，抉择会进入图鉴结局。
         </p>
       </div>
 
@@ -242,7 +242,7 @@ export function CompanionPanel() {
                   >
                     赠礼 {counts.gift}/{GIFT_DAILY_LIMIT}
                   </button>
-                  {female && (
+                  {female && isSpouse && (
                     <button
                       className="pixel-btn text-xs"
                       disabled={
