@@ -53,7 +53,7 @@ export function InventoryPanel() {
   const showBagEmptyHint = visible.length === 0 && !showTreasureList && tab !== 'gongfa'
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="panel-box p-4">
         <div className="flex justify-between items-center mb-3">
           <div className="font-display text-gold">乾坤袋</div>

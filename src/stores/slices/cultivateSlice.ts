@@ -44,6 +44,7 @@ import {
   bumpDaily,
   cultivateMultipliers,
   currentRules,
+  bondedDefs,
   gainCultivate,
   gainSeclusion,
   log,
@@ -51,7 +52,6 @@ import {
   pickEvent,
   recomputeVitals,
   sectDef,
-  spouseDef,
   touchOnline,
   unlockCodex,
 } from '../helpers'
@@ -244,21 +244,25 @@ export function createCultivateSlice(
       }
       if (usedPlan.spouseRisk) {
         const hurtUntil = companion.spouseHurtUntilDay ?? 0
-        if (companion.spouseId && hurtUntil > dayNumber(get().time)) {
+        if (companion.spouseIds.length > 0 && hurtUntil > dayNumber(get().time)) {
           log('道侣重伤未愈，无法护法。', 'bad')
           return
         }
-        if (!companion.spouseId) {
+        if (companion.spouseIds.length === 0) {
           log('并无道侣在侧，无法选此方案。', 'bad')
           return
         }
       }
 
       const sdef = sectDef(sect.sectId)
-      const spouse = spouseDef(companion)
+      // 结缘护法：取所有道侣/结拜中最优突破加成（不叠加）
+      const bonded = bondedDefs(companion)
       const spouseHurt =
-        companion.spouseId && (companion.spouseHurtUntilDay ?? 0) > dayNumber(get().time)
-      const spouseBonus = spouse && !spouseHurt ? (spouse.breakthroughBonus ?? 0) : 0
+        bonded.length > 0 && (companion.spouseHurtUntilDay ?? 0) > dayNumber(get().time)
+      const spouseBonus =
+        bonded.length > 0 && !spouseHurt
+          ? Math.max(...bonded.map((c) => c.breakthroughBonus ?? 0))
+          : 0
       const dao = daoBonuses(get().legacy.daoMarks)
       const synBt = gongfaBonuses(get().gongfa.learned, get().player?.realm).breakthrough ?? 0
       // 突破法宝（认主常驻，同类不叠加）+ 最佳突破丹药（本次消耗）+ 渡劫令持有
@@ -345,7 +349,7 @@ export function createCultivateSlice(
         if (slotsAfter > slotsBefore) {
           log(`元神渐固，可再分心一艺（兼修位 ${slotsBefore} → ${slotsAfter}）。`, 'gold')
         }
-        if (spouse && !spouseHurt) log(`${spouse.name}在旁护法，心脉安稳。`, 'dim')
+        if (bonded.length > 0 && !spouseHurt) log(`${bonded[0]!.name}在旁护法，心脉安稳。`, 'dim')
         if (breakPill && usedPlan.id !== 'golden_pill')
           log(`服用「${breakPill.name}」，药力护持破关。`, 'dim')
         if (usedPlan.id === 'golden_pill') log('渡劫金丹化开，雷劫声势为之一缓。', 'dim')
@@ -386,13 +390,13 @@ export function createCultivateSlice(
       let severity = result.severity
       if (usedPlan.softenFail) severity = softenSeverity(severity)
 
-      if (usedPlan.spouseRisk && spouse) {
+      if (usedPlan.spouseRisk && bonded.length > 0) {
         const until = dayNumber(get().time) + TUNING.spouseHurtDays
         set({
           companion: { ...get().companion, spouseHurtUntilDay: until },
         })
         log(
-          `${spouse.name}护法被雷劫余波所伤，${TUNING.spouseHurtDays} 日内无法助战/代劳。`,
+          `${bonded[0]!.name}护法被雷劫余波所伤，${TUNING.spouseHurtDays} 日内无法助战/代劳。`,
           'bad',
         )
       }
@@ -442,7 +446,7 @@ export function createCultivateSlice(
         log('此身尚在修行，无需转生。（需先飞升或道消）', 'dim')
         return
       }
-      const gain = reincarnateGain(player, Boolean(companion.spouseId), get().favor)
+      const gain = reincarnateGain(player, companion.spouseIds.length > 0, get().favor)
       let extraDaoCost = 0
       const nextSealed: SealedItem[] = [...(legacy.sealed ?? [])]
       const slots = sealSlots(legacy.daoMarks + gain.daoMarks)
@@ -490,12 +494,12 @@ export function createCultivateSlice(
       const c = companionById(id)
       if (!c) return
       const aff = companion.affinity[id] ?? 0
-      if (aff < DUAL_CULTIVATE_AFFINITY_MIN) {
-        log(`${c.name}与你尚不熟稔，婉拒双修。`, 'bad')
+      if (c.gender !== 'female') {
+        log(`${c.name}是男子之身，只能义结金兰，不可双修。`, 'bad')
         return
       }
-      if (companion.spouseId && companion.spouseId !== id) {
-        log('你已有道侣，不宜与他人双修。', 'bad')
+      if (aff < DUAL_CULTIVATE_AFFINITY_MIN) {
+        log(`${c.name}与你尚不熟稔，婉拒双修。`, 'bad')
         return
       }
       if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
@@ -552,7 +556,7 @@ export function createCultivateSlice(
           lifespanLeft: life,
         },
       })
-      if (companion.spouseId === id) maybeTriggerSpouseStory(get, set)
+      if (companion.spouseIds.includes(id)) maybeTriggerSpouseStory(get, set, id)
     },
   }
 }

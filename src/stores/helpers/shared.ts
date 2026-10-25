@@ -40,9 +40,16 @@ export function artifactCraftDays(recipeId: string): number {
   return ARTIFACT_RECIPES.find((r) => r.id === recipeId)?.craftDays ?? 2
 }
 
+/** 所有已结缘对象（道侣 + 结拜兄弟），按结缘先后排列 */
+export function bondedDefs(companion: CompanionState): CompanionDef[] {
+  return [...companion.spouseIds, ...companion.swornIds]
+    .map((id) => companionById(id))
+    .filter((c): c is CompanionDef => Boolean(c))
+}
+
+/** 主位道侣（首位结缘者）；被动加成不叠加，只取主位 */
 export function spouseDef(companion: CompanionState): CompanionDef | null {
-  if (!companion.spouseId) return null
-  return companionById(companion.spouseId) ?? null
+  return bondedDefs(companion)[0] ?? null
 }
 
 export function sectDef(id: string | null): SectDef | null {
@@ -69,7 +76,7 @@ function buildEventContext(s: {
     repDemonic: p.repDemonic,
     sectId: s.sect.sectId,
     sectRank: s.sect.rank,
-    spouseId: s.companion.spouseId,
+    bonded: [...s.companion.spouseIds, ...s.companion.swornIds],
     affinity: s.companion.affinity,
     flags: s.companion.flags,
     wanted: s.wanted ?? 0,
@@ -115,35 +122,38 @@ export function bumpQuestExploreWin(get: MetaGet, set: MetaSet) {
   }
 }
 
-/** 结缘后剧情：有可触发段则弹出（身份/时序门槛由 nextStoryBeat 处理，命中的可能是替代段） */
-export function maybeTriggerSpouseStory(get: MetaGet, set: MetaSet) {
+/** 结缘后剧情：有可触发段则弹出（身份/时序门槛由 nextStoryBeat 处理，命中的可能是替代段）
+ *  多位道侣时优先指定 id，否则按结缘先后找第一个有待播段落的道侣。 */
+export function maybeTriggerSpouseStory(get: MetaGet, set: MetaSet, spouseId?: string) {
   const s = get()
   if (!s.player || s.pendingEvent || s.pendingStory || s.activeCombat) return
-  const spouseId = s.companion.spouseId
-  if (!spouseId) return
-  const c = companionById(spouseId)
-  if (!c?.postStory?.length) return
-  const stage = s.companion.postStage[spouseId] ?? 0
-  const next = nextStoryBeat(c, stage, {
-    realm: s.player.realm,
-    sectId: s.sect.sectId,
-    sectRank: s.sect.rank,
-    flags: s.companion.flags,
-  })
-  for (const text of next.skipped) log(text, 'dim')
-  if (!next.beat) {
-    // 剩余段落全部被门槛略过：一次性推进到结尾，避免每回合重复扫描
-    if (next.index !== stage) {
-      set({
-        companion: {
-          ...s.companion,
-          postStage: { ...s.companion.postStage, [spouseId]: next.index },
-        },
-      })
+  const candidates = spouseId ? [spouseId] : s.companion.spouseIds
+  for (const id of candidates) {
+    const c = companionById(id)
+    if (!c?.postStory?.length) continue
+    const stage = s.companion.postStage[id] ?? 0
+    const next = nextStoryBeat(c, stage, {
+      realm: s.player.realm,
+      sectId: s.sect.sectId,
+      sectRank: s.sect.rank,
+      flags: s.companion.flags,
+    })
+    for (const text of next.skipped) log(text, 'dim')
+    if (!next.beat) {
+      // 剩余段落全部被门槛略过：一次性推进到结尾，避免每回合重复扫描
+      if (next.index !== stage) {
+        set({
+          companion: {
+            ...s.companion,
+            postStage: { ...s.companion.postStage, [id]: next.index },
+          },
+        })
+      }
+      continue
     }
+    set({ pendingStory: { companionId: id, beat: next.beat, beatIndex: next.index } })
     return
   }
-  set({ pendingStory: { companionId: spouseId, beat: next.beat, beatIndex: next.index } })
 }
 
 /** v1.2 灵兽灵田协助（手动按钮 / 跨日自动共用）；auto 模式下无可收获则不消耗当日协助 */

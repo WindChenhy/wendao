@@ -15,7 +15,7 @@ function ctx(over: Partial<EventGateContext> = {}): EventGateContext {
     repDemonic: 0,
     sectId: null,
     sectRank: 'menial',
-    spouseId: null,
+    bonded: [],
     affinity: {},
     flags: [],
     wanted: 0,
@@ -162,16 +162,20 @@ describe('R-32 正魔恋事件线', () => {
     const pressure = evts[0]!
     // 正道 + 血梅 → 触发
     expect(
-      eventGatePasses(pressure, ctx({ alignment: 'righteous', spouseId: 'xue_mei', sectId: 'qingyun' })),
+      eventGatePasses(pressure, ctx({ alignment: 'righteous', bonded: ['xue_mei'], sectId: 'qingyun' })),
     ).toBe(true)
     // 立场不符
     expect(
-      eventGatePasses(pressure, ctx({ alignment: 'demonic', spouseId: 'xue_mei', sectId: 'qingyun' })),
+      eventGatePasses(pressure, ctx({ alignment: 'demonic', bonded: ['xue_mei'], sectId: 'qingyun' })),
     ).toBe(false)
     // 道侣不符
     expect(
-      eventGatePasses(pressure, ctx({ alignment: 'righteous', spouseId: 'lin_wan', sectId: 'qingyun' })),
+      eventGatePasses(pressure, ctx({ alignment: 'righteous', bonded: ['lin_wan'], sectId: 'qingyun' })),
     ).toBe(false)
+    // 多位结缘时命中其一即触发
+    expect(
+      eventGatePasses(pressure, ctx({ alignment: 'righteous', bonded: ['lin_wan', 'xue_mei'], sectId: 'qingyun' })),
+    ).toBe(true)
   })
 
   it('分支影响好感/声望/结局标记', () => {

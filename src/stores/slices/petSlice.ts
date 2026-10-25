@@ -1,6 +1,7 @@
 import {
   PET_BREAK_LEVEL,
   PET_FEED_EXP,
+  PET_FOOD_IDS,
   PET_MAP,
   PET_MAX_LEVEL,
   petExpNeed,
@@ -60,25 +61,35 @@ export function createPetSlice(
       if (!pet) return
       set({ pet: { ...pet, fight: !pet.fight } })
     },
-    feedPet: () => {
+    feedPet: (foodId, count) => {
       const { pet, inventory } = get()
       if (!pet) return
-      const foodId = ['herb_qi', 'pill_qi', 'herb_moon', 'pill_heal'].find((id) => (inventory[id] ?? 0) > 0)
-      if (!foodId) {
+      if (!PET_FOOD_IDS.includes(foodId)) {
+        log('灵兽不吃这种灵药。', 'bad')
+        return
+      }
+      const owned = inventory[foodId] ?? 0
+      const n = Number.isFinite(count) ? Math.max(0, Math.min(Math.floor(count), owned)) : 0
+      if (n <= 0) {
         log('没有合适的灵食。', 'bad')
         return
       }
       const inv = { ...inventory }
-      removeItem(inv, foodId)
-      // v1.4 御兽之道 DLC：喂养经验倍率
-      let exp = pet.exp + Math.floor(PET_FEED_EXP * currentRules().petExpMul)
+      removeItem(inv, foodId, n)
+      // v1.4 御兽之道 DLC：喂养经验倍率（逐份结算，与单次喂食口径一致）
+      const gain = Math.floor(PET_FEED_EXP * currentRules().petExpMul) * n
+      let exp = pet.exp + gain
       let level = pet.level
       while (level < PET_MAX_LEVEL && exp >= petExpNeed(level)) {
         exp -= petExpNeed(level)
         level += 1
       }
-      log('喂食 ' + (ITEMS[foodId]?.name ?? foodId) + '，亲密 +2。', 'good')
-      set({ inventory: inv, pet: { ...pet, exp, level, bond: Math.min(100, pet.bond + 2) } })
+      const bond = Math.min(100, pet.bond + 2 * n)
+      const parts = [`经验 +${gain}`]
+      if (level > pet.level) parts.push(`升至 Lv.${level}`)
+      if (bond > pet.bond) parts.push(`亲密 +${bond - pet.bond}`)
+      log(`喂食「${ITEMS[foodId]?.name ?? foodId}」×${n}，${parts.join('，')}。`, 'good')
+      set({ inventory: inv, pet: { ...pet, exp, level, bond } })
       bumpDaily(get, set, 'feed')
     },
     breakthroughPet: () => {

@@ -64,11 +64,18 @@ describe('存档迁移', () => {
     expect(s.libraryLv).toBe(0)
   })
 
-  it('companion 兼容缺字段', () => {
+  it('companion 兼容缺字段（旧档单道侣 → spouseIds）', () => {
     const c = migrateCompanion({ affinity: { lin_wan: 10 }, spouseId: 'lin_wan' })
     expect(c.affinity.lin_wan).toBe(10)
-    expect(c.spouseId).toBe('lin_wan')
+    expect(c.spouseIds).toEqual(['lin_wan'])
+    expect(c.swornIds).toEqual([])
     expect(c.endings).toEqual({})
+  })
+
+  it('旧档男性道侣按新规则转为结拜', () => {
+    const c = migrateCompanion({ spouseId: 'yan_luo' })
+    expect(c.spouseIds).toEqual([])
+    expect(c.swornIds).toEqual(['yan_luo'])
   })
 
   it('mergeCollection 去重合并', () => {

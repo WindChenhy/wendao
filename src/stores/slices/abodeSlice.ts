@@ -58,14 +58,20 @@ export function createAbodeSlice(
   | 'decomposeArtifact'
 > {
   return {
-    buySeed: (seedId) => {
+    buySeed: (seedId, count) => {
       const { stones, inventory, player } = get()
       const seed = SEEDS[seedId]
-      if (!seed || !player || stones < seed.seedPrice) return
+      if (!seed || !player) return
+      const n = Number.isFinite(count) ? Math.max(1, Math.min(99, Math.floor(count))) : 1
+      const cost = seed.seedPrice * n
+      if (stones < cost) {
+        log(`灵石不足，购入 ${n} 份「${seed.name}」需灵石 ${cost}。`, 'bad')
+        return
+      }
       const inv = { ...inventory }
-      addItem(inv, seedId)
-      log(`购入「${seed.name}」×1，花费灵石 ${seed.seedPrice}`, 'dim')
-      set({ inventory: inv, stones: stones - seed.seedPrice })
+      addItem(inv, seedId, n)
+      log(`购入「${seed.name}」×${n}，花费灵石 ${cost}`, 'dim')
+      set({ inventory: inv, stones: stones - cost })
     },
 
     plantSeed: (plotIndex, seedId) => {

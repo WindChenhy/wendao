@@ -70,7 +70,7 @@ export function createMetaSlice(
       const { player, companion, legacy } = get()
       // 若此世已终结（飞升优先于道消），先结算道痕再开新身
       if (player && (!player.alive || isAscended(player))) {
-        const gain = reincarnateGain(player, Boolean(companion.spouseId))
+        const gain = reincarnateGain(player, companion.spouseIds.length > 0)
         const endedYear = get().time.year
         const nextLegacy: LegacyState = {
           daoMarks: legacy.daoMarks + gain.daoMarks,

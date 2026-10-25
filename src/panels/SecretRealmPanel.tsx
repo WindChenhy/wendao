@@ -23,7 +23,7 @@ export function SecretRealmPanel() {
   const active = tower && !tower.left ? SECRET_REALMS.find((r) => r.id === tower.realmId) : null
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       {tower && active ? (
         <>
           <div className="panel-box p-4 border-gold-dim">

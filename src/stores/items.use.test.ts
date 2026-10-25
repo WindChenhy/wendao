@@ -1,4 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { REALMS } from '../data/realms'
+import { marketStockFor } from '../data/items'
 
 // store 模块加载时会读 localStorage → 必须先桩，再动态 import
 vi.stubGlobal('localStorage', {
@@ -65,6 +67,47 @@ describe('坊市买卖不受境界限制（境界只约束使用）', () => {
     // 参悟被境界/品阶门槛拦下：秘籍仍在背包，功法未入门
     expect(useGameStore.getState().inventory[scrollId]).toBe(1)
     expect(useGameStore.getState().gongfa.learned['gf_dayan']).toBeUndefined()
+  })
+})
+
+/**
+ * 移动端「突破大境界后坊市装备法宝 / 功法页被清空」的端到端回归保护：
+ * 走真实 breakthrough 流程冲一个大境界，突破后立刻取货架（不重新挂载面板），
+ * 断言两个分区依然有货、player 没有被置空。
+ */
+describe('大境界突破后坊市货架即时可用（不退出坊市、不重进游戏）', () => {
+  it('冲过一个大境界后，装备法宝与功法分区仍然满货', () => {
+    newCharacter()
+    const from = 'qi'
+    const maxLayer = REALMS[from]?.layers ?? 9
+    useGameStore.setState((s) => ({
+      player: { ...s.player!, realm: from, layer: maxLayer, exp: 0 },
+      inventory: { ...s.inventory, mat_foundation: 9 },
+    }))
+    // 突破是概率事件，反复冲关直到成功（每次先把层位与修为补满）
+    let broke = false
+    for (let i = 0; i < 200; i++) {
+      useGameStore.getState().debugFillExp()
+      useGameStore.getState().breakthrough()
+      if (useGameStore.getState().player?.realm !== from) {
+        broke = true
+        break
+      }
+      useGameStore.setState((s) => ({ player: { ...s.player!, layer: maxLayer } }))
+    }
+    expect(broke, '应至少成功突破一次大境界').toBe(true)
+
+    const p = useGameStore.getState().player
+    expect(p, '突破后 player 不应被置空（置空会让整个坊市为空）').toBeTruthy()
+    expect(p!.realm).not.toBe(from)
+
+    // 突破后立刻取货架：不卸载面板、不重新读档
+    for (const tab of ['treasure', 'gongfa'] as const) {
+      const before = marketStockFor(from, tab)
+      const after = marketStockFor(p!.realm, tab)
+      expect(after.length, `${tab} 分区突破后不应为空`).toBeGreaterThan(0)
+      expect(after.length, `${tab} 分区条目数不应因突破变化`).toBe(before.length)
+    }
   })
 })
 

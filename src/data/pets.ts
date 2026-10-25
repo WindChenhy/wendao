@@ -47,6 +47,9 @@ export const PET_GUARD_LOSS_REDUCE = cfg.guardLossReduce
 export const PET_CAPTURE_PITY = cfg.capturePity
 export const PET_FEED_EXP = cfg.feedExpPerItem
 
+/** 可喂食灵兽的灵食：常见灵草与一品丹药 */
+export const PET_FOOD_IDS: string[] = ['herb_qi', 'pill_qi', 'herb_moon', 'pill_heal']
+
 /** R-29 御兽道：捕捉灵兽成功率上浮比例（+25%） */
 export const PET_BEAST_CAPTURE_BONUS = 0.25
 

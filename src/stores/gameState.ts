@@ -98,8 +98,8 @@ export interface GameState {
   resolveEvent: (actionId: string) => void
   /** v0.9 结缘后剧情抉择 */
   resolveStory: (choiceId: string | null) => void
-  /** 手动触发道侣长线剧情（若可） */
-  triggerSpouseStory: () => void
+  /** 手动触发道侣长线剧情（若可；可指定道侣 id） */
+  triggerSpouseStory: (id?: string) => void
   /** 道侣代劳：打理灵田（每日一次） */
   spouseFarmHelp: () => void
   /** 道侣代劳：代炼低阶丹（每日一次） */
@@ -124,7 +124,8 @@ export interface GameState {
   obtainPet: (petId: string, name?: string) => void
   renamePet: (name: string) => void
   togglePetFight: () => void
-  feedPet: () => void
+  /** 喂食指定灵食（灵草/一品丹）count 份 */
+  feedPet: (foodId: string, count: number) => void
   breakthroughPet: () => void
   setPetJob: (job: PetJob) => void
   releasePet: () => void
@@ -153,7 +154,8 @@ export interface GameState {
   sellItem: (id: string) => void
   buyItem: (id: string) => void
 
-  buySeed: (seedId: string) => void
+  /** 购入种子 count 份（单次上限 99） */
+  buySeed: (seedId: string, count: number) => void
   plantSeed: (plotIndex: number, seedId: string) => void
   /** 一键播种：将指定种子种满所有闲置灵田（以库存为上限） */
   plantAll: (seedId: string) => void

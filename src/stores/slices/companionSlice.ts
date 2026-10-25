@@ -1,6 +1,10 @@
 import { SEED_LIST, SEEDS } from '../../data/abode'
 import {
+  CHAT_AFFINITY_DAILY_LIMIT,
   CROSS_ALIGNMENT_AFFINITY_EXTRA,
+  GIFT_DAILY_LIMIT,
+  MARRY_STONES_COST,
+  SWORN_STONES_COST,
   companionById,
   giftAffinity,
   storyEndingKey,
@@ -19,9 +23,33 @@ import {
   unlockCodex,
 } from '../helpers'
 import type { GameState, MetaGet, MetaSet } from '../gameState'
+import type { CompanionState } from '../../types'
 import { uniqIds } from '../saveMigrate'
 
 /** companion 域：道侣闲谈/赠礼/结缘/结缘后剧情/代劳 */
+
+/** 当日互动计数（跨日自动清零） */
+function interactOf(
+  companion: CompanionState,
+  id: string,
+  key: string,
+): { chat: number; gift: number } {
+  const rec = companion.dailyInteract?.[id]
+  return rec && rec.day === key ? { chat: rec.chat, gift: rec.gift } : { chat: 0, gift: 0 }
+}
+
+function bumpInteract(
+  companion: CompanionState,
+  id: string,
+  key: string,
+  field: 'chat' | 'gift',
+): Record<string, { day: string; chat: number; gift: number }> {
+  const cur = interactOf(companion, id, key)
+  return {
+    ...companion.dailyInteract,
+    [id]: { day: key, ...cur, [field]: cur[field] + 1 },
+  }
+}
 export function createCompanionSlice(
   set: MetaSet,
   get: MetaGet,
@@ -37,10 +65,16 @@ export function createCompanionSlice(
 > {
   return {
     chatCompanion: (id) => {
-      const { companion, player } = get()
+      const { companion, player, time } = get()
       if (!player || !player.alive) return
       const c = companionById(id)
       if (!c) return
+      const key = `${time.year}-${time.month}-${time.day}`
+      const { chat } = interactOf(companion, id, key)
+      if (chat >= CHAT_AFFINITY_DAILY_LIMIT) {
+        log(`与${c.name}闲谈片刻。今日已叙过多次，好感不再增加。`, 'dim')
+        return
+      }
       const gain = 2 + Math.floor(Math.random() * 3)
       const prev = companion.affinity[id] ?? 0
       const next = prev + gain
@@ -57,6 +91,7 @@ export function createCompanionSlice(
           ...companion,
           affinity: { ...companion.affinity, [id]: next },
           heartsSeen: { ...companion.heartsSeen, [id]: seen },
+          dailyInteract: bumpInteract(companion, id, key, 'chat'),
         },
       })
       if (next >= 1) unlockCodex(get, set, 'companion', id)
@@ -64,12 +99,18 @@ export function createCompanionSlice(
     },
 
     giftCompanion: (id, itemId) => {
-      const { companion, inventory, player } = get()
+      const { companion, inventory, player, time } = get()
       if (!player) return
       const c = companionById(id)
       if (!c) return
       if ((inventory[itemId] ?? 0) <= 0) {
         log('背包中没有此物。', 'bad')
+        return
+      }
+      const key = `${time.year}-${time.month}-${time.day}`
+      const { gift } = interactOf(companion, id, key)
+      if (gift >= GIFT_DAILY_LIMIT) {
+        log(`${c.name}摆手：「今日已收下两份心意，再收便要折福了。」`, 'bad')
         return
       }
       if (c.align === 'righteous' && itemId === 'demon_shard') {
@@ -99,6 +140,7 @@ export function createCompanionSlice(
           ...companion,
           affinity: { ...companion.affinity, [id]: next },
           heartsSeen: { ...companion.heartsSeen, [id]: seen },
+          dailyInteract: bumpInteract(companion, id, key, 'gift'),
         },
       })
       if (next >= 1) unlockCodex(get, set, 'companion', id)
@@ -175,8 +217,8 @@ export function createCompanionSlice(
       afterProgressSnapshot(get, set)
     },
 
-    triggerSpouseStory: () => {
-      maybeTriggerSpouseStory(get, set)
+    triggerSpouseStory: (id) => {
+      maybeTriggerSpouseStory(get, set, id)
       if (!get().pendingStory) {
         log('眼下无新的缘法可续。', 'dim')
       }
@@ -184,7 +226,7 @@ export function createCompanionSlice(
 
     spouseFarmHelp: () => {
       const { companion, player, time, abode, inventory } = get()
-      if (!player || !player.alive || !companion.spouseId) return
+      if (!player || !player.alive || companion.spouseIds.length === 0) return
       if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
         log('道侣重伤未愈，无法代劳。', 'bad')
         return
@@ -194,7 +236,7 @@ export function createCompanionSlice(
         log('今日道侣已代为打理过灵田。', 'dim')
         return
       }
-      const c = companionById(companion.spouseId)
+      const c = companionById(companion.spouseIds[0]!)
       if (!c) return
       let inv = { ...inventory }
       let harvested = 0
@@ -234,7 +276,7 @@ export function createCompanionSlice(
 
     spousePillHelp: () => {
       const { companion, player, time, inventory } = get()
-      if (!player || !player.alive || !companion.spouseId) return
+      if (!player || !player.alive || companion.spouseIds.length === 0) return
       if ((companion.spouseHurtUntilDay ?? 0) > dayNumber(time)) {
         log('道侣重伤未愈，无法代炼。', 'bad')
         return
@@ -244,7 +286,7 @@ export function createCompanionSlice(
         log('今日道侣已代炼过丹药。', 'dim')
         return
       }
-      const c = companionById(companion.spouseId)
+      const c = companionById(companion.spouseIds[0]!)
       if (!c) return
       const inv = { ...inventory }
       // 苏青/玄灵炼丹更佳
@@ -271,16 +313,13 @@ export function createCompanionSlice(
       const c = companionById(id)
       if (!c) return
       const aff = companion.affinity[id] ?? 0
-      if (companion.spouseId) {
-        log('你已有道侣。', 'bad')
+      const bonded = [...companion.spouseIds, ...companion.swornIds]
+      if (bonded.includes(id)) {
+        log(`你们已有结缘，不必再提。`)
         return
       }
       if (aff < c.marryAt) {
         log(`${c.name}：「再相处些时日吧。」（需好感 ${c.marryAt}，当前 ${aff}）`, 'bad')
-        return
-      }
-      if (stones < 200) {
-        log('结缘需置办双修洞府与礼数，灵石不足 200。', 'bad')
         return
       }
       // 正魔恋需更高好感（marryAt 之上再加一笔固定门槛）
@@ -290,14 +329,37 @@ export function createCompanionSlice(
         log(`正魔之恋阻力极大，${c.name}还需更多坚定。（需好感 ${crossNeed}）`, 'bad')
         return
       }
-      log(`${c.name}应允了。自此结为道侣，祸福与共。`, 'gold')
-      set({
-        stones: stones - 200,
-        companion: { ...companion, spouseId: id, postStage: { ...companion.postStage, [id]: companion.postStage[id] ?? 0 } },
-      })
+      if (c.gender === 'female') {
+        // 女性：结为道侣（可有多位道侣）
+        if (stones < MARRY_STONES_COST) {
+          log(`结缘需置办双修洞府与礼数，灵石不足 ${MARRY_STONES_COST}。`, 'bad')
+          return
+        }
+        log(`${c.name}应允了。自此结为道侣，祸福与共。`, 'gold')
+        set({
+          stones: stones - MARRY_STONES_COST,
+          companion: {
+            ...companion,
+            spouseIds: [...companion.spouseIds, id],
+            postStage: { ...companion.postStage, [id]: companion.postStage[id] ?? 0 },
+          },
+        })
+      } else {
+        // 男性：结拜为异姓兄弟
+        if (stones < SWORN_STONES_COST) {
+          log(`义结金兰需置办酒礼，灵石不足 ${SWORN_STONES_COST}。`, 'bad')
+          return
+        }
+        log(c.swornText ?? `${c.name}与你焚香歃血，结为异姓兄弟。`, 'gold')
+        log(`${c.name}大笑三声，与你义结金兰。此后祸福同担，护法同行。`, 'good')
+        set({
+          stones: stones - SWORN_STONES_COST,
+          companion: { ...companion, swornIds: [...companion.swornIds, id] },
+        })
+      }
       unlockCodex(get, set, 'companion', id)
       afterProgressSnapshot(get, set)
-      maybeTriggerSpouseStory(get, set)
+      maybeTriggerSpouseStory(get, set, id)
     },
   }
 }

@@ -27,7 +27,8 @@ const sect = {
 const companion = {
   affinity: {},
   heartsSeen: {},
-  spouseId: null,
+  spouseIds: [],
+  swornIds: [],
   dualDoneOn: '',
   postStage: {},
   endings: {},

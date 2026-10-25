@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { DAILY_TASK_MAP, WEEK_GIFT } from '../data/daily'
+import { dailyAllClaimed } from '../game/daily'
 import { useGameStore } from '../stores/useGameStore'
 
 /** v1.4 修炼页顶部：修行日课（按现实日刷新，与焚香记日一致）+ 现实日「焚香记日」 */
@@ -58,6 +59,9 @@ export function DailyCard() {
         })}
         {daily.tasks.length === 0 && (
           <p className="text-xs text-text-dim">修行日课生成中……（进行任意操作后刷新）</p>
+        )}
+        {dailyAllClaimed(daily.tasks) && (
+          <p className="text-[10px] text-text-dim">今日日课已全清，明日刷新后可再领一轮。</p>
         )}
       </div>
       <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between text-xs">

@@ -18,7 +18,19 @@ import { canCraft, craftRate, plotProgress } from '../game/farm'
 import { ArtifactForgePanel } from './ArtifactForgePanel'
 import { formatNum } from '../game/format'
 import { useGameStore } from '../stores/useGameStore'
-import { PETS, petExpNeed, describePet } from '../data/pets'
+import {
+  PETS,
+  PET_MAP,
+  PET_MAX_LEVEL,
+  PET_BREAK_LEVEL,
+  PET_FEED_EXP,
+  PET_FOOD_IDS,
+  petExpNeed,
+  petStatBonus,
+  petAssistChance,
+  describePet,
+  type PetState,
+} from '../data/pets'
 import { isAscended } from '../game/reincarnate'
 
 /** 单格灵田：只订阅自己那一格（abode.plots[index]），播种/收获不会牵动其余 127 格重渲染 */
@@ -91,14 +103,12 @@ export function AbodePanel() {
   const inventory = useGameStore((s) => s.inventory)
   const stones = useGameStore((s) => s.stones)
   const abode = useGameStore((s) => s.abode)
-  const buySeed = useGameStore((s) => s.buySeed)
   const plantAll = useGameStore((s) => s.plantAll)
   const harvestAll = useGameStore((s) => s.harvestAll)
   const expandFarmCol = useGameStore((s) => s.expandFarmCol)
   const expandFarmRow = useGameStore((s) => s.expandFarmRow)
   const craftItem = useGameStore((s) => s.craftItem)
   const pet = useGameStore((s) => s.pet)
-  const feedPet = useGameStore((s) => s.feedPet)
   const breakthroughPet = useGameStore((s) => s.breakthroughPet)
   const setPetJob = useGameStore((s) => s.setPetJob)
   const releasePet = useGameStore((s) => s.releasePet)
@@ -108,6 +118,8 @@ export function AbodePanel() {
   const legacy = useGameStore((s) => s.legacy)
   const [plantSeedId, setPlantSeedId] = useState<string | null>(null)
   const [petNameDraft, setPetNameDraft] = useState('')
+  const [shopSeedId, setShopSeedId] = useState<string | null>(null)
+  const [feedOpen, setFeedOpen] = useState(false)
   const upgradeJuling = useGameStore((s) => s.upgradeJuling)
   const seedOptions = useMemo(
     () => SEED_LIST.filter((s) => (inventory[s.id] ?? 0) > 0),
@@ -137,7 +149,7 @@ export function AbodePanel() {
   const planted = total - emptyCount
 
   return (
-    <div className="p-4 space-y-4 max-w-3xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="panel-box p-4">
         <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
           <div className="font-display text-gold">洞府灵田</div>
@@ -236,10 +248,10 @@ export function AbodePanel() {
           {SEED_LIST.map((s: SeedDef) => (
             <button
               key={s.id}
-              className="pixel-btn text-xs"
-              disabled={dead || stones < s.seedPrice}
+              className={`pixel-btn text-xs ${stones < s.seedPrice ? 'opacity-50' : ''}`}
+              disabled={dead}
               title={s.desc}
-              onClick={() => buySeed(s.id)}
+              onClick={() => setShopSeedId(s.id)}
             >
               {s.name} {s.seedPrice}灵石
             </button>
@@ -261,7 +273,7 @@ export function AbodePanel() {
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button className="pixel-btn text-xs" disabled={dead} onClick={feedPet}>喂食</button>
+              <button className="pixel-btn text-xs" disabled={dead} onClick={() => setFeedOpen(true)}>喂食</button>
               <button
                 className="pixel-btn text-xs"
                 disabled={dead || pet.level < 10 || pet.broken}
@@ -386,6 +398,245 @@ export function AbodePanel() {
               </div>
             )
           })}
+        </div>
+      </div>
+
+      {shopSeedId && (
+        <SeedShopModal seedId={shopSeedId} onClose={() => setShopSeedId(null)} />
+      )}
+      {feedOpen && pet && <PetFeedModal pet={pet} onClose={() => setFeedOpen(false)} />}
+    </div>
+  )
+}
+
+/** 灵植坊市购买弹窗：数量 × 单价，实时按灵石计算上限，单次最多 99 份 */
+function SeedShopModal({ seedId, onClose }: { seedId: string; onClose: () => void }) {
+  const stones = useGameStore((s) => s.stones)
+  const buySeed = useGameStore((s) => s.buySeed)
+  const [count, setCount] = useState(1)
+  const seed = SEEDS[seedId]
+  if (!seed) return null
+
+  const maxBuy = Math.min(99, Math.floor(stones / seed.seedPrice))
+  const qty = maxBuy > 0 ? Math.min(maxBuy, Math.max(1, count)) : 0
+  const total = seed.seedPrice * qty
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      <div className="panel-box w-full max-w-md p-5 border-gold max-h-[85dvh] overflow-y-auto scroll-thin">
+        <div className="text-[11px] text-gold mb-1 font-display tracking-widest">灵植坊市 · 购买</div>
+        <h3 className="font-display text-xl text-gold mb-2">{seed.name}</h3>
+        <p className="text-sm text-text mb-3 leading-relaxed">{seed.desc}</p>
+
+        <div className="text-xs text-text-dim space-y-1 mb-4">
+          <div>
+            单价 <span className="text-gold">{formatNum(seed.seedPrice)}</span> 灵石 · 成熟约 {seed.growDays} 日
+            {' '}· 单次上限 99 份
+          </div>
+          <div>
+            当前灵石 <span className="text-gold">{formatNum(stones)}</span>
+            {' '}· 最多可购 <span className="text-jade">{maxBuy}</span> 份
+          </div>
+          {maxBuy === 0 && (
+            <div className="text-vermilion">
+              灵石不足，尚差 {formatNum(seed.seedPrice - stones)} 灵石。
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
+          <span className="text-text-dim">购买数量</span>
+          <button
+            type="button"
+            className="pixel-btn text-xs"
+            disabled={qty <= 1}
+            onClick={() => setCount((c) => Math.max(1, c - 1))}
+          >
+            −
+          </button>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(1, maxBuy)}
+            value={qty}
+            disabled={maxBuy === 0}
+            onChange={(e) => {
+              const n = Math.floor(Number(e.target.value))
+              setCount(Number.isFinite(n) ? Math.max(1, Math.min(maxBuy, n)) : 1)
+            }}
+            className="bg-black/30 border border-border px-2 py-1 w-20 text-xs"
+          />
+          <button
+            type="button"
+            className="pixel-btn text-xs"
+            disabled={maxBuy === 0 || qty >= maxBuy}
+            onClick={() => setCount((c) => Math.min(maxBuy, Math.max(1, c + 1)))}
+          >
+            ＋
+          </button>
+          <button
+            type="button"
+            className="pixel-btn text-xs"
+            disabled={maxBuy === 0}
+            onClick={() => setCount(maxBuy)}
+          >
+            最大
+          </button>
+        </div>
+
+        <div className="text-sm mb-4">
+          合计 <span className="text-gold">{formatNum(total)}</span> 灵石
+          {qty > 0 && (
+            <span className="text-xs text-text-dim ml-2">（{seed.seedPrice} × {qty}）</span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="pixel-btn text-xs" onClick={onClose}>
+            取消
+          </button>
+          <button
+            type="button"
+            className="pixel-btn primary text-xs"
+            disabled={qty <= 0 || total > stones}
+            onClick={() => {
+              buySeed(seed.id, qty)
+              onClose()
+            }}
+          >
+            购买 {qty} 份
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** 灵兽喂食弹窗：面板属性 + 背包中的可喂灵药，可指定数量或一键全喂 */
+function PetFeedModal({ pet, onClose }: { pet: PetState; onClose: () => void }) {
+  const inventory = useGameStore((s) => s.inventory)
+  const feedPet = useGameStore((s) => s.feedPet)
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  const def = PET_MAP[pet.petId]
+  const stat = petStatBonus(pet)
+  const chance = petAssistChance(pet)
+  const ownedFoods = PET_FOOD_IDS.filter((id) => (inventory[id] ?? 0) > 0)
+  const foodNames = PET_FOOD_IDS.map((id) => ITEMS[id]?.name ?? id).join('、')
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      <div className="panel-box w-full max-w-md p-5 border-gold max-h-[85dvh] overflow-y-auto scroll-thin">
+        <div className="text-[11px] text-gold mb-1 font-display tracking-widest">灵兽栏 · 喂食</div>
+        <h3 className="font-display text-xl text-gold mb-1">
+          {pet.name}
+          <span className="text-sm text-text-dim ml-2">{def?.name ?? pet.petId}</span>
+        </h3>
+        {def?.desc && <p className="text-xs text-text-dim mb-3 leading-relaxed">{def.desc}</p>}
+
+        <div className="border border-border px-3 py-2 mb-3 text-xs space-y-1">
+          <div>
+            等级 <span className="text-gold">Lv.{pet.level}</span> / {PET_MAX_LEVEL}
+            <span className="text-text-dim ml-2">经验 {pet.exp}/{petExpNeed(pet.level)}</span>
+          </div>
+          <div>
+            亲密 <span className="text-jade">{pet.bond}</span>/100
+            <span className="text-text-dim ml-2">
+              岗位 {pet.job === 'farm' ? '灵田协助' : pet.job === 'guard' ? '看家' : '闲居'}
+            </span>
+          </div>
+          <div>
+            协战加成{' '}
+            {pet.fight ? (
+              <>
+                <span className="text-jade">攻击 +{(stat.atk * 100).toFixed(1)}%</span>
+                {' · '}
+                <span className="text-jade">气血 +{(stat.hp * 100).toFixed(1)}%</span>
+              </>
+            ) : (
+              <span className="text-text-dim">歇战中，未生效</span>
+            )}
+          </div>
+          <div>
+            辅助技 <span className="text-gold">{def?.skillName ?? '—'}</span>
+            {def?.skillDesc ? `：${def.skillDesc}` : ''}
+            <span className="text-text-dim">（触发率 {(chance * 100).toFixed(0)}%）</span>
+          </div>
+          <div className="text-text-dim">
+            {pet.fight ? '出战中' : '歇战'}
+            {pet.broken
+              ? ' · 已突破（属性 ×1.15）'
+              : pet.level >= PET_BREAK_LEVEL
+                ? ' · 可突破'
+                : ` · 未突破（Lv.${PET_BREAK_LEVEL} 可突破）`}
+            {pet.restUntilDay > 0 ? ' · 休养中' : ''}
+          </div>
+        </div>
+
+        <div className="text-xs text-gold mb-1">可喂食灵药</div>
+        <p className="text-[11px] text-text-dim mb-2 leading-relaxed">
+          灵兽可食灵草与丹药：{foodNames}。每份 +{PET_FEED_EXP} 经验、亲密 +2；御兽之道会提高经验。
+        </p>
+        {pet.level >= PET_MAX_LEVEL && (
+          <p className="text-[11px] text-gold-dim mb-2">已至 Lv.{PET_MAX_LEVEL}，继续喂食只增加亲密度。</p>
+        )}
+
+        {ownedFoods.length === 0 ? (
+          <p className="text-xs text-vermilion mb-3">背包里暂无可喂食的灵药。</p>
+        ) : (
+          <div className="space-y-2 mb-3">
+            {ownedFoods.map((id) => {
+              const item = ITEMS[id]
+              const owned = inventory[id] ?? 0
+              const count = Math.min(owned, Math.max(1, counts[id] ?? 1))
+              return (
+                <div key={id} className="border border-border px-3 py-2">
+                  <div className="flex flex-wrap justify-between items-baseline gap-x-2 text-xs">
+                    <span className="text-text">{item?.name ?? id}</span>
+                    <span className="text-text-dim">
+                      拥有 ×{owned} · 每份 +{PET_FEED_EXP} 经验
+                    </span>
+                  </div>
+                  {item?.desc && <div className="text-[11px] text-text-dim mt-0.5">{item.desc}</div>}
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={owned}
+                      value={count}
+                      onChange={(e) => {
+                        const n = Math.floor(Number(e.target.value))
+                        setCounts((prev) => ({
+                          ...prev,
+                          [id]: Number.isFinite(n) ? Math.max(1, Math.min(owned, n)) : 1,
+                        }))
+                      }}
+                      className="bg-black/30 border border-border px-2 py-1 w-16 text-xs"
+                    />
+                    <button
+                      type="button"
+                      className="pixel-btn primary text-xs"
+                      onClick={() => feedPet(id, count)}
+                    >
+                      喂食 {count}
+                    </button>
+                    <button
+                      type="button"
+                      className="pixel-btn text-xs"
+                      onClick={() => feedPet(id, owned)}
+                    >
+                      全部喂食（{owned}）
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="pixel-btn text-xs" onClick={onClose}>
+            关闭
+          </button>
         </div>
       </div>
     </div>

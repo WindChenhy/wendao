@@ -31,7 +31,7 @@ export function ExplorePanel() {
   const inCombat = Boolean(activeCombat && !activeCombat.finished)
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl">
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
       <div className="panel-box p-4">
         <div className="font-display text-gold mb-2">出门历练</div>
         <p className="text-xs text-text-dim mb-3">

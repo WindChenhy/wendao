@@ -1,7 +1,14 @@
 import type { ItemDef, RealmId } from '../types'
 import { REALMS, REALM_ORDER, nextRealm } from './realms'
 import { HERB_ITEMS, SEEDS } from './abode'
-import { GONGFA_LIST, gongfaByScrollId, gongfaScrollId, isMarketGongfa } from './gongfa'
+import {
+  GONGFA_LIST,
+  canLearnGongfa,
+  gongfaByScrollId,
+  gongfaGradeOk,
+  gongfaScrollId,
+  isMarketGongfa,
+} from './gongfa'
 import { TUNING } from '../game/tuning'
 import itemsDb from './db/items.json'
 
@@ -286,4 +293,56 @@ export function marketStock(tab: MarketTab): string[] {
     out.push(id)
   }
   return out
+}
+
+/** 货架条目相对**当前境界**的档位：适配 / 超前（境界未到）/ 过时（已超适用范围） */
+export type MarketTier = 'fit' | 'above' | 'below'
+
+export interface MarketEntry {
+  id: string
+  tier: MarketTier
+}
+
+/** 排序权重：当前境界用得上的在前，其次是可望可即的高阶货，已被境界淘汰的垫底 */
+const TIER_WEIGHT: Record<MarketTier, number> = { fit: 0, above: 1, below: 2 }
+
+/**
+ * 该货物相对当前境界的档位。**只用于排序与展示，不参与拦截**（买卖仍不限境界）。
+ *
+ * 功法秘籍走功法口径：起步境界未到 = 超前；品阶已被当前境界淘汰 = 过时。
+ * 其余货物走物品口径：minRealm 未到 = 超前；超过 maxRealm = 过时。
+ */
+export function marketTierOf(id: string, realm: RealmId | null | undefined): MarketTier {
+  if (!realm) return 'fit'
+  const g = gongfaByScrollId(id)
+  if (g) {
+    if (!canLearnGongfa(g, realm)) return 'above'
+    return gongfaGradeOk(g, realm) ? 'fit' : 'below'
+  }
+  const item = ITEMS[id]
+  if (!item) return 'fit'
+  if (item.minRealm && ri(realm) < ri(item.minRealm)) return 'above'
+  if (itemOverScope(item, realm)) return 'below'
+  return 'fit'
+}
+
+/**
+ * 某分区的货架（**按玩家当前境界层级排序**）。
+ *
+ * 与 `marketStock(tab)` 的关系：集合完全相同，只是顺序不同 ——
+ * 「买卖不限境界」的口径不动，一条货物也不下架，仅把当前境界正用得上的排到前面。
+ *
+ * 由此得到两条硬保证（移动端「突破后货架空白」的根源防线）：
+ * 1. 大境界一变，排序键随之变化，货架在同一帧内按新境界重排，**无需退出坊市重进**；
+ * 2. 排序是集合内的置换，**不会增删任何条目**，因此不存在「清空 / 长期为空」的中间态。
+ */
+export function marketStockFor(
+  realm: RealmId | null | undefined,
+  tab: MarketTab,
+): MarketEntry[] {
+  return marketStock(tab)
+    .map((id, index) => ({ id, tier: marketTierOf(id, realm), index }))
+    // 显式带上原始下标做次级键，不依赖引擎的排序稳定性
+    .sort((a, b) => TIER_WEIGHT[a.tier] - TIER_WEIGHT[b.tier] || a.index - b.index)
+    .map(({ id, tier }) => ({ id, tier }))
 }

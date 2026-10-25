@@ -16,7 +16,7 @@ function baseInput(): AchievementProgressInput {
     stones: 0,
     gongfaCount: 0,
     treasureCount: 0,
-    companion: { spouseId: null, heartsSeen: {}, affinity: {} },
+    companion: { spouseIds: [], heartsSeen: {}, affinity: {} },
     sect: { rank: 'menial', sectId: null },
     towerBest: {},
     collection: { realm: [], enemy: [], gongfa: [], item: [], companion: [], secret: [] },

@@ -1,5 +1,6 @@
 import { emptyCollection } from '../data/codex'
 import { DEFAULT_APTITUDE, isAptitudeId } from '../data/aptitudes'
+import { COMPANIONS } from '../data/companions'
 import { isPathId, isForbiddenPath } from '../data/classes'
 import { DEFAULT_ORIGIN, isOriginId } from '../data/origins'
 import { GONGFAS, gongfaByScrollId, isMarketGongfa } from '../data/gongfa'
@@ -12,7 +13,7 @@ import type { SectRank } from '../data/sects'
 import { REALM_ORDER, realmIndex } from '../data/realms'
 import { isAscended } from '../game/reincarnate'
 import { clampHeartDemon, FORBIDDEN_PATH_HEART_DEMON } from '../game/heartDemon'
-import type { Alignment } from '../types'
+import type { Alignment, CompanionDailyInteract } from '../types'
 import type { SealedItem } from '../game/seal'
 import type {
   CheckinState,
@@ -184,7 +185,9 @@ export function freshCompanion(): CompanionState {
   return {
     affinity: {},
     heartsSeen: {},
-    spouseId: null,
+    spouseIds: [],
+    swornIds: [],
+    dailyInteract: {},
     dualDoneOn: '',
     postStage: {},
     endings: {},
@@ -224,10 +227,43 @@ export function migrateCompanion(raw: unknown): CompanionState {
       if (v === 'he' || v === 'be') endings[k] = v
     }
   }
+  // v1.6 多道侣：旧档单 spouseId → spouseIds；性别规则（女道侣/男结拜）由 migrate 后修正
+  const legacySpouseId = (r as { spouseId?: unknown }).spouseId
+  const spouseIds = Array.isArray(r.spouseIds)
+    ? uniqIds(r.spouseIds.map(String))
+    : typeof legacySpouseId === 'string' && legacySpouseId
+      ? [legacySpouseId]
+      : []
+  const swornIds = Array.isArray(r.swornIds) ? uniqIds(r.swornIds.map(String)) : []
+  // 旧档若把男性结成了道侣，按新规则转为结拜
+  for (const id of [...spouseIds]) {
+    const def = COMPANIONS.find((c) => c.id === id)
+    if (def && def.gender === 'male') {
+      spouseIds.splice(spouseIds.indexOf(id), 1)
+      if (!swornIds.includes(id)) swornIds.push(id)
+    }
+  }
+  const dailyInteract: Record<string, CompanionDailyInteract> = {}
+  if (r.dailyInteract && typeof r.dailyInteract === 'object') {
+    for (const [k, v] of Object.entries(r.dailyInteract)) {
+      if (v && typeof v === 'object') {
+        const rec = v as Partial<CompanionDailyInteract>
+        if (typeof rec.day === 'string') {
+          dailyInteract[k] = {
+            day: rec.day,
+            chat: typeof rec.chat === 'number' ? rec.chat : 0,
+            gift: typeof rec.gift === 'number' ? rec.gift : 0,
+          }
+        }
+      }
+    }
+  }
   return {
     affinity,
     heartsSeen,
-    spouseId: typeof r.spouseId === 'string' && r.spouseId ? r.spouseId : null,
+    spouseIds,
+    swornIds,
+    dailyInteract,
     dualDoneOn: typeof r.dualDoneOn === 'string' ? r.dualDoneOn : '',
     postStage,
     endings,
@@ -373,7 +409,7 @@ export function deriveCollectionFromState(s: {
   const companionIds = Object.entries(s.companion.affinity)
     .filter(([, v]) => v >= 1)
     .map(([id]) => id)
-  if (s.companion.spouseId) companionIds.push(s.companion.spouseId)
+  companionIds.push(...s.companion.spouseIds, ...s.companion.swornIds)
   for (const [id, n] of Object.entries(s.companion.heartsSeen)) {
     if ((n ?? 0) > 0) companionIds.push(id)
   }

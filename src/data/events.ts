@@ -131,7 +131,8 @@ export interface EventGateContext {
   repDemonic: number
   sectId: string | null
   sectRank: SectRank
-  spouseId: string | null
+  /** 已结缘对象 id（道侣 + 结拜兄弟） */
+  bonded: string[]
   affinity: Record<string, number>
   flags: string[]
   /** v1.4 通缉档位 */
@@ -153,8 +154,8 @@ function passGates(gates: EventGates | undefined, ctx: EventGateContext): boolea
   if (gates.maxRepRight != null && ctx.repRight > gates.maxRepRight) return false
   if (gates.minRepDemonic != null && ctx.repDemonic < gates.minRepDemonic) return false
   if (gates.maxRepDemonic != null && ctx.repDemonic > gates.maxRepDemonic) return false
-  if (gates.requireSpouse && !ctx.spouseId) return false
-  if (gates.spouseId && ctx.spouseId !== gates.spouseId) return false
+  if (gates.requireSpouse && ctx.bonded.length === 0) return false
+  if (gates.spouseId && !ctx.bonded.includes(gates.spouseId)) return false
   if (gates.minYear && ctx.year < gates.minYear) return false
   if (gates.requireClass) {
     const pool = [ctx.classId, ...(ctx.paths ?? [])]
