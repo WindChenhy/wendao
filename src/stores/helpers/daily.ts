@@ -6,6 +6,7 @@ import type { MetaGet, MetaSet } from '../gameState'
  * 惰性刷新：跨现实日（或首次）重掷当日日课；飞升后只保留洞府类任务。
  * 注意必须用现实日而非游戏日：打坐/历练/炼丹等动作本身会推进游戏日，
  * 若按游戏日刷新，每次动作都会重掷日课并清空进度，多次数任务永不可完成。
+ * 功行 points 跨日保留：全清累计 7 次换七日之赐，领取时再扣减。
  */
 export function ensureDailyState(get: MetaGet, set: MetaSet) {
   const s = get()
@@ -13,7 +14,8 @@ export function ensureDailyState(get: MetaGet, set: MetaSet) {
   const key = realDayKey()
   if (s.daily && s.daily.dayKey === key) return
   const variant: DailyVariant = isAscended(s.player) ? 'ascended' : 'mortal'
-  set({ daily: freshDailyState(key, variant) })
+  const points = s.daily?.points ?? 0
+  set({ daily: { ...freshDailyState(key, variant), points } })
 }
 
 /**

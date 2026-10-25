@@ -75,3 +75,25 @@ describe('日课：按现实日刷新（打坐跨游戏日不清进度）', () =
     expect(d.tasks).toHaveLength(2)
   })
 })
+
+describe('日课：跨现实日刷新时保留功行', () => {
+  it('重掷任务与进度，但已累计的日课功行不清零', () => {
+    newCharacter()
+    useGameStore.getState().ensureDaily()
+    useGameStore.setState((s) => ({
+      daily: {
+        ...s.daily!,
+        dayKey: '2000-01-01',
+        points: 3,
+        tasks: [{ id: 'meditate', progress: 3, claimed: true }],
+      },
+    }))
+
+    useGameStore.getState().ensureDaily()
+    const d = useGameStore.getState().daily!
+    expect(d.dayKey).not.toBe('2000-01-01')
+    expect(d.points).toBe(3)
+    expect(d.tasks).toHaveLength(3)
+    expect(d.tasks.every((t) => t.progress === 0 && !t.claimed)).toBe(true)
+  })
+})
