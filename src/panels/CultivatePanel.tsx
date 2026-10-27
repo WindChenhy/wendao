@@ -8,6 +8,7 @@ import {
   canLearnGongfaFull as canLearnGongfa,
   gongfaScopeText,
   gongfaAdvanceCost,
+  gongfaComprehendCost,
   gongfaByScrollId,
   gongfaEffectText,
   gongfaRealmText,
@@ -25,10 +26,14 @@ import { sealDaoCost, sealSlots, describeSealed, type SealedItem } from '../game
 import { TRIBULATION_PLANS, isTribulationMoment, type TribulationPlanId } from '../data/tribulation'
 import { TRIB_TOKEN_BREAKTHROUGH_BONUS } from '../data/tribulation'
 import { DailyCard } from '../components/DailyCard'
+import { PagedList } from '../components/PagedList'
 import { useGameStore } from '../stores/useGameStore'
 import { currentRules, bondedDefs } from '../stores/helpers/shared'
 import { DEBUG_ENABLED } from '../game/settings'
 import { useState } from 'react'
+
+/** 功法区每页条数（与背包/坊市共用同一分页组件，页数口径一致） */
+const GONGFA_PAGE_SIZE = 10
 
 function SealPicker({
   candidates,
@@ -190,6 +195,17 @@ export function CultivatePanel() {
   const scrollIds = Object.keys(inventory).filter(
     (id) => gongfaByScrollId(id) && (inventory[id] ?? 0) > 0,
   )
+  // 功法区排序：待参悟秘籍 → 未圆满 → 已圆满（组内沿用品阶倒序）
+  const maxStage = GONGFA_STAGE_LABELS.length - 1
+  const gongfaRows: { kind: 'scroll' | 'learned'; id: string }[] = [
+    ...scrollIds.map((id) => ({ kind: 'scroll' as const, id })),
+    ...learnedList
+      .filter(([, st]) => st.stage < maxStage)
+      .map(([id]) => ({ kind: 'learned' as const, id })),
+    ...learnedList
+      .filter(([, st]) => st.stage >= maxStage)
+      .map(([id]) => ({ kind: 'learned' as const, id })),
+  ]
 
   return (
     <div className="p-4 space-y-4 max-w-3xl mx-auto">
@@ -525,15 +541,69 @@ export function CultivatePanel() {
           <div className="font-display text-gold">功法</div>
           <div className="text-xs text-text-dim">可动用修为 {formatNum(player.exp)}</div>
         </div>
-        {learnedList.length === 0 && scrollIds.length === 0 && (
-          <p className="text-xs text-text-dim mb-1">
-            尚未修习任何功法。可前往坊市购入秘籍，或在宗门藏经阁以贡献参悟。
-          </p>
-        )}
-        <div className="space-y-2">
-          {learnedList.map(([id, st]) => {
+        <PagedList
+          items={gongfaRows}
+          pageSize={GONGFA_PAGE_SIZE}
+          bodyClassName="h-[520px]"
+          empty={
+            <p className="text-xs text-text-dim">
+              尚未修习任何功法。可前往坊市购入秘籍，或在宗门藏经阁以贡献参悟。
+            </p>
+          }
+          renderItem={(row) => {
+            if (row.kind === 'scroll') {
+              const id = row.id
+              const g = gongfaByScrollId(id)
+              const item = ITEMS[id]
+              if (!g || !item) return null
+              const realmOk = canLearnGongfa(g, player.realm)
+              return (
+                <div
+                  key={id}
+                  className="border border-border px-3 py-2 flex justify-between items-center gap-2"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm">
+                      <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
+                      <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
+                      <span className="text-gold">{g.name}</span>
+                      <span className="text-text-dim text-xs ml-2">
+                        秘籍 ×{inventory[id]} · 待参悟
+                      </span>
+                      <span
+                        className={`text-xs ml-2 ${realmOk ? 'text-text-dim' : 'text-vermilion'}`}
+                      >
+                        {gongfaRealmText(g)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
+                    {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
+                    {realmOk && (
+                      <div className="text-[11px] text-text-dim mt-0.5">
+                        参悟需修为 {formatNum(gongfaComprehendCost(g))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    className="pixel-btn text-xs primary shrink-0"
+                    disabled={dead || ascended || !realmOk || player.exp < gongfaComprehendCost(g)}
+                    title={realmOk ? `参悟需修为 ${formatNum(gongfaComprehendCost(g))}` : undefined}
+                    onClick={() => comprehendGongfa(id)}
+                  >
+                    {realmOk
+                      ? player.exp < gongfaComprehendCost(g)
+                        ? '修为不足'
+                        : '参悟'
+                      : '境界不足'}
+                  </button>
+                </div>
+              )
+            }
+            const id = row.id
             const g = GONGFAS[id]
             if (!g) return null
+            const st = gongfa.learned[id]
+            if (!st) return null
             const maxed = st.stage >= GONGFA_STAGE_LABELS.length - 1
             const nextStage = maxed ? '' : GONGFA_STAGE_LABELS[st.stage + 1]
             const cost = gongfaAdvanceCost(g, st.stage)
@@ -578,41 +648,8 @@ export function CultivatePanel() {
                 </div>
               </div>
             )
-          })}
-          {scrollIds.map((id) => {
-            const g = gongfaByScrollId(id)
-            const item = ITEMS[id]
-            if (!g || !item) return null
-            const realmOk = canLearnGongfa(g, player.realm)
-            return (
-              <div
-                key={id}
-                className="border border-border px-3 py-2 flex justify-between items-center gap-2"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm">
-                    <span className={GONGFA_GRADE_CLASS[g.grade]}>{g.grade}</span>
-                    <span className="text-text-dim mx-1.5 text-xs">{g.kind}</span>
-                    <span className="text-gold">{g.name}</span>
-                    <span className="text-text-dim text-xs ml-2">秘籍 ×{inventory[id]} · 待参悟</span>
-                    <span className={`text-xs ml-2 ${realmOk ? 'text-text-dim' : 'text-vermilion'}`}>
-                      {gongfaRealmText(g)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
-                  {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
-                </div>
-                <button
-                  className="pixel-btn text-xs primary shrink-0"
-                  disabled={dead || ascended || !realmOk}
-                  onClick={() => comprehendGongfa(id)}
-                >
-                  {realmOk ? '参悟' : '境界不足'}
-                </button>
-              </div>
-            )
-          })}
-        </div>
+          }}
+        />
       </div>
     </div>
   )

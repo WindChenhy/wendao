@@ -83,6 +83,41 @@ export function weatherOf(t: GameTime): string {
 /** 游戏内一年 = 12 月 × 30 日；闭关「N 年」必须按此换算，避免 365 日被多算寿元 */
 export const GAME_DAYS_PER_YEAR = 360
 
+/**
+ * 历练时长（一次性出门历练 N 日）：按境界解锁更长行程。
+ * - 元婴及以上：一次一月（30 日）
+ * - 练虚及以上：一次半年（180 日）
+ * - 大乘及以上：一次一年（360 日）
+ */
+export interface ExploreSpan {
+  days: number
+  label: string
+  /** 解锁所需最低境界 */
+  minRealm: RealmId
+}
+
+export const EXPLORE_SPANS: ExploreSpan[] = [
+  { days: 30, label: '一月（30 日）', minRealm: 'nascent_soul' },
+  { days: 180, label: '半年（180 日）', minRealm: 'void' },
+  { days: 360, label: '一年（360 日）', minRealm: 'mahayana' },
+]
+
+/** 一次历练最多结算多少场遭遇（其余时日算作赶路，避免超长行程卡顿） */
+export const EXPLORE_MAX_FIGHTS = 60
+
+/** 当前境界已解锁的历练时长（未解锁的不在此列，UI 另取整表用于置灰展示） */
+export function exploreSpanOptions(realm: RealmId): ExploreSpan[] {
+  const ri = realmIndex(realm)
+  return EXPLORE_SPANS.filter((s) => ri >= realmIndex(s.minRealm))
+}
+
+/** 该时长是否已对当前境界解锁 */
+export function exploreSpanUnlocked(realm: RealmId, days: number): boolean {
+  const s = EXPLORE_SPANS.find((x) => x.days === days)
+  if (!s) return false
+  return realmIndex(realm) >= realmIndex(s.minRealm)
+}
+
 /** 高境界可选闭关时长（游戏日） */
 export function seclusionYearOptions(realm: RealmId): number[] {
   const ri = realmIndex(realm)

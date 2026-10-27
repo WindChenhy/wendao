@@ -94,6 +94,8 @@ export interface GameState {
   /** 洗炼道基改立主修（耗灵石） */
   setPrimaryPath: (pathId: ClassId) => void
   explore: () => void
+  /** v1.7 一次性长时历练（按境界解锁一月/半年/一年） */
+  exploreDays: (days: number) => void
   clearCombat: () => void
   resolveEvent: (actionId: string) => void
   /** v0.9 结缘后剧情抉择 */

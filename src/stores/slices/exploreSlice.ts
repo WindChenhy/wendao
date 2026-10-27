@@ -11,7 +11,12 @@ import {
   PET_MAP,
   type PetState,
 } from '../../data/pets'
-import { hasPath } from '../../data/classes'
+import { hasPath, isDemonic } from '../../data/classes'
+import {
+  SHAQI_MAX,
+  SHAQI_ON_KILL,
+  SHAQI_ON_KILL_BEAST,
+} from '../../data/shaqi'
 import { ASCENSION_REALM, realmIndex, expNeeded } from '../../data/realms'
 import { canEnterRealm, isBossFloor, towerEnemy, SECRET_REALMS } from '../../data/secretRealms'
 import type { EventOutcome, WorldEventAction } from '../../data/events'
@@ -23,10 +28,22 @@ import {
 } from '../../game/combatEngine'
 import { repDeltaOnKill } from '../../game/combatStats'
 import { clampWanted } from '../../game/bounty'
-import { advanceTime, dailyRecover, dayNumber } from '../../game/day'
+import {
+  EXPLORE_MAX_FIGHTS,
+  EXPLORE_SPANS,
+  advanceTime,
+  dailyRecover,
+  dayNumber,
+  exploreSpanUnlocked,
+} from '../../game/day'
 import { adjustHeartDemon } from '../../game/heartDemon'
 import { addItem, removeItem } from '../../game/inventory'
 import { isAscended } from '../../game/reincarnate'
+import {
+  REP_EXPLORE_STONE_MUL,
+  isDemonicChampion,
+  resolveAlignment,
+} from '../../game/reputation'
 import { dissolvePath } from '../../game/paths'
 import {
   afterProgressSnapshot,
@@ -39,6 +56,12 @@ import {
   unlockCodex,
   withPetCombat,
 } from '../helpers'
+import {
+  bumpQuestExploreWin,
+  maybeTriggerSpouseStory,
+  pickEvent,
+} from '../helpers/shared'
+import { bumpDaily } from '../helpers/daily'
 import type { GameState, MetaGet, MetaSet } from '../gameState'
 import { uniqIds } from '../saveMigrate'
 
@@ -49,6 +72,7 @@ export function createExploreSlice(
 ): Pick<
   GameState,
   | 'explore'
+  | 'exploreDays'
   | 'clearCombat'
   | 'resolveEvent'
   | 'enterTower'
@@ -107,6 +131,178 @@ export function createExploreSlice(
       if (get().skipExploreCombat) {
         get().runCombatAutoToEnd()
       }
+    },
+
+    /**
+     * v1.7 一次性长时历练：按境界解锁一月/半年/一年。
+     * 不进交互战斗面板，直接连场自动结算（遭遇数取 min(天数, 上限)，其余时日算作赶路），
+     * 结束时一次性写回修为/灵石/掉落/声望/寿元。
+     */
+    exploreDays: (days) => {
+      const { player, time } = get()
+      if (!player || !player.alive) {
+        log('此身已无法再踏入山野。', 'bad')
+        return
+      }
+      if (isAscended(player)) {
+        log('你已飞升，不再入世历练。', 'dim')
+        return
+      }
+      if (get().pendingEvent || get().pendingStory) {
+        log('尚有奇遇未了结，请先处理当前事件。', 'bad')
+        return
+      }
+      if (get().tower) {
+        log('你正在秘境之中，请先撤离或继续闯关。', 'bad')
+        return
+      }
+      const combat = get().activeCombat
+      if (combat && !combat.finished) {
+        log('战斗进行中，无法出门历练。', 'bad')
+        return
+      }
+      if (!exploreSpanUnlocked(player.realm, days)) {
+        const span = EXPLORE_SPANS.find((s) => s.days === days)
+        log(
+          `以你当前境界，尚不能支撑「${span?.label ?? `${days} 日`}」这般长久的远行。`,
+          'bad',
+        )
+        return
+      }
+      const span = EXPLORE_SPANS.find((s) => s.days === days)
+      const spanLabel = span?.label ?? `${days} 日`
+
+      let p = { ...player }
+      let inv = { ...get().inventory }
+      let stonesGain = 0
+      let expGain = 0
+      let wins = 0
+      let losses = 0
+      let repR = 0
+      let repD = 0
+      let wantedDelta = 0
+      let fights = 0
+      let retreated = false
+      const ri = Math.max(0, realmIndex(p.realm))
+      const maxFights = Math.min(days, EXPLORE_MAX_FIGHTS)
+
+      for (let i = 0; i < maxFights; i++) {
+        // 重伤则提前归途（剩余时日仍在外奔波，按全程推进时间）
+        if (p.hp <= p.maxHp * 0.25) {
+          retreated = true
+          break
+        }
+        const enemy = pickEnemy(ri, p.layer)
+        const actor = makePlayerCombatant(get, p, get().treasures, 1)
+        const result = runCombatAuto(
+          actor,
+          enemy,
+          withPetCombat(
+            {
+              kind: 'explore',
+              title: `历练 · ${spanLabel}（第${i + 1}战）`,
+              enemy,
+              hpScale: 1,
+            },
+            get().pet,
+          ),
+          inv,
+          p.realm,
+          p.layer,
+          (st) => defaultAutoAction(st, inv, p.realm, p.layer),
+        )
+        inv = applyCombatConsumables(
+          {
+            potionsUsed: result.potionsUsed,
+            blastPillsUsed: result.blastPillsUsed,
+          } as CombatEngineState,
+          inv,
+        )
+        fights += 1
+        if (result.win) {
+          wins += 1
+          expGain += result.expGain
+          stonesGain += Math.floor(
+            result.stoneGain *
+              (isDemonicChampion(p.repDemonic, p.repRight) ? REP_EXPLORE_STONE_MUL : 1),
+          )
+          if (result.itemId && ITEMS[result.itemId] && Math.random() < (enemy.loot.dropRate ?? 1)) {
+            addItem(inv, result.itemId)
+          }
+          const rep = repDeltaOnKill(enemy)
+          repR += rep.right
+          repD += rep.demonic
+          if (resolveAlignment(p) === 'demonic' && enemy.faction === 'righteous') {
+            wantedDelta += 1
+          }
+          if (isDemonic(p)) {
+            p.shaqi = Math.min(
+              SHAQI_MAX,
+              p.shaqi + (enemy.faction === 'beast' ? SHAQI_ON_KILL_BEAST : SHAQI_ON_KILL),
+            )
+          }
+          unlockCodex(get, set, 'enemy', enemyTemplateId(enemy.id))
+          if (result.itemId) unlockCodex(get, set, 'item', result.itemId)
+        } else {
+          losses += 1
+        }
+        p = {
+          ...p,
+          hp: result.win
+            ? Math.max(1, result.playerHpLeft)
+            : Math.max(1, Math.floor(p.maxHp * 0.15)),
+          energy: Math.max(0, Math.min(p.maxEnergy, result.playerEnergyLeft)),
+          lifespanLeft: Math.max(1, p.lifespanLeft - result.lifespanCost),
+          heartDemon: adjustHeartDemon(p.heartDemon ?? 0, result.heartDemonGain),
+        }
+        // 每战按一日计：行路调息，气血灵力逐日小补
+        const rec = dailyRecover(p.maxHp, p.maxEnergy)
+        p = {
+          ...p,
+          hp: Math.min(p.maxHp, p.hp + rec.hp),
+          energy: Math.min(p.maxEnergy, p.energy + rec.energy),
+        }
+      }
+
+      const advanced = advanceTime(time, days)
+      const life = Math.max(1, p.lifespanLeft - advanced.agedYears)
+      log(
+        `${spanLabel}历练归来：历时 ${days} 日，交手 ${fights} 场（胜 ${wins}·负 ${losses}）` +
+          `${retreated ? '，重伤中途折返' : ''}。`,
+        'gold',
+      )
+      log(`修为 +${expGain}，灵石 +${stonesGain}${repR || repD ? `，声望 正${repR >= 0 ? '+' : ''}${repR}/魔${repD >= 0 ? '+' : ''}${repD}` : ''}`, 'good')
+
+      set({
+        time: advanced.time,
+        inventory: inv,
+        stones: get().stones + stonesGain,
+        exploring: false,
+        activeCombat: null,
+        player: {
+          ...p,
+          exp: p.exp + expGain,
+          repRight: p.repRight + repR,
+          repDemonic: p.repDemonic + repD,
+          age: p.age + advanced.agedYears,
+          lifespanLeft: life,
+        },
+        wanted: clampWanted(get().wanted + wantedDelta),
+        meta: {
+          ...get().meta,
+          stats: {
+            ...get().meta.stats,
+            combatsWon: get().meta.stats.combatsWon + wins,
+            combatsLost: get().meta.stats.combatsLost + losses,
+          },
+        },
+      })
+      bumpQuestExploreWin(get, set)
+      afterProgressSnapshot(get, set)
+      bumpDaily(get, set, 'explore')
+      const evt = pickEvent(get)
+      if (evt) set({ pendingEvent: { event: evt, kind: 'explore' } })
+      maybeTriggerSpouseStory(get, set)
     },
 
     clearCombat: () => set({ lastCombat: null }),

@@ -498,6 +498,10 @@ export function createCultivateSlice(
         log(`${c.name}是男子之身，只能义结金兰，不可双修。`, 'bad')
         return
       }
+      if (!companion.spouseIds.includes(id)) {
+        log(`需先与${c.name}结为道侣，方可双修。`, 'bad')
+        return
+      }
       if (aff < DUAL_CULTIVATE_AFFINITY_MIN) {
         log(`${c.name}与你尚不熟稔，婉拒双修。`, 'bad')
         return

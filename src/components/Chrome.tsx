@@ -2,7 +2,9 @@ import { CLASSES, isDemonic, isPathDefined, pathIdsOf } from '../data/classes'
 import { REALM_ORDER, realmLabel } from '../data/realms'
 import { formatNum } from '../game/format'
 import { weatherOf } from '../game/day'
+import { resolveQiType } from '../game/qi'
 import { isAscended } from '../game/reincarnate'
+import { SHAQI_TITLE } from '../data/shaqi'
 import { useGameStore } from '../stores/useGameStore'
 import type { PanelId } from '../types'
 
@@ -27,6 +29,7 @@ export function StatusBar() {
   const activeCombat = useGameStore((s) => s.activeCombat)
   if (!player) return null
   const demonic = isDemonic(player)
+  const qi = resolveQiType(player)
   const pathCount = pathIdsOf(player).length
   const c = CLASSES[player.classId]
   const pathLabel = isPathDefined(player.classId)
@@ -60,11 +63,15 @@ export function StatusBar() {
           {formatNum(hpCur)}/{formatNum(hpMax)}
         </span>
       </span>
-      <span>
-        {demonic ? '魔元' : '灵力'} {formatNum(enCur)}/{formatNum(enMax)}
+      <span title={qi.help}>
+        {qi.label} {formatNum(enCur)}/{formatNum(enMax)}
         {inCombat && <span className="text-text-dim ml-1">（战斗）</span>}
       </span>
-      {demonic && <span className="text-vermilion">煞气 {player.shaqi}</span>}
+      {demonic && (
+        <span className="text-vermilion" title={SHAQI_TITLE}>
+          煞气 {player.shaqi}
+        </span>
+      )}
       <span className="text-gold">灵石 {formatNum(stones)}</span>
       <span className="text-text-dim">
         {legacy.reincarnations > 0

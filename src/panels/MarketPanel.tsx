@@ -21,7 +21,17 @@ import {
 } from '../data/gongfa'
 import { formatNum } from '../game/format'
 import { marketPriceOf } from '../game/bounty'
+import { PagedList } from '../components/PagedList'
+import { ListToolbar } from '../components/ListToolbar'
+import {
+  matchesName,
+  matchesRealm,
+  type RealmFilterMode,
+} from '../data/itemFilter'
 import { useGameStore } from '../stores/useGameStore'
+
+/** 坊市每页条数（与修炼页功法区、背包同口径） */
+const MARKET_PAGE_SIZE = 10
 
 const TABS: MarketTab[] = ['all', 'pill', 'herb', 'material', 'gongfa', 'treasure']
 const TAB_HINT: Record<MarketTab, string> = {
@@ -35,6 +45,8 @@ const TAB_HINT: Record<MarketTab, string> = {
 
 export function MarketPanel() {
   const [tab, setTab] = useState<MarketTab>('all')
+  const [query, setQuery] = useState('')
+  const [realmFilter, setRealmFilter] = useState<RealmFilterMode>('all')
   const [pendingBuyId, setPendingBuyId] = useState<string | null>(null)
   const stones = useGameStore((s) => s.stones)
   const inventory = useGameStore((s) => s.inventory)
@@ -65,6 +77,27 @@ export function MarketPanel() {
   )
   // 本分区「能真正买下」的货物数：用于在整区都买不了时给出明确解释（否则看着像功能坏了）
   const buyableCount = entries.filter((e) => stones >= priceOf(e.id)).length
+
+  /** v1.7 搜索 + 境界筛选（唯一口径见 data/itemFilter.ts） */
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter((e) => matchesName(e.id, query) && matchesRealm(e.id, realmFilter, realm)),
+    [entries, query, realmFilter, realm],
+  )
+  const filtering = query.trim() !== '' || realmFilter !== 'all'
+
+  /**
+   * v1.7 排序：未拥有优先（未持有 > 已持有秘籍 > 已参悟功法），
+   * 组内沿用 marketStockFor 的境界贴合度排序（Array.prototype.sort 稳定，不额外打乱）。
+   */
+  const sortedEntries = useMemo(() => {
+    const rank = (id: string) => {
+      const g = gongfaByScrollId(id)
+      if (g && learned[g.id]) return 2 // 已参悟：买了也无处可用，排最后
+      return (inventory[id] ?? 0) > 0 ? 1 : 0 // 已持有但未参悟
+    }
+    return [...filteredEntries].sort((a, b) => rank(a.id) - rank(b.id))
+  }, [filteredEntries, inventory, learned])
 
   const requestBuy = (id: string) => {
     const item = ITEMS[id]
@@ -99,19 +132,36 @@ export function MarketPanel() {
             </button>
           ))}
         </div>
-        <p className="text-xs text-text-dim mb-3">{TAB_HINT[tab]}</p>
-        {entries.length > 0 && buyableCount === 0 && (
+        <p className="text-xs text-text-dim mb-2">{TAB_HINT[tab]}</p>
+        <ListToolbar
+          query={query}
+          onQuery={setQuery}
+          filter={realmFilter}
+          onFilter={setRealmFilter}
+          count={sortedEntries.length}
+          total={entries.length}
+          placeholder="搜索货物/功法名"
+        />
+        {sortedEntries.length > 0 && buyableCount === 0 && (
           <p className="text-xs text-vermilion mb-2 leading-relaxed">
             本分区暂无可成交的货物：灵石不足（现持 {' '}{formatNum(stones)}
             {' '}灵石，见各行标价）——境界不影响买卖，只影响买入后能不能用。
           </p>
         )}
         {/* 兜底：任何情况下都不留一块无声的空白（真无货也要说清楚，别让人以为界面坏了） */}
-        {entries.length === 0 && (
-          <p className="text-xs text-text-dim">本区暂无在售货物。</p>
+        {sortedEntries.length === 0 && (
+          <p className="text-xs text-text-dim">
+            {filtering
+              ? '没有符合条件的货物（试试清空搜索或改为「境界：不限」）。'
+              : '本区暂无在售货物。'}
+          </p>
         )}
-        <div className="space-y-2">
-          {entries.map(({ id }) => {
+        <PagedList
+          items={sortedEntries}
+          pageSize={MARKET_PAGE_SIZE}
+          resetKey={`${tab}|${query}|${realmFilter}`}
+          bodyClassName="h-[520px]"
+          renderItem={({ id }) => {
             const item = ITEMS[id]
             if (!item) return null
             const g = gongfaByScrollId(id)
@@ -204,8 +254,8 @@ export function MarketPanel() {
                 </button>
               </div>
             )
-          })}
-        </div>
+          }}
+        />
       </div>
 
       {pendingBuyId && pendingItem && pendingG && (

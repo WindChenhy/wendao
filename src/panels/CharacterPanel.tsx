@@ -18,6 +18,8 @@ import { playerCombatStats } from '../game/combatStats'
 import { formatNum } from '../game/format'
 import { atonementCost, wantedLabel } from '../game/bounty'
 import { reputationTitles, resolveAlignment } from '../game/reputation'
+import { resolveQiType } from '../game/qi'
+import { SHAQI_TITLE, shaqiHelpText } from '../data/shaqi'
 import { useGameStore, gongfaBonuses, treasureBonus } from '../stores/useGameStore'
 import { useMemo } from 'react'
 
@@ -55,11 +57,14 @@ export function CharacterPanel() {
   const apt = aptitudeOf(player)
   const origin = originOf(player)
   const power = combatPower(player.realm, player.layer, stats.atk, stats.def, player.maxHp)
-  const titles = reputationTitles(player.repRight, player.repDemonic)
   const atoneCost = atonementCost(wanted, player.realm)
   const demonic = isDemonic(player)
   // R-31：立场独立字段（缺省由声望推导）
   const alignment = resolveAlignment(player)
+  // 称号看江湖声望，但相悖的立场会遮蔽称号（否则会出现「正道名宿 + 魔元」）
+  const titles = reputationTitles(player.repRight, player.repDemonic, alignment)
+  // v1.7：灵气类型（灵力/魔元）与成因，统一口径，避免与称号自相矛盾时无从解释
+  const qi = resolveQiType(player)
   const heartDemon = player.heartDemon ?? 0
 
   return (
@@ -78,13 +83,22 @@ export function CharacterPanel() {
           <div>
             气血：{player.hp}/{player.maxHp}
           </div>
-          <div>
-            {demonic ? '魔元' : '灵力'}：{player.energy}/{player.maxEnergy}
+          <div title={qi.help}>
+            <span className="text-gold">灵气</span>（{qi.label}）：{player.energy}/{player.maxEnergy}
+            <span className="text-text-dim text-xs ml-1">（{qi.reason}）</span>
           </div>
           <div>攻击：{stats.atk}</div>
           <div>防御：{stats.def}</div>
           <div>战力：{formatNum(power)}</div>
-          <div>煞气：{player.shaqi}</div>
+          <div
+            className={player.shaqi > 0 ? 'text-vermilion' : ''}
+            title={SHAQI_TITLE}
+          >
+            煞气：{player.shaqi}
+            {!demonic && player.shaqi === 0 && (
+              <span className="text-text-dim text-xs ml-1">（正道之身不生）</span>
+            )}
+          </div>
           <div>正道声望：{player.repRight}</div>
           <div>魔道声望：{player.repDemonic}</div>
           <div className={heartDemon >= 60 ? 'text-vermilion' : heartDemon > 0 ? 'text-gold' : ''}>
@@ -94,17 +108,30 @@ export function CharacterPanel() {
           <div className={wanted >= 2 ? 'text-vermilion' : ''}>
             通缉：{wantedLabel(wanted) || '无'}
           </div>
-          <div>
+          <div title="称号只看江湖声望（正道名宿/魔道魁首）；灵气类型另按道途与立场判定，两者本就不同源。">
             称号：
             {titles.mixed
               ? '亦正亦邪'
-              : titles.righteous ?? titles.demonic ?? '无'}
+              : titles.righteous ??
+                titles.demonic ??
+                (titles.masked ? '名实相悖' : '无')}
+            {titles.masked && (
+              <span className="text-text-dim text-xs ml-1">
+                （声望够格，但{alignment === 'demonic' ? '魔道立场' : '正道立场'}与之相悖，称号不显）
+              </span>
+            )}
           </div>
           {favor > 0 && <div className="text-jade">仙缘：{favor}（转生 10:1 折道痕，上限 +30）</div>}
         </div>
         <div className="text-xs text-text-dim mt-2">
           灵根天赋：{apt.detail}
         </div>
+        <details className="mt-2 border-t border-border/60 pt-2">
+          <summary className="text-xs text-gold cursor-pointer select-none">
+            煞气说明（作用 · 增长 · 影响 · 削减）
+          </summary>
+          <p className="text-[11px] text-text-dim mt-1 leading-relaxed">{shaqiHelpText()}</p>
+        </details>
         <div className="text-xs text-text-dim mt-1">
           当前结算：修炼 ×{mults.cultivateRate.toFixed(2)} · 突破{' '}
           {mults.breakthroughBonus > 0 ? '+' : ''}

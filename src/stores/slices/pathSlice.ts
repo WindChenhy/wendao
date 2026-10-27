@@ -12,6 +12,7 @@ import {
   type UnlockCtx,
 } from '../../game/paths'
 import { REALMS } from '../../data/realms'
+import { SHAQI_BLOOD_OATH } from '../../data/shaqi'
 import { advanceTime } from '../../game/day'
 import { afterProgressSnapshot, recomputeVitals } from '../helpers'
 import { log } from '../helpers/log'
@@ -94,8 +95,8 @@ export function createPathSlice(
       set({
         player: {
           ...vitals,
-          // 立魔道：煞气随血誓而生
-          shaqi: isDemonic(nextPlayer) ? Math.max(p.shaqi, 10) : p.shaqi,
+          // 立魔道：煞气随血誓而生（唯一口径见 data/shaqi.ts）
+          shaqi: isDemonic(nextPlayer) ? Math.max(p.shaqi, SHAQI_BLOOD_OATH) : p.shaqi,
         },
         stones: Math.max(0, nextStones),
       })
