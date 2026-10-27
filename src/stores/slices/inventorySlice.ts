@@ -7,6 +7,7 @@ import {
   GONGFA_STAGE_LABELS,
   GONGFAS,
   gongfaAdvanceCost,
+  gongfaComprehendCost,
   gongfaByScrollId,
   isMarketGongfa,
   canLearnGongfaFull,
@@ -159,11 +160,30 @@ export function createInventorySlice(
         )
         return
       }
+      // v1.7：参悟亦需消耗修为（入门→小成的一半），随境界指数抬升
+      const comprehendCost = gongfaComprehendCost(g)
+      if (player.exp < comprehendCost) {
+        log(
+          `参悟《${g.name}》需消耗修为 ${comprehendCost}，当前修为不足，心思难静。`,
+          'bad',
+        )
+        return
+      }
       const inv = { ...inventory }
       removeItem(inv, scrollItemId)
       const learned = { ...gongfa.learned, [g.id]: { stage: 0 } }
-      const p = recomputeVitals(get, { ...player }, treasures, learned, legacy.daoMarks, player.realm)
-      log(`你翻开《${g.name}》，朝夕参诵，功法入门。`, 'gold')
+      const p = recomputeVitals(
+        get,
+        { ...player, exp: player.exp - comprehendCost },
+        treasures,
+        learned,
+        legacy.daoMarks,
+        player.realm,
+      )
+      log(
+        `你翻开《${g.name}》，朝夕参诵，功法入门（修为 −${comprehendCost}）。`,
+        'gold',
+      )
       set({ inventory: inv, gongfa: { learned }, player: p })
       unlockCodex(get, set, 'gongfa', g.id)
       afterProgressSnapshot(get, set)

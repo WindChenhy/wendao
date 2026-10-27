@@ -3,6 +3,7 @@ import { CATEGORY_LABELS, ITEMS, itemCategory, itemScopeText, itemTierText, trea
 import {
   canLearnGongfaFull as canLearnGongfa,
   gongfaByScrollId,
+  gongfaComprehendCost,
   gongfaRealmText,
 } from '../data/gongfa'
 import { formatNum } from '../game/format'
@@ -168,10 +169,22 @@ export function InventoryPanel() {
                   {isGongfa && g && (
                     <button
                       className="pixel-btn text-xs primary"
-                      disabled={!canLearnGongfa(g, player.realm)}
+                      disabled={
+                        !canLearnGongfa(g, player.realm) ||
+                        player.exp < gongfaComprehendCost(g)
+                      }
+                      title={
+                        canLearnGongfa(g, player.realm)
+                          ? `参悟需修为 ${formatNum(gongfaComprehendCost(g))}`
+                          : undefined
+                      }
                       onClick={() => comprehendGongfa(id)}
                     >
-                      {canLearnGongfa(g, player.realm) ? '参悟' : '境界不足'}
+                      {!canLearnGongfa(g, player.realm)
+                        ? '境界不足'
+                        : player.exp < gongfaComprehendCost(g)
+                          ? '修为不足'
+                          : '参悟'}
                     </button>
                   )}
                   {(item.effect?.hp || item.effect?.exp || item.effect?.stone) && (

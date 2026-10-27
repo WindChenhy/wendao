@@ -2,6 +2,7 @@ import type { ItemDef } from '../types'
 import seedsJson from './db/seeds.json'
 import herbsJson from './db/herbs.json'
 import recipesJson from './db/recipes.json'
+import { scaledPrice } from './priceCurve'
 
 export interface SeedDef {
   id: string
@@ -35,12 +36,23 @@ function toRecord<T extends { id: string }>(list: T[]): Record<string, T> {
   return Object.fromEntries(list.map((x) => [x.id, x]))
 }
 
-export const SEEDS: Record<string, SeedDef> = toRecord(seedsJson as SeedDef[])
+/**
+ * 灵植产物（材料）。售价已按 v1.7 价格曲线（品阶档位）缩放，见 priceCurve.ts。
+ * 种子售价以产物所属境界同步缩放 —— 否则后期「买种卖药」会变成无本万利。
+ */
+export const HERB_ITEMS: Record<string, ItemDef> = toRecord(
+  (herbsJson as ItemDef[]).map((h) => ({ ...h, price: scaledPrice(h.price, h) })),
+)
+
+export const SEEDS: Record<string, SeedDef> = toRecord(
+  (seedsJson as SeedDef[]).map((s) => {
+    // 用产物自身的品阶档位缩放（与灵植售价同系数），保证「买种—种植—卖出」的收益率不变
+    const herb = HERB_ITEMS[s.yieldItemId]
+    return { ...s, seedPrice: scaledPrice(s.seedPrice, herb ?? {}) }
+  }),
+)
 
 export const SEED_LIST = Object.values(SEEDS)
-
-/** 灵植产物（材料） */
-export const HERB_ITEMS: Record<string, ItemDef> = toRecord(herbsJson as ItemDef[])
 
 export const RECIPES: Record<string, RecipeDef> = toRecord(recipesJson as RecipeDef[])
 

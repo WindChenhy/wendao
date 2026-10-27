@@ -8,6 +8,7 @@ import {
   canLearnGongfaFull as canLearnGongfa,
   gongfaScopeText,
   gongfaAdvanceCost,
+  gongfaComprehendCost,
   gongfaByScrollId,
   gongfaEffectText,
   gongfaRealmText,
@@ -577,13 +578,23 @@ export function CultivatePanel() {
                     </div>
                     <div className="text-xs text-text-dim mt-0.5">{item.desc}</div>
                     {g && <div className="text-[11px] text-jade mt-0.5">{gongfaScopeText(g)}</div>}
+                    {realmOk && (
+                      <div className="text-[11px] text-text-dim mt-0.5">
+                        参悟需修为 {formatNum(gongfaComprehendCost(g))}
+                      </div>
+                    )}
                   </div>
                   <button
                     className="pixel-btn text-xs primary shrink-0"
-                    disabled={dead || ascended || !realmOk}
+                    disabled={dead || ascended || !realmOk || player.exp < gongfaComprehendCost(g)}
+                    title={realmOk ? `参悟需修为 ${formatNum(gongfaComprehendCost(g))}` : undefined}
                     onClick={() => comprehendGongfa(id)}
                   >
-                    {realmOk ? '参悟' : '境界不足'}
+                    {realmOk
+                      ? player.exp < gongfaComprehendCost(g)
+                        ? '修为不足'
+                        : '参悟'
+                      : '境界不足'}
                   </button>
                 </div>
               )

@@ -24,6 +24,40 @@ interface GongfaDef {
   effect: { atk?: number; def?: number; hp?: number; cultivate?: number; dodge?: number }
 }
 
+/**
+ * v1.7 数值平衡 · 功法修为消耗的**境界系数**（按功法起步大境界取）。
+ *
+ * 背景：旧版 `gongfaAdvanceCost` 只由品阶决定，天阶恒为「1万/3万/6万」，
+ * 于是化神到渡劫五个大境界共用一口价——后期一次闭关就是百万级修为，
+ * 推一部天阶功法到圆满只花 6 万，修为彻底溢出，功法养成失去重量。
+ *
+ * 方案：消耗 = 品阶基准 × **境界系数** × 阶段倍率。
+ * 境界系数自元婴起按 ≈1.95^(境界序号-2) 抬升（取整成台阶）：
+ *   练气/筑基/金丹 1 → 元婴 1.8 → 化神 3.2 → 炼虚 6.5 → 合体 13 → 大乘 28 → 渡劫 58
+ * 前中期（练气～金丹）系数恒为 1，与旧版完全一致，前期节奏不受影响；
+ * 后期一部天阶功法推到圆满约 280 万（大乘）/ 580 万（渡劫），
+ * 单是「大成→圆满」一步就要 168 万 / 348 万，
+ * 与同期「一次闭关百万级」维持同一量级，始终是需要攒的投入。
+ *
+ * 为什么不直接锚 expNeeded（≈5.88^境界）：那条曲线涨得比修为产出（≈1.32^境界）快得多，
+ * 照它定价会让后期一部功法吃掉数层的修为，反而成了新的断档。
+ */
+export const GONGFA_REALM_EXP_MUL: Record<RealmId, number> = {
+  qi: 1,
+  foundation: 1,
+  golden_core: 1,
+  nascent_soul: 1.8,
+  spirit_sea: 3.2,
+  void: 6.5,
+  integration: 13,
+  mahayana: 28,
+  tribulation: 58,
+  ascended: 58,
+}
+
+/** 参悟（学习）修为门槛 = 入门→小成 的一半：入门先付半次进阶的修为 */
+export const GONGFA_COMPREHEND_MUL = 0.5
+
 /** 品阶由低到高 */
 export const GONGFA_GRADE_ORDER: GongfaGrade[] = ['黄阶', '玄阶', '地阶', '天阶', '仙阶']
 /** 品阶配色（面板用） */
@@ -49,10 +83,26 @@ export const GONGFA_STAGE_MUL = [0.5, 0.75, 1, 1.5] as const
 /** 各级进阶消耗倍率：入门→小成、小成→大成、大成→圆满 */
 const GONGFA_STAGE_ADVANCE_MUL = [1, 3, 6] as const
 
-/** 把功法从当前阶段推进到下一阶段所需修为 */
+/** 该功法所在境界档的修为系数（脏数据回退 1） */
+export function gongfaRealmExpMul(g: GongfaDef): number {
+  return GONGFA_REALM_EXP_MUL[g.minRealm] ?? 1
+}
+
+/** 把功法从当前阶段推进到下一阶段所需修为（品阶基准 × 境界系数 × 阶段倍率） */
 export function gongfaAdvanceCost(g: GongfaDef, stage: number): number {
   if (stage < 0 || stage >= GONGFA_STAGE_LABELS.length - 1) return 0
-  return GONGFA_GRADE_ADVANCE_BASE[g.grade] * GONGFA_STAGE_ADVANCE_MUL[stage]
+  return Math.floor(
+    GONGFA_GRADE_ADVANCE_BASE[g.grade] * gongfaRealmExpMul(g) * GONGFA_STAGE_ADVANCE_MUL[stage],
+  )
+}
+
+/**
+ * 参悟（首次学习）这部功法所需修为。
+ * 旧版参悟只吃一本秘籍、不花修为，导致「学」完全没有资源门槛；
+ * v1.7 起按入门→小成的一半收修为，随境界同步抬升。
+ */
+export function gongfaComprehendCost(g: GongfaDef): number {
+  return Math.floor(gongfaAdvanceCost(g, 0) * GONGFA_COMPREHEND_MUL)
 }
 
 /** 大境界门槛文案，如「需筑基」 */

@@ -11,9 +11,17 @@ import {
 } from './gongfa'
 import { TUNING } from '../game/tuning'
 import itemsDb from './db/items.json'
+import { priceRealmMul, scaledPrice } from './priceCurve'
 
-/** 丹药/材料/法宝等静态定义：src/data/db/items.json */
-const dbItems = itemsDb.items as ItemDef[]
+/**
+ * 丹药/材料/法宝等静态定义：src/data/db/items.json。
+ * 售价按 v1.7 价格曲线（品阶档位）缩放 —— 数据表里写的仍是「练气基准价」，
+ * 后期档位由 priceCurve.ts 统一抬升，改曲线不必逐条改数据。
+ */
+const dbItems = (itemsDb.items as ItemDef[]).map((x) => ({
+  ...x,
+  price: scaledPrice(x.price, x),
+}))
 
 function toRecord(list: ItemDef[]): Record<string, ItemDef> {
   return Object.fromEntries(list.map((x) => [x.id, x]))
@@ -31,7 +39,8 @@ export const ITEMS: Record<string, ItemDef> = {
         name: `${g.name}·秘籍`,
         type: 'quest' as const,
         desc: `${g.grade}功法。${g.desc}`,
-        price: g.price,
+        // 秘籍按功法起步境界分档抬价（与物品同曲线，见 priceCurve.ts）
+        price: Math.max(1, Math.round(g.price * priceRealmMul(g.minRealm))),
       } satisfies ItemDef,
     ]),
   ),
