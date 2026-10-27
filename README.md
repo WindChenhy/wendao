@@ -2,7 +2,7 @@
 
 文字修仙养成游戏 · 网页快速迭代版。
 
-> **当前开发线 v1.7**（分支 `feature/update/v1.7`；`package.json` 版本号待发版时同步，现为 1.6.1）· 存档格式 `saveVersion = 18`（浏览器 localStorage，AES 密文）· 平台：网页（Vite）+ Android（Capacitor 8）
+> **当前版本 v1.7.0**（`package.json`）· 存档格式 `saveVersion = 18`（浏览器 localStorage，AES 密文）· 平台：网页（Vite）+ Android（Capacitor 8）
 
 从练气一层修到飞升，九境十二道途、宗门秘境、炼丹炼器、道侣灵兽、转生道痕一条龙。
 玩法是**回合制文字养成**：时间 / 打坐 / 闭关推进修炼，历练与秘境打怪，洞府百艺生产，转生叠加永久加成。
